@@ -45,7 +45,7 @@ sprints:
     end_date: "2026-05-17"
     capacity_points: 20
     committed_points: 14
-    completed_points: 3
+    completed_points: 6
     status: "in_progress"
     goal: "L'application est déployée sur Kubernetes avec vue globale formateur et admin CRUD, répétée avec un MCP pilote, prête pour le workshop du 2026-05-20."
     stories:
@@ -58,8 +58,9 @@ sprints:
       - story_id: "STORY-006"
         title: "Vue globale formateur"
         points: 3
-        status: "not_started"
-        assigned_to: null
+        status: "completed"
+        assigned_to: "Clément Raussin"
+        completed_date: "2026-04-26"
       - story_id: "STORY-007"
         title: "Vue admin"
         points: 3

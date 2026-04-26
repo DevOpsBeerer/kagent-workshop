@@ -5,3 +5,8 @@ export type BulbDto = {
   b: number;
   updated_at: string;
 };
+
+export type UserStateDto = {
+  login: string;
+  bulbs: BulbDto[];
+};

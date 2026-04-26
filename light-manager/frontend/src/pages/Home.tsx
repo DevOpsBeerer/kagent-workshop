@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Home() {
   const [login, setLogin] = useState("");
@@ -47,6 +47,17 @@ export default function Home() {
         <p className="text-xs text-slate-500 text-center">
           Si tu n'as pas de login, demande au formateur.
         </p>
+
+        <div className="pt-4 border-t border-slate-900 text-center text-xs text-slate-600 space-x-3">
+          <span>Formateur :</span>
+          <Link to="/global" className="hover:text-slate-300 underline-offset-2 hover:underline">
+            vue globale
+          </Link>
+          <span>·</span>
+          <Link to="/admin" className="hover:text-slate-300 underline-offset-2 hover:underline">
+            admin
+          </Link>
+        </div>
       </form>
     </main>
   );
