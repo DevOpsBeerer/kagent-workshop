@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -28,6 +28,9 @@ def mount_spa(app: FastAPI) -> None:
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str) -> FileResponse:
+        # Never swallow unknown /api/* routes — the SPA must not mask 404s on the JSON API.
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
         candidate = root / full_path if full_path else index
         if full_path and candidate.is_file():
             return FileResponse(candidate)
