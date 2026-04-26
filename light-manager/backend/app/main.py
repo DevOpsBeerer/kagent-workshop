@@ -2,11 +2,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.db import init_db
+from app.seed import seed_participants
 from app.spa import mount_spa
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_db()
+    seed_participants()
     yield
 
 

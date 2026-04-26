@@ -10,7 +10,7 @@ sprints:
     end_date: "2026-05-03"
     capacity_points: 20
     committed_points: 16
-    completed_points: 5
+    completed_points: 8
     status: "in_progress"
     goal: "Un participant peut ouvrir sa vue, voir ses 3 ampoules, et observer en temps réel les changements de couleur déclenchés via l'API."
     stories:
@@ -24,8 +24,9 @@ sprints:
       - story_id: "STORY-002"
         title: "Data layer & seeding"
         points: 3
-        status: "not_started"
-        assigned_to: null
+        status: "completed"
+        assigned_to: "Clément Raussin"
+        completed_date: "2026-04-26"
       - story_id: "STORY-003"
         title: "API bulbs"
         points: 3
