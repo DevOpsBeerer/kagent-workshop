@@ -3,3 +3,24 @@
 
 # macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Node / Vite
+node_modules/
+frontend/dist/
+
+# SQLite (dev)
+*.db
+*.db-shm
+*.db-wal
+backend/tests/_test.db

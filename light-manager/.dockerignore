@@ -1,0 +1,16 @@
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/node_modules/
+**/dist/
+**/.venv/
+**/venv/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/.DS_Store
+.git/
+.claude/
+bmad/
+docs/
+README.md
