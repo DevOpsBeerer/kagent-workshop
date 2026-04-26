@@ -56,3 +56,78 @@ export async function fetchState(signal?: AbortSignal): Promise<FetchStateResult
     };
   }
 }
+
+
+export type FetchUsersResult =
+  | { kind: "ok"; logins: string[] }
+  | { kind: "error"; message: string }
+  | { kind: "aborted" };
+
+export async function fetchUsers(signal?: AbortSignal): Promise<FetchUsersResult> {
+  try {
+    const response = await fetch("/api/users", { signal });
+    if (!response.ok) {
+      return { kind: "error", message: `HTTP ${response.status}` };
+    }
+    const data = (await response.json()) as string[];
+    return { kind: "ok", logins: data };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return { kind: "aborted" };
+    }
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : "unknown",
+    };
+  }
+}
+
+
+export type CreateUserResult =
+  | { kind: "ok" }
+  | { kind: "duplicate" }
+  | { kind: "invalid"; message: string }
+  | { kind: "error"; message: string };
+
+export async function createUser(login: string): Promise<CreateUserResult> {
+  try {
+    const response = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login }),
+    });
+    if (response.status === 201) return { kind: "ok" };
+    if (response.status === 409) return { kind: "duplicate" };
+    if (response.status === 400) {
+      return { kind: "invalid", message: "Login invalide" };
+    }
+    return { kind: "error", message: `HTTP ${response.status}` };
+  } catch (err) {
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : "unknown",
+    };
+  }
+}
+
+
+export type DeleteUserResult =
+  | { kind: "ok" }
+  | { kind: "not-found" }
+  | { kind: "error"; message: string };
+
+export async function deleteUser(login: string): Promise<DeleteUserResult> {
+  try {
+    const response = await fetch(`/api/users/${encodeURIComponent(login)}`, {
+      method: "DELETE",
+    });
+    if (response.status === 204) return { kind: "ok" };
+    if (response.status === 404) return { kind: "not-found" };
+    return { kind: "error", message: `HTTP ${response.status}` };
+  } catch (err) {
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : "unknown",
+    };
+  }
+}
