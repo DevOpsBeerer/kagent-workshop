@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: light-manager
+  namespace: light-manager
+  labels:
+    app.kubernetes.io/name: light-manager
+    app.kubernetes.io/component: app
+  annotations:
+    # Adapt the cluster issuer name to your environment (cert-manager).
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Body limit: nothing big, but keep reasonable for JSON payloads.
+    nginx.ingress.kubernetes.io/proxy-body-size: 64k
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - light-manager.example.com
+    secretName: light-manager-tls
+  rules:
+  - host: light-manager.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: light-manager
+            port:
+              number: 80

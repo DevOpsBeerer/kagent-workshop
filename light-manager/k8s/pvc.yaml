@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: light-manager-data
+  namespace: light-manager
+  labels:
+    app.kubernetes.io/name: light-manager
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Pin a storage class if your cluster has more than one default candidate.
+  # storageClassName: standard

@@ -45,8 +45,8 @@ sprints:
     end_date: "2026-05-17"
     capacity_points: 20
     committed_points: 14
-    completed_points: 9
-    status: "in_progress"
+    completed_points: 14
+    status: "completed"
     goal: "L'application est déployée sur Kubernetes avec vue globale formateur et admin CRUD, répétée avec un MCP pilote, prête pour le workshop du 2026-05-20."
     stories:
       - story_id: "STORY-004"
@@ -70,13 +70,15 @@ sprints:
       - story_id: "STORY-008"
         title: "Packaging & déploiement Kubernetes"
         points: 5
-        status: "not_started"
-        assigned_to: null
+        status: "completed"
+        assigned_to: "Clément Raussin"
+        completed_date: "2026-04-26"
+        notes: "Manifests + README-deploy.md livrés et validés en --dry-run=client. Apply réel sur cluster Qiminfo à effectuer avant le 2026-05-20."
 
 velocity:
   sprint_1: 16
-  sprint_2: null
-  rolling_average: 16
+  sprint_2: 14
+  rolling_average: 15
 
 team:
   size: 2
