@@ -12,6 +12,18 @@ def _participant_login(index: int) -> str:
     return f"participant-{index:02d}"
 
 
+def create_user_with_bulbs(session: Session, login: str) -> User:
+    """Insert a User and its 3 default bulbs at (0, 0, 0).
+
+    Caller is responsible for committing the session and for upstream uniqueness checks.
+    """
+    user = User(login=login)
+    session.add(user)
+    for slot in range(1, BULBS_PER_USER + 1):
+        session.add(Bulb(user_login=login, slot=slot, r=0, g=0, b=0))
+    return user
+
+
 def seed_participants() -> int:
     """Idempotent seeding: only runs when the users table is empty.
 
@@ -23,9 +35,6 @@ def seed_participants() -> int:
             return 0
 
         for i in range(1, PARTICIPANT_COUNT + 1):
-            login = _participant_login(i)
-            session.add(User(login=login))
-            for slot in range(1, BULBS_PER_USER + 1):
-                session.add(Bulb(user_login=login, slot=slot, r=0, g=0, b=0))
+            create_user_with_bulbs(session, _participant_login(i))
         session.commit()
         return PARTICIPANT_COUNT

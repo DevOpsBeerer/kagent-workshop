@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.db import init_db
-from app.routers import bulbs
+from app.routers import bulbs, state, users
 from app.seed import seed_participants
 from app.spa import mount_spa
 
@@ -31,5 +31,7 @@ async def health() -> dict[str, str]:
 
 
 app.include_router(bulbs.router)
+app.include_router(users.router)
+app.include_router(state.router)
 
 mount_spa(app)
