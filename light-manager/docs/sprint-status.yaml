@@ -10,8 +10,8 @@ sprints:
     end_date: "2026-05-03"
     capacity_points: 20
     committed_points: 16
-    completed_points: 11
-    status: "in_progress"
+    completed_points: 16
+    status: "completed"
     goal: "Un participant peut ouvrir sa vue, voir ses 3 ampoules, et observer en temps réel les changements de couleur déclenchés via l'API."
     stories:
       - story_id: "STORY-001"
@@ -36,8 +36,9 @@ sprints:
       - story_id: "STORY-005"
         title: "Vue participant"
         points: 5
-        status: "not_started"
-        assigned_to: null
+        status: "completed"
+        assigned_to: "Clément Raussin"
+        completed_date: "2026-04-26"
 
   - sprint_number: 2
     start_date: "2026-05-04"
@@ -70,9 +71,9 @@ sprints:
         assigned_to: null
 
 velocity:
-  sprint_1: null
+  sprint_1: 16
   sprint_2: null
-  rolling_average: null
+  rolling_average: 16
 
 team:
   size: 2
