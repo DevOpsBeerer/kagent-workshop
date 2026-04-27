@@ -7,7 +7,7 @@ project_type: "api"
 project_level: 2
 communication_language: "English"
 output_language: "English"
-last_updated: "2026-04-27T09:30:00Z"
+last_updated: "2026-04-27T17:05:00Z"
 
 # Workflow Status Tracking
 # Status values:
@@ -38,7 +38,7 @@ workflow_status:
   # Phase 2: Planning (Required - choose one based on project level)
   - name: prd
     phase: 2
-    status: "required"  # required for level 2+, recommended for level 1
+    status: "docs/prd-kagent-workshop-scenarios-2026-04-27.md"
     description: "Product Requirements Document"
 
   - name: tech-spec
