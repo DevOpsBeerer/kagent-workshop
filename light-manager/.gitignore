@@ -15,9 +15,10 @@ venv/
 build/
 dist/
 
-# Node / Vite
+# Node / Vite / TypeScript
 node_modules/
 frontend/dist/
+*.tsbuildinfo
 
 # SQLite (dev)
 *.db
