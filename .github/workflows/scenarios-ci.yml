@@ -1,0 +1,32 @@
+# Draft CI for kagent-workshop-scenarios.
+# Stub — STORY-002 wires validate-tours; STORY-003/005/011 will extend with
+# lint-agents, lint-manifests, and gitleaks.
+#
+# Path filter keeps this workflow from running on light-manager-only changes.
+
+name: scenarios-ci
+
+on:
+  pull_request:
+    paths:
+      - 'scenarios/**'
+      - '.github/workflows/scenarios-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scenarios/**'
+      - '.github/workflows/scenarios-ci.yml'
+
+jobs:
+  validate-tours:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scenarios
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: validate-tours
+        run: make validate-tours
