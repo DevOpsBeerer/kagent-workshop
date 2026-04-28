@@ -1,0 +1,23 @@
+# Secrets / credentials (NFR-011)
+.env
+.env.*
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+*.egg-info/
+
+# Node / TypeScript (tooling for tour-schema validation, etc.)
+node_modules/
+*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
