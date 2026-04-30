@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 1
-last_updated: "2026-04-28T17:30:00Z"
+last_updated: "2026-04-30T00:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -30,7 +30,7 @@ sprints:
     end_date: "2026-05-01"
     capacity_points: 30
     committed_points: 26
-    completed_points: 3
+    completed_points: 6
     status: "in_progress"
     stories:
       - story_id: "STORY-001"
@@ -64,7 +64,9 @@ sprints:
         frs: ["FR-003"]
         points: 3
         owner: "joint"
-        status: "not_started"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
       - story_id: "STORY-005"
         title: "Author dev loop (preflight, kind, Makefile)"
         epic: "EPIC-001"
@@ -299,6 +301,6 @@ metrics:
   total_epics: 4
   total_stories: 29
   total_points: 89
-  stories_completed: 2
+  stories_completed: 3
   stories_in_progress: 0
-  stories_not_started: 27
+  stories_not_started: 26
