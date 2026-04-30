@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 1
-last_updated: "2026-04-30T16:00:00Z"
+last_updated: "2026-04-30T16:30:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -30,7 +30,7 @@ sprints:
     end_date: "2026-05-01"
     capacity_points: 30
     committed_points: 26
-    completed_points: 11
+    completed_points: 14
     status: "in_progress"
     stories:
       - story_id: "STORY-001"
@@ -96,7 +96,9 @@ sprints:
         frs: ["FR-007"]
         points: 3
         owner: "joint"
-        status: "not_started"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
       - story_id: "STORY-009"
         title: "apps/mission-control variant"
         epic: "EPIC-001"
@@ -303,6 +305,6 @@ metrics:
   total_epics: 4
   total_stories: 29
   total_points: 89
-  stories_completed: 4
+  stories_completed: 5
   stories_in_progress: 0
-  stories_not_started: 25
+  stories_not_started: 24
