@@ -68,7 +68,7 @@ The four scenarios are framed as a single narrative arc on a fictional Artemis l
 | UC3 | Lunar rover telemetry leaks memory until the kernel reaps it.                             | `lunar-rover-telemetry` Deployment       |
 | UC4 | A mission coordinator fans out diagnostics across the three sub-incidents and signals each verdict on a bulb. | `artemis-mission-coordinator` Agent + bulbs |
 
-The full naming vocabulary (resource → Artemis identity) is locked in `docs/artemis-naming.md` (lands with STORY-006). All Kubernetes resource names under `uc<N>/` follow this vocabulary (FR-005 AC).
+The full naming vocabulary (namespaces, Deployments, kagent Agent CRDs, ToolServer, ModelConfig, FR-017 bulb-colour mapping) is locked in [`docs/artemis-naming.md`](docs/artemis-naming.md). All Kubernetes resource names under `uc<N>/` follow that vocabulary (FR-005 AC).
 
 ## Tour distribution (informational only)
 
