@@ -133,7 +133,7 @@ The directory layout is the contract: `uc<N>/` belongs to exactly one author (NF
 ### Conventions
 
 - **Per-UC ownership boundary (NFR-008)** — `CODEOWNERS` (STORY-011) enforces that `uc<N>/` PRs require the UC's owner.
-- **Tour content convention (FR-006)** — every tour follows the CLI baseline → "Now ask the agent" → contrast recap structure. Documented in `docs/tour-content-conventions.md` (STORY-007).
+- **Tour content convention (FR-006)** — every tour follows the CLI baseline → "Now ask the agent" → contrast recap structure. Documented in [`docs/tour-content-conventions.md`](docs/tour-content-conventions.md).
 - **Artemis naming (FR-005)** — every K8s resource name draws from `docs/artemis-naming.md` (STORY-006).
 - **No `:latest` (NFR-005)** — every image and CRD reference pins a version.
 - **No secrets in repo (NFR-011)** — `.gitignore` covers `.env*` and `kubeconfig*`; `gitleaks` runs in CI (STORY-011).
