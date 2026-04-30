@@ -8,7 +8,7 @@ Source for the FastAPI applications each UC's broken Deployment runs. All varian
 | --------------------------------------------------- | -------- | ------------------------------------------------------------------------ |
 | [`_skeleton/`](_skeleton/README.md)                 | (none)   | Reference template authors fork from — never deployed.                   |
 | [`mission-control/`](mission-control/README.md)     | UC1, UC2 | Baseline `/healthz` only. Deployed broken via image-tag (UC1) and scheduling (UC2). |
-| `lunar-rover-telemetry/`                            | UC3, UC4 | Adds `/leak` (memory leak endpoint) and `/metrics` (Prometheus). *Lands in STORY-010.* |
+| [`lunar-rover-telemetry/`](lunar-rover-telemetry/README.md) | UC3, UC4 | Adds `/leak` (1 MiB-per-call memory leak) and `/metrics` (Prometheus). |
 
 ## Image build and publish
 

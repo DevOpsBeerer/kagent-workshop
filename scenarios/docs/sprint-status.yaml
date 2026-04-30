@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 1
-last_updated: "2026-04-30T16:45:00Z"
+last_updated: "2026-04-30T17:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -30,7 +30,7 @@ sprints:
     end_date: "2026-05-01"
     capacity_points: 30
     committed_points: 26
-    completed_points: 15
+    completed_points: 18
     status: "in_progress"
     stories:
       - story_id: "STORY-001"
@@ -114,7 +114,9 @@ sprints:
         frs: ["FR-007"]
         points: 3
         owner: "joint"
-        status: "not_started"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
       - story_id: "STORY-011"
         title: "CODEOWNERS + gitleaks + lint-manifests CI hooks"
         epic: "EPIC-001"
@@ -307,6 +309,6 @@ metrics:
   total_epics: 4
   total_stories: 29
   total_points: 89
-  stories_completed: 6
+  stories_completed: 7
   stories_in_progress: 0
-  stories_not_started: 23
+  stories_not_started: 22
