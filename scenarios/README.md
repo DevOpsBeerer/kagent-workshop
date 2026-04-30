@@ -90,13 +90,30 @@ Consequences for authors:
 
 The author dev loop is a kind cluster + per-UC `make` targets, intentionally separate from the workshop runtime (kind survives only as the author tool — participants run on vCluster).
 
-This section is a stub at M1; the full implementation lands in **STORY-005** (Sprint 1) which adds `scripts/preflight.sh`, `scripts/kind-config.yaml`, and `make uc<N>-up` / `make uc<N>-down` targets. Until then:
+**Prerequisites** (validated by `make preflight`): `docker` (daemon reachable), `kubectl`, `kind`, `helm`, and the `kagent` CLI on `PATH`. The kagent CRDs are installed by `make kagent-install`.
 
-- `make validate-tours` (already wired) — JSON-schema-validate every `uc<N>/tour.json` against the vendored `schemas/workshop-tour.schema.json`. See `Makefile`.
-- `make lint-manifests` (lands with STORY-011) — `kubectl apply --dry-run=client` over every UC.
-- `make lint-agents` (parked from STORY-003 — see Sprint 1 status in `docs/sprint-status.yaml`) — vendor + validate kagent v0.9.0 CRDs.
+**One-shot bring-up of UC&lt;N&gt;** (idempotent — re-runnable on a hot cluster):
 
-Run these locally before opening a PR.
+```bash
+make preflight        # validates toolchain + (if cluster reachable) kagent CRDs
+make uc1-up           # kind-up → kagent-install (v0.9.0) → kubectl apply uc1/manifests + uc1/agents
+# … exercise the tour …
+make uc1-down         # delete uc1 resources, keep cluster up
+```
+
+**Targets:**
+
+- `make preflight` — required-tool + kagent-CRD presence check, exits non-zero with actionable messages.
+- `make kind-up` / `make kind-down` — create / delete the local kind cluster (`kagent-workshop`). Config: `scripts/kind-config.yaml`.
+- `make kagent-install` — `helm upgrade --install` of kagent **v0.9.0** into the current context (idempotent).
+- `make uc<N>-up` (N ∈ 1..4) — chains `kind-up` → `kagent-install` → applies `uc<N>/manifests/` and `uc<N>/agents/`. No-ops gracefully when those dirs are still empty (the per-UC content lands in M2–M4).
+- `make uc<N>-down` — deletes the UC's resources but leaves the kind cluster up so the next `uc<M>-up` is fast. `make kind-down` is the hard reset (use when NFR-003 cold-deploy reproduction is what you're testing).
+
+**Lint targets** (run before opening a PR):
+
+- `make validate-tours` — JSON-schema-validate every `uc<N>/tour.json` against `schemas/workshop-tour.schema.json`.
+- `make lint-manifests` — `kubectl apply --dry-run=client` over every UC. *Lands with STORY-011.*
+- `make lint-agents` — validate every `uc<N>/agents/*.yaml` against the vendored kagent v0.9.0 CRDs. *Parked: STORY-003 was deferred — until it lands, agent CRDs are validated end-to-end by `make uc<N>-up` apply against a real cluster.*
 
 ### Repo layout
 
