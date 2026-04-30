@@ -5,8 +5,8 @@
 project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
-current_sprint: 1
-last_updated: "2026-04-30T17:45:00Z"
+current_sprint: 2
+last_updated: "2026-04-30T18:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -31,7 +31,7 @@ sprints:
     capacity_points: 30
     committed_points: 26
     completed_points: 24
-    status: "in_progress"
+    status: "completed"
     stories:
       - story_id: "STORY-001"
         title: "Initialize repo skeleton"
@@ -57,7 +57,8 @@ sprints:
         nfrs: ["NFR-005"]
         points: 2
         owner: "joint"
-        status: "not_started"
+        status: "skipped"
+        skip_reason: "Deferred from M1: kagent CRDs reach the cluster via the canonical OCI helm chart (oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds) installed by `make kagent-install`; offline lint-agents is a nice-to-have, not a workshop blocker. M2 manifests get end-to-end-validated by `make uc<N>-up` against a real cluster instead. Re-evaluate before M5."
       - story_id: "STORY-004"
         title: "Root README"
         epic: "EPIC-001"
@@ -304,12 +305,12 @@ sprints:
         status: "not_started"
 
 velocity:
-  sprint_1: null
+  sprint_1: 24
   sprint_2: null
   sprint_3: null
   sprint_4: null
   sprint_5: null
-  rolling_average: null
+  rolling_average: 24
 
 metrics:
   total_epics: 4
@@ -317,4 +318,5 @@ metrics:
   total_points: 89
   stories_completed: 10
   stories_in_progress: 0
-  stories_not_started: 19
+  stories_skipped: 1
+  stories_not_started: 18
