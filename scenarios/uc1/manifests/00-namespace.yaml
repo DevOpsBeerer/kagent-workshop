@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: artemis-uc1
+  labels:
+    kagent-workshop/uc: uc1
+    kagent-workshop/scenario: imagepullbackoff

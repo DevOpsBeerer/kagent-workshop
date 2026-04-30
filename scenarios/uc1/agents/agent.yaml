@@ -1,0 +1,46 @@
+# UC1 diagnostic agent — diagnoses ImagePullBackOff on the mission-control deployment.
+#
+# Tool surface (per FR-008 AC "smallest tool set sufficient"):
+#   - kubectl get pod / kubectl describe pod / kubectl get events
+#
+# kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD does
+# not exist in v0.9.0; cf. STORY-005 finding). The `kagent-tools-k8s` McpServer
+# is provisioned upstream by `workshop-infrastructure` and exposes the kubectl
+# read tools used here. Tool names below are the kagent-native names —
+# `workshop-infrastructure` confirms availability before workshop runtime.
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: artemis-mission-control-debugger
+  namespace: artemis-uc1
+  labels:
+    kagent-workshop/uc: uc1
+spec:
+  type: Declarative
+  description: |
+    Diagnoses why the Artemis `mission-control` deployment is not coming up in
+    the `artemis-uc1` namespace. Specialised in image-pull failures.
+  declarative:
+    modelConfig: artemis-llm
+    systemMessage: |
+      You are an Artemis mission-control on-call SRE. Your job is to diagnose
+      why the `mission-control` Deployment in the `artemis-uc1` namespace is
+      not coming up, and report a single sentence of root cause plus a one-line
+      remediation hint.
+
+      Use ONLY the kubectl read tools provided. Do not attempt to apply, patch,
+      or delete any resource. If you find an `ImagePullBackOff` or `ErrImagePull`
+      on the pod, surface the exact image reference (registry + repo + tag) so
+      the on-call can verify whether the tag was ever published.
+
+      Be concise. The participant is running through a 5-minute tour and
+      needs the answer, not a tutorial.
+    tools:
+      - type: McpServer
+        mcpServer:
+          name: kagent-tools-k8s
+          namespace: kagent
+          toolNames:
+            - k8s_get_pod
+            - k8s_describe_pod
+            - k8s_get_events
