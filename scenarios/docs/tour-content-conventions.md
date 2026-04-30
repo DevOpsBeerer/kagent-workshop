@@ -21,8 +21,8 @@ Every `uc<N>/tour.json` has exactly these three beats. They can each span multip
 
 | Beat | Title shape (literal or close)                          | Purpose                                                                                                                | What goes inside `commands` / `fileEdits`                                                                  |
 | ---- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1    | `CLI baseline — …`                                      | Walk the participant through the manual diagnosis. Friction is the point — this is the "before" picture.               | `commands[]` with each `kubectl` invocation as one button. UC1's tour also `fileEdits.create`s `uc1/manifests/deployment.yaml` to apply the broken state. |
-| 2    | `Now ask the agent`                                     | Hand the same problem to the kagent agent and let it work. Single invocation, one synthesis.                           | One `commands[]` entry: `kagent invoke <agent-name> --message '<question>'`. UC4 invokes the coordinator. |
+| 1    | `CLI baseline — …`                                      | Walk the participant through the manual diagnosis. Friction is the point — this is the "before" picture.               | `commands[]` with each `kubectl` invocation as one button. The first beat's first step also `fileEdits.create`s the UC's manifests so the participant can apply the broken state without leaving VS Code. |
+| 2    | `Now ask the agent`                                     | Hand the same problem to the kagent agent and let it work. Single invocation, one synthesis.                           | One `commands[]` entry: `kagent invoke --agent <name> --namespace <ns> --task '<question>'`. UC4 invokes the coordinator. |
 | 3    | `What did the agent do better?`                         | Name the contrast in plain language. Time saved, correlation done, dashboard auto-generated, multi-agent fan-out, etc. | No `commands` or `fileEdits` — pure `explanation` markdown.                                                |
 
 The titles can be lightly Artemis-themed (e.g. `CLI baseline — listen to mission-control`) but must keep the beat label recognisable. The `workshop-tour` extension renders the titles verbatim.
@@ -74,7 +74,7 @@ The fragment below is what the three beats look like inside `uc1/tour.json`. It 
   "commands": [
     {
       "label": "Ask the agent",
-      "command": "kagent invoke artemis-mission-control-debugger --message 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'"
+      "command": "kagent invoke --agent artemis-mission-control-debugger --namespace artemis-uc1 --task 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'"
     }
   ]
 }
