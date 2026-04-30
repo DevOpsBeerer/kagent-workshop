@@ -112,7 +112,7 @@ make uc1-down         # delete uc1 resources, keep cluster up
 **Lint targets** (run before opening a PR):
 
 - `make validate-tours` — JSON-schema-validate every `uc<N>/tour.json` against `schemas/workshop-tour.schema.json`.
-- `make lint-manifests` — `kubectl apply --dry-run=client` over every UC. *Lands with STORY-011.*
+- `make lint-manifests` — `kubectl apply --dry-run=client` over every `uc<N>/manifests/`. Wired into CI alongside `validate-tours`.
 - `make lint-agents` — validate every `uc<N>/agents/*.yaml` against the vendored kagent v0.9.0 CRDs. *Parked: STORY-003 was deferred — until it lands, agent CRDs are validated end-to-end by `make uc<N>-up` apply against a real cluster.*
 
 ### Repo layout
@@ -128,15 +128,15 @@ docs/                  PRD, architecture, sprint plan, conventions
 Makefile               Author + CI Make targets
 ```
 
-The directory layout is the contract: `uc<N>/` belongs to exactly one author (NFR-008); shared dirs require both authors' review. The full ownership map and `CODEOWNERS` enforcement land in **STORY-011**.
+The directory layout is the contract: `uc<N>/` belongs to exactly one author (NFR-008); shared dirs require both authors' review. Full ownership map enforced by `CODEOWNERS` at the workshop repo root.
 
 ### Conventions
 
-- **Per-UC ownership boundary (NFR-008)** — `CODEOWNERS` (STORY-011) enforces that `uc<N>/` PRs require the UC's owner.
+- **Per-UC ownership boundary (NFR-008)** — `CODEOWNERS` (at the workshop repo root, `../CODEOWNERS`) enforces that `uc<N>/` PRs require the UC's owner.
 - **Tour content convention (FR-006)** — every tour follows the CLI baseline → "Now ask the agent" → contrast recap structure. Documented in [`docs/tour-content-conventions.md`](docs/tour-content-conventions.md).
-- **Artemis naming (FR-005)** — every K8s resource name draws from `docs/artemis-naming.md` (STORY-006).
+- **Artemis naming (FR-005)** — every K8s resource name draws from [`docs/artemis-naming.md`](docs/artemis-naming.md).
 - **No `:latest` (NFR-005)** — every image and CRD reference pins a version.
-- **No secrets in repo (NFR-011)** — `.gitignore` covers `.env*` and `kubeconfig*`; `gitleaks` runs in CI (STORY-011).
+- **No secrets in repo (NFR-011)** — `.gitignore` covers `.env*` and `kubeconfig*`; `gitleaks` runs in CI on every PR.
 
 ### Where the work is tracked
 

@@ -8,6 +8,9 @@ TOUR_SCHEMA := schemas/workshop-tour.schema.json
 TOUR_FILES  := $(wildcard uc*/tour.json)
 AJV         := npx --yes ajv-cli@5
 
+# ── Manifest lint (STORY-011, NFR-006) ──
+UC_MANIFEST_DIRS := $(wildcard uc*/manifests)
+
 # ── Author dev loop (STORY-005, FR-004) ──
 KIND_CLUSTER     := kagent-workshop
 KIND_CONFIG      := scripts/kind-config.yaml
@@ -17,13 +20,14 @@ KAGENT_REPO_NAME := kagent
 KAGENT_REPO_URL  := https://kagent-dev.github.io/kagent
 UCS              := 1 2 3 4
 
-.PHONY: help validate-tours preflight kind-up kind-down kagent-install \
+.PHONY: help validate-tours lint-manifests preflight kind-up kind-down kagent-install \
         $(addprefix uc,$(addsuffix -up,$(UCS))) \
         $(addprefix uc,$(addsuffix -down,$(UCS)))
 
 help:
 	@echo "Lint targets:"
 	@echo "  validate-tours    Validate every uc*/tour.json against $(TOUR_SCHEMA)"
+	@echo "  lint-manifests    kubectl apply --dry-run=client over every uc*/manifests/"
 	@echo ""
 	@echo "Author dev-loop targets (FR-004):"
 	@echo "  preflight         Validate Docker / kubectl / kind / helm / kagent CRDs"
@@ -42,6 +46,24 @@ validate-tours:
 	fi; \
 	echo "validate-tours: validating $(words $(TOUR_FILES)) tour file(s) against $(TOUR_SCHEMA)"; \
 	$(AJV) validate --spec=draft7 -s $(TOUR_SCHEMA) $(foreach f,$(TOUR_FILES),-d $(f))
+
+# ── Manifest lint ──
+
+lint-manifests:
+	@if [ -z "$(UC_MANIFEST_DIRS)" ]; then \
+		echo "lint-manifests: no uc*/manifests/ dirs yet — nothing to validate."; \
+		exit 0; \
+	fi; \
+	rc=0; \
+	for d in $(UC_MANIFEST_DIRS); do \
+		if compgen -G "$$d/*.yaml" >/dev/null; then \
+			echo "lint-manifests: kubectl apply --dry-run=client -f $$d"; \
+			kubectl apply --dry-run=client -f $$d || rc=1; \
+		else \
+			echo "lint-manifests: $$d is empty — skipping."; \
+		fi; \
+	done; \
+	exit $$rc
 
 # ── Author dev loop ──
 

@@ -1,8 +1,9 @@
-# Draft CI for kagent-workshop-scenarios.
-# Stub — STORY-002 wires validate-tours; STORY-003/005/011 will extend with
-# lint-agents, lint-manifests, and gitleaks.
+# CI for kagent-workshop-scenarios.
+# STORY-002 wires validate-tours; STORY-011 adds lint-manifests + secret-scan.
+# STORY-003 (deferred) will add lint-agents.
 #
 # Path filter keeps this workflow from running on light-manager-only changes.
+# `secret-scan` runs against the whole repo (no working-directory).
 
 name: scenarios-ci
 
@@ -30,3 +31,30 @@ jobs:
           node-version: '20'
       - name: validate-tours
         run: make validate-tours
+
+  lint-manifests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scenarios
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: v1.31.0
+      - name: lint-manifests
+        run: make lint-manifests
+
+  secret-scan:
+    # gitleaks runs over the whole repository, not just scenarios/, so the
+    # NFR-011 guarantee covers cross-repo leaks too.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # gitleaks scans full history
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
