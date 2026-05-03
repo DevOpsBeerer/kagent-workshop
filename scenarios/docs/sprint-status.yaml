@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2
-last_updated: "2026-04-30T18:50:00Z"
+last_updated: "2026-05-03T16:30:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -139,7 +139,7 @@ sprints:
     end_date: "2026-05-08"
     capacity_points: 30
     committed_points: 20
-    completed_points: 8
+    completed_points: 10
     status: "in_progress"
     stories:
       - story_id: "STORY-012"
@@ -166,8 +166,10 @@ sprints:
         frs: ["FR-008"]
         nfrs: ["NFR-003"]
         points: 2
-        owner: "Clément Raussin"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: Clément OOO at start of M2; Quentin ghost-authored the README. Cross-author repro AC therefore lands on Clément when he is back.
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 2
       - story_id: "STORY-015"
         title: "UC2 manifests + bootstrap taint Job + agent CRDs"
         epic: "EPIC-002"
@@ -320,7 +322,7 @@ metrics:
   total_epics: 4
   total_stories: 29
   total_points: 89
-  stories_completed: 12
+  stories_completed: 13
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 16
+  stories_not_started: 15
