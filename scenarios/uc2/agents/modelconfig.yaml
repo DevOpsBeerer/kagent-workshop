@@ -1,0 +1,20 @@
+# ModelConfig for the UC2 diagnostic agent.
+#
+# Provider, model, and credentials are externalised — `workshop-infrastructure`
+# injects the actual provider choice and the `artemis-llm-credentials` Secret at
+# deploy time per architecture L142–146 + NFR-011 (no secrets in repo).
+#
+# UC2 ships with the same default as UC1 (`provider: OpenAI` + `model: gpt-4o-mini`).
+# A kustomize patch from workshop-infrastructure can override without editing this file.
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: artemis-llm
+  namespace: artemis-uc2
+  labels:
+    kagent-workshop/uc: uc2
+spec:
+  provider: OpenAI
+  model: gpt-4o-mini
+  apiKeySecret: artemis-llm-credentials
+  apiKeySecretKey: api-key

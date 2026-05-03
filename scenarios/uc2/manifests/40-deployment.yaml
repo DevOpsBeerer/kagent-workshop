@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-control
+  namespace: artemis-uc2
+  labels:
+    app: mission-control
+    kagent-workshop/uc: uc2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mission-control
+  template:
+    metadata:
+      labels:
+        app: mission-control
+    spec:
+      # Deliberately no toleration for artemis.kagent.dev/launch-pad-fault — the
+      # bootstrap Job (20-bootstrap-taint-job.yaml) applies that taint with
+      # NoSchedule effect, leaving the Pod Pending with an "untolerated taint"
+      # event (FR-010). The image tag :v1 is real (the same one UC4's
+      # mission-control-pending Deployment will reuse) — only the scheduling
+      # constraint is unsatisfiable, per FR-010 AC.
+      containers:
+        - name: mission-control
+          image: ghcr.io/kagent-workshop/mission-control:v1
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: mission-control
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

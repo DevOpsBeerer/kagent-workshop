@@ -1,0 +1,70 @@
+# RBAC for the bootstrap-launch-pad-fault Job (20-bootstrap-taint-job.yaml).
+#
+# The Job needs two cluster-scoped + namespaced permissions:
+#   - patch nodes  → to apply the synthetic taint via `kubectl taint`
+#   - patch deploy → to `kubectl rollout restart` mission-control after the taint,
+#                    which closes the cold-deploy race that would otherwise let a
+#                    Pod bind to the node before the taint lands (NFR-003).
+#
+# Both permissions are scoped to the absolute minimum verbs required.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bootstrap-launch-pad-fault
+  namespace: artemis-uc2
+  labels:
+    kagent-workshop/uc: uc2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: artemis-uc2-bootstrap-node-tainter
+  labels:
+    kagent-workshop/uc: uc2
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: artemis-uc2-bootstrap-node-tainter
+  labels:
+    kagent-workshop/uc: uc2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: artemis-uc2-bootstrap-node-tainter
+subjects:
+  - kind: ServiceAccount
+    name: bootstrap-launch-pad-fault
+    namespace: artemis-uc2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bootstrap-deployment-restarter
+  namespace: artemis-uc2
+  labels:
+    kagent-workshop/uc: uc2
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bootstrap-deployment-restarter
+  namespace: artemis-uc2
+  labels:
+    kagent-workshop/uc: uc2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: bootstrap-deployment-restarter
+subjects:
+  - kind: ServiceAccount
+    name: bootstrap-launch-pad-fault
+    namespace: artemis-uc2

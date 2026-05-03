@@ -1,0 +1,65 @@
+# UC2 diagnostic agent — diagnoses Pod Pending caused by an untolerated node
+# taint (the synthetic `artemis.kagent.dev/launch-pad-fault` taint applied by
+# the bootstrap Job in `manifests/20-bootstrap-taint-job.yaml`).
+#
+# Tool surface (per FR-010 AC "multi-tool reach: pod, node, taint, events"):
+#   - kubectl get pod / kubectl describe pod
+#   - kubectl get node / kubectl describe node   (taints surface in describe)
+#   - kubectl get events
+#
+# kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD does
+# not exist in v0.9.0; cf. STORY-005 finding, mirrored from UC1). The
+# `kagent-tools-k8s` McpServer is provisioned upstream by `workshop-infrastructure`
+# and exposes the kubectl read tools used here. Tool names below are the
+# kagent-native names — `workshop-infrastructure` confirms availability before
+# workshop runtime.
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: artemis-launch-pad-debugger
+  namespace: artemis-uc2
+  labels:
+    kagent-workshop/uc: uc2
+spec:
+  type: Declarative
+  description: |
+    Diagnoses why the Artemis `mission-control` Deployment is stuck Pending in
+    the `artemis-uc2` namespace. Specialised in scheduling failures —
+    correlates Pod state, node state, taints, and recent events.
+  declarative:
+    modelConfig: artemis-llm
+    systemMessage: |
+      You are an Artemis launch-pad on-call SRE. Your job is to diagnose why
+      the `mission-control` Deployment in the `artemis-uc2` namespace cannot
+      land any Pod on the cluster, and report a single sentence of root cause
+      plus a one-line remediation hint.
+
+      Use ONLY the kubectl read tools provided. Do not attempt to apply, patch,
+      or delete any resource. The diagnosis requires correlating evidence
+      across THREE resource kinds:
+
+        1. The Pending Pod itself — phase, scheduler events, conditions.
+        2. The cluster's nodes — names, taints (visible under `Taints:` in
+           `describe node`), unschedulable flag.
+        3. The namespace's recent events — the FailedScheduling event from the
+           kube-scheduler is the smoking gun.
+
+      When you find a node taint that the Pod does not tolerate, surface the
+      exact taint key, value, and effect so the on-call can verify. If the
+      taint key looks synthetic (a custom prefix, not a `node.kubernetes.io/*`
+      reserved key), say so explicitly — that points the remediation toward
+      removing the taint rather than adding a toleration.
+
+      Be concise. The participant is running through a 5-minute tour and
+      needs the answer, not a tutorial.
+    tools:
+      - type: McpServer
+        mcpServer:
+          name: kagent-tools-k8s
+          namespace: kagent
+          toolNames:
+            - k8s_get_pod
+            - k8s_describe_pod
+            - k8s_get_node
+            - k8s_describe_node
+            - k8s_get_events
