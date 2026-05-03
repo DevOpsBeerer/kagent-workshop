@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2
-last_updated: "2026-05-03T17:00:00Z"
+last_updated: "2026-05-03T17:30:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -139,7 +139,7 @@ sprints:
     end_date: "2026-05-08"
     capacity_points: 30
     committed_points: 20
-    completed_points: 15
+    completed_points: 18
     status: "in_progress"
     stories:
       - story_id: "STORY-012"
@@ -185,7 +185,9 @@ sprints:
         frs: ["FR-011"]
         points: 3
         owner: "Quentin Rodic"
-        status: "not_started"
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 3
       - story_id: "STORY-017"
         title: "UC2 README + cross-author repro"
         epic: "EPIC-002"
@@ -324,7 +326,7 @@ metrics:
   total_epics: 4
   total_stories: 29
   total_points: 89
-  stories_completed: 14
+  stories_completed: 15
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 14
+  stories_not_started: 13
