@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2.5
-last_updated: "2026-05-04T14:50:00Z"
+last_updated: "2026-05-04T16:30:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -209,9 +209,9 @@ sprints:
     start_date: "2026-05-05"
     end_date: "2026-05-08"
     capacity_points: 24
-    committed_points: 11
-    completed_points: 8
-    status: "in_progress"
+    committed_points: 14
+    completed_points: 14
+    status: "completed"
     stories:
       - story_id: "STORY-030"
         title: "Mission-framing tour convention update"
@@ -244,8 +244,35 @@ sprints:
         nfrs: ["NFR-003", "NFR-008", "NFR-010"]
         points: 3
         owner: "Quentin Rodic"
-        status: "not_started"
+        status: "completed"
+        completion_date: "2026-05-04"
+        actual_points: 3
         # Blocked by STORY-030; independent of STORY-031 once convention is in.
+        # Manifests + agent CRDs unchanged from M2 (bit-for-bit). Tour rewritten
+        # under STORY-030's 4-beat convention: Beat 1 mission setup (no spoiler),
+        # Beat 2 single `kubectl get pods` friction signal, Beat 3 retains CLI
+        # invoke (kagent invoke …), Beat 4 manual recap of the five pod-side +
+        # node-side commands. AC #2 (NFR-003 reproduction sign-off on the
+        # rewritten tour) deferred to the PR / M5 dry-run — manifests are
+        # byte-identical to M2 so the cluster broken state is unchanged; only
+        # the tour text needs a real cold-deploy walk-through.
+      - story_id: "STORY-033"
+        title: "UC0 — Install kagent (prep tour)"
+        epic: "EPIC-001"
+        frs: ["FR-006"]
+        nfrs: ["NFR-008", "NFR-009", "NFR-010", "NFR-011"]
+        points: 3
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-05-04"
+        actual_points: 3
+        # Spike on `kagent install` profiles: `--profile demo` chosen so UC3
+        # finds the pre-packaged Prom/Grafana agents already wired (architecture
+        # L300). Tour is 4 steps under the new "Prep tours" convention exception
+        # (no 4-beat — UC0 has no diagnostic friction to surface). Provider is
+        # OpenAI per UC1's M2 ModelConfig; namespace is `kagent` (CLI default).
+        # Live walk-through on a real kagent v0.9.0 install deferred to the PR /
+        # M5 dry-run.
 
   - sprint_number: 3
     milestone: "M3"
@@ -375,9 +402,9 @@ velocity:
 
 metrics:
   total_epics: 4
-  total_stories: 32
-  total_points: 100
-  stories_completed: 18
+  total_stories: 33
+  total_points: 103
+  stories_completed: 20
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 13
+  stories_not_started: 12

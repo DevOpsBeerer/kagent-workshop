@@ -9,7 +9,7 @@ UC2 is the workshop's second beat: the participant has just learned the single-r
 
 ## Artemis narrative
 
-A replacement `mission-control` replica needs to come up on the only available launch pad — but the pad has been declared unsafe by a routine pre-flight check, and the replica was scheduled before anyone updated its toleration list. The participant plays the on-call: walks the pod-side diagnosis (`get pods`, `describe pod`, `get events`), sees a `FailedScheduling` event that names "untolerated taint" but doesn't carry the taint itself, then has to switch resource kinds (`describe node`) to find the synthetic `artemis.kagent.dev/launch-pad-fault=true:NoSchedule` taint sitting on the only node. They then hand the same problem to **`artemis-launch-pad-debugger`**, who correlates pod and node in one synthesis. See [`docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc.
+Mission control needs a replacement `mission-control` replica on the Artemis launch pad — the previous one rotated out at end of shift. The participant plays the on-call: applies the bundle as a routine launch-pad readiness sweep + replica deployment, sweeps the pod as a mission-status check, discovers the friction by hand (the replica hasn't come up), then hands the diagnosis to **`artemis-launch-pad-debugger`** from the operational CLI. The agent's response in the terminal closes the diagnostic loop in one synthesis — and the manual recap that follows names the cross-resource walk (pod side + node side) the participant skipped. See [`docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc, and [`docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) for the 4-beat structure (mission setup → status check → call the agent → manual recap).
 
 ## The bug
 
@@ -57,7 +57,7 @@ The pedagogical point made in the tour's Beat 3 ("What did the agent do better?"
 ```
 uc2/
   README.md          this file
-  tour.json          5-step workshop-tour content (FR-011, STORY-016)
+  tour.json          4-step workshop-tour content (FR-011, STORY-016 → STORY-032 mission-framing rewrite)
   manifests/
     00-namespace.yaml          artemis-uc2 namespace
     10-rbac.yaml               SA + ClusterRole/Binding (nodes/patch) + Role/Binding (deployments/patch)
@@ -145,5 +145,5 @@ kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault-
 - **PRD:** [`../docs/prd-kagent-workshop-scenarios-2026-04-27.md`](../docs/prd-kagent-workshop-scenarios-2026-04-27.md) — FR-010 (scenario package), FR-011 (tour), NFR-001/003/004 (performance + reliability).
 - **Architecture:** [`../docs/architecture-kagent-workshop-scenarios-2026-04-28.md`](../docs/architecture-kagent-workshop-scenarios-2026-04-28.md).
 - **Naming vocabulary:** [`../docs/artemis-naming.md`](../docs/artemis-naming.md) — UC2 row in the narrative arc, namespace + Deployment + Agent rows.
-- **Tour content convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) — the 3-beat structure UC2's `tour.json` instantiates (with the CLI-baseline beat split across two steps for the pod → node pivot).
+- **Tour content convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) — the 4-beat mission-framing structure UC2's `tour.json` instantiates (mission setup → status check → CLI invoke of the agent → manual recap of the pod-side / node-side commands the participant skipped).
 - **Sprint plan:** [`../docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md`](../docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md) §Sprint 2 — STORY-015 (manifests + agent CRDs), STORY-016 (`tour.json`), STORY-017 (this README + cross-author repro).

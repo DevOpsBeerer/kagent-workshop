@@ -32,6 +32,18 @@ The titles can be lightly Artemis-themed (e.g. `Mission setup — bring today's 
 
 The 4-beat is a **refinement** of the 3-step *kubectl-way → agent-way → contrast* claim in PRD §147, not a contradiction: Beat 1 is the silent prelude added in front, Beats 2–4 are the renamed CLI baseline / agent step / contrast.
 
+## Prep tours (UC0 exception)
+
+UC0 — and any future "run this first" tour like it — is exempt from the 4-beat structure. Prep tours are not diagnostic exercises: they have no friction to surface, no agent to invoke, no manual recap to flip. They follow a flat **N-step structure** with author-chosen step titles. UC0 is the only prep tour currently shipped (install kagent + verify env); UC1–UC4 stay 4-beat.
+
+Constraints that still apply to prep tours:
+
+- Tour `id` follows `kagent-uc<N>-<purpose>` (e.g. `kagent-uc0-install`).
+- Tour `title` follows `UC<N> — <purpose>` for index consistency with UC1–UC4.
+- Steps are self-contained (NFR-010), English (NFR-009), no secrets in `commands` or `fileEdits.content` (NFR-011).
+- `make validate-tours` must be green — the schema is structural, not narrative, so it does not enforce a 4-beat shape.
+- The no-spoiler rule does not meaningfully apply (there is nothing to spoil), but stay mission-themed: prep tours are part of the same Artemis arc.
+
 ## The no-spoiler rule
 
 The rule applies to **all participant-visible tour fields** — `title`, `description`, and every step's `title` and `explanation`. Together those are what the workshop-tour extension renders to the participant, in that order: the description is read **before Beat 1** when the participant picks the tour from the side-bar, so a spoiler in the description defeats the entire 4-beat structure.
@@ -199,7 +211,8 @@ When implementing STORY-013 / 016 / 020 / 026 / 031 / 032 (or any future tour):
 
 - [ ] `id` matches the locked value in the root README's UC index.
 - [ ] `title` is Artemis-themed, ≤ 80 chars, contains no bug-class names (`ImagePullBackOff`, `Pending`, `OOMKilled`, …) and no banned words. Anticipatory tension OK ("won't come online", "can't land on the launch pad").
-- [ ] `description` frames the scenario as a mission and names the agent's role; same banned-words / bug-class restriction as Beat 1.
+- [ ] `description` frames the scenario as a mission and names the agent's role; same banned-words / bug-class restriction as Beat 1. *(Prep tours: free-form description summarising the prep step; no bug class to hide.)*
+- [ ] **Prep-tour exception:** if this is UC0 or another `Prep tours` per `§Prep tours`, skip the four checklist items below — N free-form steps allowed; everything else still applies.
 - [ ] **Beat 1 — `Mission setup — …`** is exactly one step. The explanation contains none of the banned words (`broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, `unsafe`, `blocked`, `taint`) and no concrete bug specifics (image tags, taint keys, etc.). The deployment is framed as a mission objective.
 - [ ] **Beat 2 — `Mission status check — …`** is **one step** in the typical case (single `kubectl get pods …` that surfaces the friction). A second step only if the friction needs multi-resource observation to be visible. **Do not** put `describe pod` / `get events` / node-side commands here — they belong in Beat 4.
 - [ ] **Beat 3 — `Call the agent for help`** is exactly one step. The UC's invocation variant (UI/chat vs CLI invoke vs hybrid) is declared in the step explanation, and the exact prompt to paste/run is surfaced as a markdown block.

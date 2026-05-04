@@ -3,7 +3,7 @@
 **Epic:** EPIC-002 (UC1 / UC2 implementations)
 **Priority:** Must Have
 **Story Points:** 3
-**Status:** Not Started
+**Status:** Completed
 **Assigned To:** Quentin Rodic (UC2 owner)
 **Created:** 2026-05-04
 **Sprint:** 2.5 (M2.5 patch sprint, 2026-05-05 → 2026-05-08)
@@ -159,8 +159,18 @@ This is one notch above UC1's recap: the friction is named as *cross-resource co
 
 **Status History:**
 - 2026-05-04: Created (Scrum Master, /create-story).
+- 2026-05-04: Implemented (`/dev-story STORY-032`) — `uc2/tour.json` reshaped to 4 beats under STORY-030's convention; `uc2/README.md` Artemis narrative rewritten to no-spoiler reading order; manifests bit-for-bit unchanged.
 
-**Actual Effort:** TBD.
+**Actual Effort:** 3 points (matched estimate).
+
+**Implementation Notes:**
+- `uc2/tour.json` rewritten in place: `id` unchanged (`kagent-uc2-pod-pending`), `title` retained ("UC2 — A new mission-control replica won't land on the launch pad"), `description` rewritten to mirror UC1's mission framing and name the CLI-invoke variant. Beat 1 explanation drops the previous "synthetic node taint blocks scheduling" disclosure; the Job is reframed as a "launch-pad readiness sweep" per the story's lore-cover suggestion. Beat 2 collapses the M2 six-command pod+node walk into a single `kubectl get pods` friction signal. Beat 3 keeps the M2 `kagent invoke …` task string verbatim (per AC #4). Beat 4 is a pure-markdown recap of the five `kubectl` commands across pod + node, framed as "what we'd have done by hand" and explicitly naming the cross-resource lesson.
+- `uc2/README.md` Artemis-narrative paragraph rewritten to match the no-spoiler reading order; *The bug*, *Expected agent diagnosis*, and *Reproduction* sections kept verbatim (author-facing). Two minor housekeeping edits: step count in *Files in this directory* (`5-step` → `4-step`) and the *Tour content convention* reference at the bottom (3-beat-with-CLI-baseline-split → 4-beat mission framing).
+- `uc2/manifests/` and `uc2/agents/` untouched (per AC). The `fileEdits[]` content in `tour.json` is byte-identical to M2 — including the technical-intent comments inside the YAML, which are author-facing per the convention.
+- `make validate-tours` clean locally (`uc1/tour.json valid`, `uc2/tour.json valid`).
+- AC compliance verified programmatically: tour-level `title`/`description` clean of banned vocabulary and bug-class names; Beat 1 `explanation` clean of the 12 banned words; Beat 2 has exactly one `commands[]` entry (the single `kubectl get pods`); Beat 3 has exactly one `commands[]` entry with the unchanged M2 task string; Beat 4 has no `commands[]` and no `fileEdits`; `id` unchanged.
+- AC #7 (NFR-003 reproduction on rewritten tour) deferred to PR / M5 dry-run — manifests are byte-identical to M2, so the cluster's broken state is unchanged; only the tour text needs a real cold-deploy walk-through.
+- AC #8 (PR cross-review by Clément) is the next gate.
 
 ---
 

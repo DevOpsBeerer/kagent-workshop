@@ -28,7 +28,7 @@ The full functional and non-functional contract lives in `docs/prd-kagent-worksh
 - `kubectl` and the `kagent` CLI on `PATH`, kubeconfig pre-wired to the vCluster slice.
 - LLM provider credentials injected into the cluster as Secrets referenced by each UC's `ModelConfig` CRD.
 
-Participants do **not** install anything by hand. If you are reading this as a participant, your cluster is already configured — open VS Code and start the tour.
+The slice itself is pre-provisioned by `workshop-infrastructure` (vCluster, VS Code server, CLIs, LLM credentials). Participants run **UC0 — Install kagent** as their first tour to bring the kagent runtime online on their slice; UC1 → UC4 follow once that completes.
 
 ## Install kagent
 
@@ -48,14 +48,15 @@ Authors running the local dev loop (see below) should pin the same version.
 
 ## Use cases
 
-| UC  | Scenario                                  | Path                       | Tour ID                          |
-| --- | ----------------------------------------- | -------------------------- | -------------------------------- |
-| UC1 | ImagePullBackOff                          | [`uc1/`](uc1/README.md)    | `kagent-uc1-imagepullbackoff`    |
-| UC2 | Pod Pending (taint mismatch)              | [`uc2/`](uc2/README.md)    | `kagent-uc2-pod-pending`         |
-| UC3 | OOMKilled + on-the-fly Grafana dashboard  | [`uc3/`](uc3/README.md)    | `kagent-uc3-oom-killed`          |
-| UC4 | Multi-agent coordinator (a2a) + custom MCP| [`uc4/`](uc4/README.md)    | `kagent-uc4-coordinator`         |
+| UC  | Scenario                                       | Path                       | Tour ID                          |
+| --- | ---------------------------------------------- | -------------------------- | -------------------------------- |
+| UC0 | Install kagent (run-this-first prep tour)      | [`uc0/`](uc0/README.md)    | `kagent-uc0-install`             |
+| UC1 | ImagePullBackOff                               | [`uc1/`](uc1/README.md)    | `kagent-uc1-imagepullbackoff`    |
+| UC2 | Pod Pending (taint mismatch)                   | [`uc2/`](uc2/README.md)    | `kagent-uc2-pod-pending`         |
+| UC3 | OOMKilled + on-the-fly Grafana dashboard       | [`uc3/`](uc3/README.md)    | `kagent-uc3-oom-killed`          |
+| UC4 | Multi-agent coordinator (a2a) + custom MCP     | [`uc4/`](uc4/README.md)    | `kagent-uc4-coordinator`         |
 
-**Suggested ordering:** UC1 → UC2 → UC3 → UC4. UC1 establishes the single-agent / single-source pattern, UC2 adds multi-tool correlation, UC3 brings external observability, UC4 is the multi-agent climax with the custom MCP and the visible bulb-colour payoff.
+**Suggested ordering:** UC0 → UC1 → UC2 → UC3 → UC4. UC0 installs kagent on the participant's slice; UC1 establishes the single-agent / single-source pattern; UC2 adds multi-tool correlation; UC3 brings external observability; UC4 is the multi-agent climax with the custom MCP and the visible bulb-colour payoff. UC0 is a [prep tour](docs/tour-content-conventions.md#prep-tours-uc0-exception) — flat 4 steps, no diagnostic agent — while UC1–UC4 follow the [4-beat mission framing](docs/tour-content-conventions.md#the-4-beats).
 
 ## Artemis lore index
 
