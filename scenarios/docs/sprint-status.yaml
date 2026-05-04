@@ -5,8 +5,8 @@
 project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
-current_sprint: 2
-last_updated: "2026-05-03T18:00:00Z"
+current_sprint: 2.5
+last_updated: "2026-05-04T14:20:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -203,6 +203,45 @@ sprints:
         # AC #2 (Clément runs UC2 repro on fresh kind + signs off) deferred until Clément is back
         # or until M5 dry-run (STORY-028) covers it. README authoring (AC #1) is complete.
 
+  - sprint_number: 2.5
+    milestone: "M2.5"
+    goal: "Patch the M2 tour narrative: re-frame UC1/UC2 tours as Artemis missions with no upfront spoiler; UC1 agent invocation moves to the kagent UI/chat. Convention authoritative for UC3/UC4 to consume from M3 onward."
+    start_date: "2026-05-05"
+    end_date: "2026-05-08"
+    capacity_points: 24
+    committed_points: 11
+    completed_points: 3
+    status: "in_progress"
+    stories:
+      - story_id: "STORY-030"
+        title: "Mission-framing tour convention update"
+        epic: "EPIC-001"
+        frs: ["FR-006"]
+        nfrs: ["NFR-008", "NFR-009", "NFR-010"]
+        points: 3
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-05-04"
+        actual_points: 3
+      - story_id: "STORY-031"
+        title: "UC1 tour rewrite + UI/chat invocation"
+        epic: "EPIC-002"
+        frs: ["FR-009"]
+        nfrs: ["NFR-003", "NFR-008", "NFR-010"]
+        points: 5
+        owner: "Clément Raussin"
+        status: "not_started"
+        # Blocked by STORY-030 (convention must merge first).
+      - story_id: "STORY-032"
+        title: "UC2 tour rewrite (mission framing, CLI invoke retained)"
+        epic: "EPIC-002"
+        frs: ["FR-011"]
+        nfrs: ["NFR-003", "NFR-008", "NFR-010"]
+        points: 3
+        owner: "Quentin Rodic"
+        status: "not_started"
+        # Blocked by STORY-030; independent of STORY-031 once convention is in.
+
   - sprint_number: 3
     milestone: "M3"
     goal: "Deliver UC3 with on-the-fly Grafana dashboard, and unblock UC4 by completing the MCP source and packaging in parallel."
@@ -323,6 +362,7 @@ sprints:
 velocity:
   sprint_1: 24
   sprint_2: 20
+  sprint_2_5: null
   sprint_3: null
   sprint_4: null
   sprint_5: null
@@ -330,9 +370,9 @@ velocity:
 
 metrics:
   total_epics: 4
-  total_stories: 29
-  total_points: 89
-  stories_completed: 16
+  total_stories: 32
+  total_points: 100
+  stories_completed: 17
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 12
+  stories_not_started: 14
