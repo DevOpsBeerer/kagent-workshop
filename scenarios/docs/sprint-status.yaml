@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2
-last_updated: "2026-05-03T17:30:00Z"
+last_updated: "2026-05-03T18:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -139,8 +139,10 @@ sprints:
     end_date: "2026-05-08"
     capacity_points: 30
     committed_points: 20
-    completed_points: 18
-    status: "in_progress"
+    completed_points: 20
+    # Implementation 6/6 done; cross-author repro sign-offs on STORY-014 (Quentin → was on Clément's slate)
+    # and STORY-017 (Clément → reciprocal swap) remain deferred until Clément is back or until M5 dry-run.
+    status: "completed"
     stories:
       - story_id: "STORY-012"
         title: "UC1 manifests + agent CRDs"
@@ -195,7 +197,11 @@ sprints:
         nfrs: ["NFR-003"]
         points: 2
         owner: "Quentin Rodic"
-        status: "not_started"
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 2
+        # AC #2 (Clément runs UC2 repro on fresh kind + signs off) deferred until Clément is back
+        # or until M5 dry-run (STORY-028) covers it. README authoring (AC #1) is complete.
 
   - sprint_number: 3
     milestone: "M3"
@@ -316,17 +322,17 @@ sprints:
 
 velocity:
   sprint_1: 24
-  sprint_2: null
+  sprint_2: 20
   sprint_3: null
   sprint_4: null
   sprint_5: null
-  rolling_average: 24
+  rolling_average: 22
 
 metrics:
   total_epics: 4
   total_stories: 29
   total_points: 89
-  stories_completed: 15
+  stories_completed: 16
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 13
+  stories_not_started: 12
