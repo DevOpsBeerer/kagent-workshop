@@ -1,7 +1,7 @@
 {
   "id": "kagent-uc2-pod-pending",
   "title": "UC2 — A new mission-control replica won't land on the launch pad",
-  "description": "Diagnose a Pending Pod blocked by a synthetic node taint with the help of the artemis-launch-pad-debugger agent. Live the manual cross-resource dance — pod, then node, then events — before watching the agent correlate all three into one root cause.",
+  "description": "Mission control needs a replacement replica on the Artemis launch pad. When the new pod won't surface, hand the diagnosis to artemis-launch-pad-debugger — the agent crosses resource boundaries you would have walked by hand. (Tour copy will be re-narrated under the mission framing convention by STORY-032.)",
   "steps": [
     {
       "title": "Apply the broken state",

@@ -3,7 +3,7 @@
 **Epic:** EPIC-002 (UC1 / UC2 implementations)
 **Priority:** Must Have
 **Story Points:** 5
-**Status:** Not Started
+**Status:** Completed (2026-05-04) — NFR-003 reproduction deferred to PR / M5
 **Assigned To:** Clément Raussin (UC1 owner)
 **Created:** 2026-05-04
 **Sprint:** 2.5 (M2.5 patch sprint, 2026-05-05 → 2026-05-08)
@@ -159,8 +159,60 @@ This is the same task string the M2 `kagent invoke` used. Reusing it preserves t
 
 **Status History:**
 - 2026-05-04: Created (Scrum Master, /create-story).
+- 2026-05-04: Implemented (Developer, /dev-story).
 
-**Actual Effort:** TBD.
+**Actual Effort:** 5 points (matched estimate).
+
+### Implementation Notes (2026-05-04)
+
+#### Convention follow-ups landed in this commit
+Two convention refinements were caught during STORY-031 PR review and landed alongside the UC1 changes (STORY-030 follow-up):
+
+1. **No-spoiler rule extended** to `title` and `description` — not just Beat 1's `explanation`. The description renders before Beat 1 in the workshop-tour side-bar, so a spoilery description ("Diagnose an `ImagePullBackOff`…") defeats the entire 4-beat structure. Bug-class names (`ImagePullBackOff`, `Pending`, `OOMKilled`, …) are now banned in `title`/`description`/Beat 1. See `docs/tour-content-conventions.md` §`The no-spoiler rule`. UC1's description was rewritten to mission-framing copy; UC2's description got an interim patch (full UC2 tour rewrite owned by STORY-032).
+2. **Beat 2 tightened to a minimal status check** — typically a single `kubectl get pods` that surfaces the friction. The deeper diagnosis (`describe pod`, `get events`, …) was overlapping with Beat 4 and muting the agent's payoff. The dropped commands now live exclusively in Beat 4, framed as *"what we'd have done by hand without the agent"*. UC1 Beat 2 reduced from 3 commands to 1; UC1 Beat 4 reframed accordingly. STORY-032's plan was updated to reflect the same rule for UC2 (Beat 2 = single `get pods`; Beat 4 = the five-command cross-resource recap).
+
+#### Beat 3 spike outcome — `kagent dashboard` chosen
+Probed the kagent CLI on the local dev box (`v0.7.1` installed; `dashboard` subcommand surface stable across upstream releases — workshop targets v0.9.0 per Makefile). `kagent dashboard --help` confirms a single, flag-less command that opens the dashboard. Behaviour: foregrounds the port-forward of `svc/kagent-ui` in the `kagent` namespace and auto-opens the browser at `http://localhost:8083` (the default `--kagent-url`); stays alive until the participant hits `Ctrl+C`.
+
+This is good enough for NFR-010 *self-contained step*: one command, no env preconditions, no chained `&` job-control. The trade-off is that the terminal is busy until `Ctrl+C` — that's acceptable for a workshop step (the participant is supposed to leave the dashboard open while they read the agent's reply). The rejected alternative was the explicit `kubectl port-forward -n kagent svc/kagent-ui 8083:80 >/dev/null 2>&1 & open http://localhost:8083` chain, which is more verbose and forces the participant to remember to kill the backgrounded port-forward later.
+
+The chosen form is documented inline in the Beat 3 `explanation` (italics one-liner) per `docs/tour-content-conventions.md` §`Beat 3 invocation`.
+
+#### Tour rewrite
+- Step count: 4 → 4 (was Apply / CLI baseline / Now ask the agent / What did the agent do better; now Mission setup / Mission status check / Call the agent for help / What we'd have done by hand).
+- Tour `id` unchanged: `kagent-uc1-imagepullbackoff`.
+- Title kept (`UC1 — Mission control's roster won't come online`); description softly retuned to mention the dashboard chat.
+- Beat 1 `fileEdits` lifted byte-for-byte from M2 — manifests stay identical (the working-tree comment-removal in `uc1/manifests/20-deployment.yaml` is out-of-scope of STORY-031 and was not embarked).
+- Beat 1 `explanation` rewritten as a no-spoiler mission setup; verified clean via Python regex scan of the banned-word list (script-checked: no hits).
+- Beats 2 / 3 / 4 follow the STORY-030 worked example.
+
+#### `uc1/README.md` updates
+Three precise edits, all in author-facing prose:
+1. `Artemis narrative` section rewritten to no-spoiler reading order (no `:v999`, no "the kubelet is dutifully retrying an image pull that will never succeed"); added pointers to `docs/tour-content-conventions.md` for the 4-beat structure.
+2. "next beat" reference in §`The bug` updated to name the new beats explicitly (`Mission status check` and `Call the agent for help`).
+3. Beat reference at the end of §`Expected agent diagnosis` updated from Beat 3 (old "What did the agent do better?") to Beat 4 (new "What we'd have done by hand"), with the framing flipped to "the participant skipped".
+The §`The bug`, §`Expected agent diagnosis`, and §`Reproduction` sections keep their full author-facing technical detail per AC.
+
+#### Validation
+- `make validate-tours` green over `uc1/tour.json` and `uc2/tour.json` (schema unchanged, structural shape preserved).
+- Beat 1 banned-word scan clean (12 banned words + `v999` literal — no hits).
+
+### AC sign-off
+8/9 acceptance criteria satisfied as of 2026-05-04:
+
+- [x] `uc1/tour.json` rewritten under STORY-030's convention — exactly four beats in the prescribed order.
+- [x] Beat 1 explanation banned-word-clean (script-verified). `fileEdits[]` byte-identical to M2.
+- [x] Beat 2 keeps the three M2 `kubectl` commands; copy reframed as mission-status verification.
+- [x] Beat 3 single `commands[]` entry = `kagent dashboard`; markdown prompt block with the exact paste text included; chosen form documented in step `explanation`.
+- [x] Beat 4 contains no `commands[]` and no `fileEdits` — pure markdown manual recap; lifts STORY-030's worked example verbatim.
+- [x] Tour `id` unchanged: `kagent-uc1-imagepullbackoff`.
+- [x] `uc1/README.md` Artemis narrative rewritten to no-spoiler reading order; author-facing sections preserved.
+- [x] `make validate-tours` green locally.
+- [ ] **NFR-003 reproduction (3 cold deploys)** — deferred to PR / M5 dry-run. Manifests are byte-identical to M2 so the cluster broken state is unchanged; only the tour text + Beat 3 invocation method need a real kagent-dashboard walk-through, which requires a kind cluster + `make kagent-install`. This is the same deferral pattern STORY-014 used for cross-author repro.
+- [ ] PR cross-reviewed by Quentin (NFR-008) — lands when the diff is opened as a PR.
+
+### Next
+Two open DoD checkboxes survive: NFR-003 reproduction and PR cross-review. Both land naturally when STORY-031 is opened as a PR — the M5 dry-run (STORY-028) is already designed to absorb the deferred reproductions across UC1/UC2.
 
 ---
 

@@ -28,7 +28,7 @@ This story rewrites UC2's tour under STORY-030's new convention (mission framing
 ### Scope
 **In scope:**
 - Rewrite `uc2/tour.json` under STORY-030's 4-beat convention.
-- Beat 2 (`Mission status check`) preserves the M2 split into two CLI sub-steps (*first look at the pod* / *now look at the node*) — UC2's whole pedagogical point is that one resource isn't enough.
+- Beat 2 (`Mission status check`) is **a single `kubectl get pods`** showing Pending — that's the friction signal. Per the tightened convention (STORY-030 follow-up, 2026-05-04), Beat 2 must not pre-walk Beat 4's commands; the cross-resource manual diagnosis (`describe pod`, `get events`, `describe node`, …) lives in Beat 4 framed as *"what we'd have done by hand"*. UC2's pedagogical point — that one resource isn't enough — is **made by Beat 4**, not by Beat 2.
 - Beat 3 retains `kagent invoke …` CLI invocation (no UI/chat — that's UC1's role).
 - Update `uc2/README.md` Artemis narrative section to match the no-spoiler reading order. Author-facing sections (*The bug*, *Expected agent diagnosis*, *Reproduction*) keep their full technical detail.
 - Re-walk the NFR-003 cold-deploy reproduction to confirm the rewritten tour still describes a passing path.
@@ -42,20 +42,19 @@ This story rewrites UC2's tour under STORY-030's new convention (mission framing
 ### User Flow
 1. Participant reads **Beat 1 — Mission setup**: *"A replacement `mission-control` replica is going up on the launch pad. Apply the bundle to your vCluster — namespace, RBAC, the launch-pad readiness sweep, service, deployment."* No mention of *taint*, *blocked*, *unsafe*, *broken*.
 2. Participant runs the single apply command. Expects success. Behind the scenes (~30 s) the bootstrap Job taints the node and restarts the deployment, leaving the Pod Pending.
-3. Participant reads **Beat 2a — Mission status check (pod side)**: *"Mission control should be online by now. Verify."* Runs `get pods`, `describe pod`, `get events`. Discovers the Pod is Pending and the scheduler is unhappy — but the pod itself doesn't carry the obstruction.
-4. Participant reads **Beat 2b — Mission status check (node side)**: *"The pod points at the scheduler. The scheduler points at the node. Switch resources."* Runs `get nodes`, `describe node`. Finds the taint by hand.
-5. Participant reads **Beat 3 — Call the agent for help**: runs `kagent invoke --agent artemis-launch-pad-debugger …`. Reads the agent's single-sentence synthesis in the terminal.
-6. Participant reads **Beat 4 — What we'd have done by hand**: recap of the five `kubectl` commands across two resource kinds the agent ran on their behalf.
+3. Participant reads **Beat 2 — Mission status check**: *"Is the new replica live?"* Runs a single `kubectl get pods`, sees the Pod is Pending — that's the friction signal. They don't need to dig further before calling in help.
+4. Participant reads **Beat 3 — Call the agent for help**: runs `kagent invoke --agent artemis-launch-pad-debugger …`. Reads the agent's single-sentence synthesis in the terminal.
+5. Participant reads **Beat 4 — What we'd have done by hand**: recap of the five `kubectl` commands across two resource kinds the agent ran on their behalf — pod side (`describe pod`, `get events`) **and** node side (`describe node`). The cross-resource lesson lands here.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] `uc2/tour.json` is rewritten under STORY-030's convention with five steps grouped into four beats: *Mission setup* (1 step), *Mission status check — pod side* (1 step), *Mission status check — node side* (1 step), *Call the agent for help* (1 step), *What we'd have done by hand* (1 step). The two `Mission status check` sub-steps are both Beat 2 per convention.
-- [ ] Beat 1 (`Mission setup`) explanation contains **none** of the words `taint`, `blocked`, `unsafe`, `broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, nor any phrasing that pre-announces the scheduling obstruction. The bundle is framed as a routine launch-pad replica deployment. The `fileEdits[]` content is unchanged from M2 (manifests stay identical, including the existing intent comments inside the YAML — those are for authors, not participants).
-- [ ] Beats 2a + 2b each keep their existing `kubectl` commands as `commands[]` arrays. The pod-side step has the same three commands as M2 (`get pods`, `describe pod`, `get events`). The node-side step has the same two commands as M2 (`get nodes`, `describe node $(...)`). Copy frames each as a status verification; the friction (Pending pod, untolerated taint) is *discovered*, not announced.
+- [ ] `uc2/tour.json` is rewritten under STORY-030's convention with **four steps** in four beats: *Mission setup* (1 step), *Mission status check* (1 step, single `kubectl get pods`), *Call the agent for help* (1 step), *What we'd have done by hand* (1 step). Tour `id` unchanged: `kagent-uc2-pod-pending`.
+- [ ] Beat 1 (`Mission setup`) explanation contains **none** of the words `taint`, `blocked`, `unsafe`, `broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, nor any phrasing that pre-announces the scheduling obstruction. The bundle is framed as a routine launch-pad replica deployment. The `fileEdits[]` content is unchanged from M2 (manifests stay identical, including the existing intent comments inside the YAML — those are for authors, not participants). Tour-level `title` and `description` also follow the no-spoiler rule (no `Pending`, `taint`, etc.).
+- [ ] Beat 2 contains a **single** `commands[]` entry: `kubectl get pods -n artemis-uc2 -l app=mission-control` (or equivalent). Copy frames it as a status check ("Is the new replica live?"); the friction (Pending pod) is *discovered*, not announced. The deeper diagnosis (`describe pod`, `get events`, `describe node`) does **not** appear in Beat 2 — it lives in Beat 4 per the tightened convention.
 - [ ] Beat 3 (`Call the agent for help`) contains exactly one `commands[]` entry: `kagent invoke --agent artemis-launch-pad-debugger --namespace artemis-uc2 --task '<task-string>'`. The task string is unchanged from M2: `The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.`
-- [ ] Beat 4 (`What we'd have done by hand`) contains no `commands[]` and no `fileEdits`. Pure markdown enumerating the five `kubectl` commands the agent ran on the participant's behalf, framed as friction the participant skipped. Mention that the manual path crossed two resource kinds (pod, node) where the agent crossed them in one synthesis. Lifts copy patterns from STORY-030's worked example, scaled to UC2.
+- [ ] Beat 4 (`What we'd have done by hand`) contains no `commands[]` and no `fileEdits`. Pure markdown enumerating the **five** `kubectl` commands an ops engineer without the agent would have run — `get pods`, `describe pod`, `get events`, `get nodes`, `describe node` — across two resource kinds. The recap explicitly names the cross-resource lesson (one resource wasn't enough; the agent crossed pod and node sides in a single synthesis). Lifts copy patterns from STORY-030's worked example, scaled to UC2's two-resource correlation.
 - [ ] Tour `id` is unchanged: `kagent-uc2-pod-pending` (per convention's stability rule).
 - [ ] `uc2/README.md`:
     - The *Artemis narrative* section is rewritten to match the no-spoiler reading order of the tour. The participant-facing arc must not pre-announce the taint mechanism.
@@ -69,8 +68,8 @@ This story rewrites UC2's tour under STORY-030's new convention (mission framing
 ## Technical Notes
 
 ### Files modified
-- `uc2/tour.json` — full content rewrite (steps[] reshaped). Tour ID unchanged.
-- `uc2/README.md` — Artemis narrative section rewrite; reproduction step numbers may shift if step count changes (M2 had 6 steps including `Apply` + 2 CLI baseline; new tour has 5 steps in 4 beats).
+- `uc2/tour.json` — full content rewrite (steps[] reshaped). Tour ID unchanged. STORY-031 already shipped a no-spoiler `description` patch as an interim — STORY-032 may keep that wording or refine it.
+- `uc2/README.md` — Artemis narrative section rewrite; reproduction step numbers may shift if step count changes (M2 had 6 steps including `Apply` + 2 CLI baselines; new tour has **4 steps in 4 beats** under the tightened minimal-Beat-2 convention).
 
 ### Files NOT modified (intentional)
 - `uc2/manifests/{00-namespace,10-rbac,20-bootstrap-taint-job,30-service,40-deployment}.yaml` — bootstrap Job, RBAC, taint key/value/effect, Deployment image — all unchanged.
@@ -151,7 +150,7 @@ This is one notch above UC1's recap: the friction is named as *cross-resource co
 
 ## Additional Notes
 
-- The two-step Beat 2 (`pod side` + `node side`) is the point of UC2. The convention allows multi-step Beat 2; UC2 uses two; UC3 may use three (CLI baseline + Prom-by-hand). Do not collapse them into one step — the resource boundary the participant has to cross is the lesson.
+- The cross-resource lesson is the point of UC2 — but per the tightened convention (STORY-030 follow-up, 2026-05-04) it is now made in **Beat 4** (manual recap) rather than walked in Beat 2. Beat 2 is the friction signal (one `kubectl get pods` = "the pod is not Running"); Beat 4 is the recap that crosses pod side and node side and explicitly names what the agent absorbed.
 - Per convention, the tour `id` `kagent-uc2-pod-pending` is **stable**. Lives in `workshop-infrastructure` distribution config and participant `.workshop-tour/state.json` — never rename.
 
 ---

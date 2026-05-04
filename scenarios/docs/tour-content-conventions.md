@@ -14,7 +14,7 @@ Each tour therefore frames the scenario as an Artemis mission the participant is
 
 ## The 4 beats
 
-Every `uc<N>/tour.json` has these four beats in order. Beat 1 is exactly one step; Beat 2 is one or more steps (UC2 uses two, UC3 typically uses two or three); Beats 3 and 4 are exactly one step each. UC4 is allowed to compress Beat 2 — by the time the participant reaches UC4 they have already lived UC1/UC2/UC3 manually, so the multi-symptom mess **is** the friction.
+Every `uc<N>/tour.json` has these four beats in order. Beats 1, 3, and 4 are exactly one step each. **Beat 2 is exactly one step in the typical case** — usually a single `kubectl get pods` that surfaces the friction ("the pod is not Running"). A second Beat-2 step is allowed only if the friction itself is invisible without a second observation (e.g. UC4 may use two if `kubectl get pods` alone doesn't make the multi-symptom mess legible). The deep manual diagnosis — `describe pod`, `get events`, node-side commands, etc. — lives in **Beat 4**, framed as the friction the participant skipped. Don't pre-walk Beat 4's commands inside Beat 2: they overlap and mute the agent's payoff.
 
 ```
 [Mission setup] ──► [Mission status check] ──► [Call the agent] ──► [Manual recap]
@@ -24,7 +24,7 @@ Every `uc<N>/tour.json` has these four beats in order. Beat 1 is exactly one ste
 | Beat | Title shape                                          | Purpose                                                                                                                            | What goes inside `commands` / `fileEdits`                                                                                                                                                  |
 | ---- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1    | `Mission setup — …`                                  | Frame the deployment as an Artemis mission objective. **No mention of what is wrong.** Drop manifests via `fileEdits` and apply.   | `fileEdits.create` (`overwrite: true`) for all `uc<N>/manifests/*.yaml`; `commands[]` with one `kubectl apply -f uc<N>/manifests/`.                                                       |
-| 2    | `Mission status check — …`                           | Walk the participant through the manual diagnosis as if checking on a live mission. Friction emerges naturally — pod is not Running, mission at risk. | `commands[]` with each `kubectl` invocation as one button. Multiple steps allowed (UC2/UC3 typically 2–3).                                                                                  |
+| 2    | `Mission status check — …`                           | Surface the friction with a **minimal** check — typically one `kubectl get pods` that shows the pod isn't Running. Don't walk the full diagnosis here; that's Beat 4's job. | One `commands[]` entry per step, usually a single `kubectl get pods …`. One step in the typical case; a second step allowed only if the friction needs multi-resource observation to be visible (rare).  |
 | 3    | `Call the agent for help` (UI/chat or CLI invoke)    | Hand the problem to the kagent agent. UC1 = **UI/chat** (open dashboard, paste prompt). UC2/UC4 = **CLI invoke**. UC3 hybrid.       | UC1: one `commands[]` entry that opens the kagent UI, plus a markdown block with the exact prompt to paste. UC2/UC4: one `kagent invoke …` entry.                                          |
 | 4    | `What we'd have done by hand`                        | Manual recap. List the `kubectl` commands the agent ran on the participant's behalf, framed as friction-the-participant-skipped.   | No `commands[]`, no `fileEdits` — pure markdown.                                                                                                                                            |
 
@@ -34,19 +34,31 @@ The 4-beat is a **refinement** of the 3-step *kubectl-way → agent-way → cont
 
 ## The no-spoiler rule
 
-Beat 1's `explanation` describes what the deployment is *meant* to do, never what is *wrong* with it. Banned vocabulary in Beat 1: `broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, `unsafe`, `blocked`, `taint`. Concrete bug specifics (image-tag values like `:v999`, taint keys, etc.) are off-limits in Beat 1.
+The rule applies to **all participant-visible tour fields** — `title`, `description`, and every step's `title` and `explanation`. Together those are what the workshop-tour extension renders to the participant, in that order: the description is read **before Beat 1** when the participant picks the tour from the side-bar, so a spoiler in the description defeats the entire 4-beat structure.
+
+Banned vocabulary across all participant-visible fields: `broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, `unsafe`, `blocked`, `taint`. **Bug-class names** are also banned in `title`/`description`/Beat 1 — `ImagePullBackOff`, `Pod Pending`, `OOMKilled`, `CrashLoopBackOff`, `Pending`, etc. — and so are concrete bug specifics (image-tag values like `:v999`, taint keys, etc.).
+
+`title` may carry **anticipatory tension** ("won't come online", "fails to land on the launch pad" — note that `fail` is banned, so prefer "won't / can't / refuses to …"); it is the participant's hook into the tour. It must still avoid bug-class names and banned words.
+
+`description` summarises the scenario as a mission and names the agent's role. It must **not** name the diagnostic target — even an oblique mention ("diagnose a `Pending` pod") is a spoiler. The bug class is fair game in author-facing docs (READMEs, story documents, this convention), never in the tour file's participant-visible fields.
 
 The cluster will tell the truth if the participant asks it. A curious participant who runs `kubectl get jobs -n artemis-uc2` mid-tour will discover the bootstrap Job exists; that's acceptable — it does not invalidate the diagnostic exercise (the participant still has to find the taint on the node and connect it to the Pending pod). The rule applies to **tour content**, not to cluster state.
 
 The same rule extends to the YAML *body* the participant doesn't read but might glance at: keep technical-intent comments inside `uc<N>/manifests/*.yaml` for authors (they are essential context for repo maintenance), and rely on the convention plus the no-spoiler rule on the **tour text** to keep the narrative arc honest.
 
-**Bad** — current `uc1/tour.json` step 1 (slated for replacement by STORY-031):
+The tour `id` (e.g. `kagent-uc1-imagepullbackoff`) is **exempted** from the rule because per convention's *Tour ID is stable* clause it can never be renamed once shipped. The ID lives in distribution config and `.workshop-tour/state.json`, not in rendered participant text. New UCs should still pick low-spoiler `id` slugs when the slug is locked — UC4's `kagent-uc4-coordinator` is the right pattern.
 
-> "the **deployment.yaml** intentionally references a tag that never shipped (`mission-control:v999`), so this will reproduce the on-call ticket you're about to investigate."
+**Bad** — original M2 UC1 tour (description + Beat 1 step 1):
 
-**Good** — target replacement (STORY-031 will deliver):
+> *description*: "Diagnose an `ImagePullBackOff` on the Artemis mission-control deployment with the help of the artemis-mission-control-debugger agent. Feel the manual diagnostic friction first; then watch the agent shortcut three commands into one synthesis."
+>
+> *Beat 1 explanation*: "the **deployment.yaml** intentionally references a tag that never shipped (`mission-control:v999`), so this will reproduce the on-call ticket you're about to investigate."
 
-> "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the manifests below to deploy `mission-control` to your vCluster — namespace, service, deployment. Once the apply completes, the roster should be reachable."
+**Good** — target replacement:
+
+> *description*: "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat — UC1 is the participant's first contact with a kagent agent."
+>
+> *Beat 1 explanation*: "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the manifests below to deploy `mission-control` to your vCluster — namespace, service, deployment. Once the apply completes, the roster should be reachable."
 
 ## Beat 3 invocation: UI/chat vs CLI invoke
 
@@ -78,7 +90,7 @@ The agent's response prints to the terminal. The step's `explanation` should sti
 
 ## Manual recap (Beat 4)
 
-Beat 4 is pure markdown — no `commands[]`, no `fileEdits`. It enumerates the `kubectl` commands the agent ran on the participant's behalf, framed as **friction the participant skipped**. The same evidence the agent joined is named, the same contrast is drawn, but the rhetoric flips from *describing what the agent did* to *describing what the participant did not have to do*.
+Beat 4 is pure markdown — no `commands[]`, no `fileEdits`. It enumerates the `kubectl` commands an ops engineer **without the agent** would have run to diagnose the same scenario, framed as the friction the participant did not live through. The list is the full manual diagnosis (typically 3+ commands across 1–2 resource kinds) — it is OK and expected to include the single `get pods` the participant did run in Beat 2, because the point is to show the entire manual flow the agent absorbed in one synthesis.
 
 The lift is rhetorical, not technical: the same evidence is named, the same contrast is drawn. The friction is now the *protagonist the participant skipped* rather than *the achievement of the agent*. Multiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling.
 
@@ -100,8 +112,8 @@ Locked across all four UCs:
 | Field         | Convention                                                                                            | Example                                                                                  |
 | ------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `id`          | `kagent-uc<N>-<symptom>` — kebab-case, stable, never reused. Locked per-UC in the root README's UC index. | `kagent-uc1-imagepullbackoff`, `kagent-uc4-coordinator`                                  |
-| `title`       | Artemis-themed; ≤ 80 chars; English (NFR-009).                                                        | "UC1 — Mission control's roster fails to come online"                                    |
-| `description` | One sentence summarising the diagnostic target and the agent's role. May reference what the agent corrects in retrospect, but Beat 1's body still owes no spoiler. | "Diagnose an `ImagePullBackOff` on the Artemis mission-control deployment with the help of `artemis-mission-control-debugger`."  |
+| `title`       | Artemis-themed; ≤ 80 chars; English (NFR-009). Anticipatory hook allowed; bug-class names + banned words forbidden. | "UC1 — Mission control's roster won't come online"                                       |
+| `description` | One sentence framing the scenario as a mission and naming the agent's role. **No-spoiler rule applies** — bug-class names (`ImagePullBackOff`, `Pending`, `OOMKilled`, …) and banned words forbidden. | "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat." |
 | `steps[]`     | The 4 beats, expanded as needed. Minimum 4 step objects; UC2/UC3 typically 5–6 (Beat 2 multi-step).   | see worked example below                                                                  |
 
 ## Worked example (UC1 — `ImagePullBackOff`)
@@ -129,15 +141,15 @@ The fragments below are the four beats as they will appear in `uc1/tour.json` af
 
 ```json
 {
-  "title": "Mission status check — listen to mission-control",
-  "explanation": "Mission control should be online by now. Verify by walking the usual on-call sweep — pod state, container status, recent events. Run the three commands below in order. Give the kubelet ~30 s to settle before checking the pod state.",
+  "title": "Mission status check — is the roster live?",
+  "explanation": "Mission control should be online by now. Check that the roster pod has come up. Give the kubelet ~30 s to settle before running the command — if the pod is not Running, you'll see it here.",
   "commands": [
-    { "label": "List pods",        "command": "kubectl get pods -n artemis-uc1" },
-    { "label": "Describe the pod", "command": "kubectl describe pod -n artemis-uc1 -l app=mission-control" },
-    { "label": "Recent events",    "command": "kubectl get events -n artemis-uc1 --sort-by=.lastTimestamp" }
+    { "label": "List pods", "command": "kubectl get pods -n artemis-uc1" }
   ]
 }
 ```
+
+A single command. The participant sees the pod is stuck — that's the friction. The deeper diagnosis (`describe pod`, `get events`) is what they would have run *without* the agent, and that lives in Beat 4.
 
 ### Beat 3 — Call the agent for help (UI/chat, exactly 1 step)
 
@@ -186,9 +198,10 @@ The schema is structural (it constrains `id`, `title`, `description`, `steps[]` 
 When implementing STORY-013 / 016 / 020 / 026 / 031 / 032 (or any future tour):
 
 - [ ] `id` matches the locked value in the root README's UC index.
-- [ ] `title` is Artemis-themed and ≤ 80 chars.
+- [ ] `title` is Artemis-themed, ≤ 80 chars, contains no bug-class names (`ImagePullBackOff`, `Pending`, `OOMKilled`, …) and no banned words. Anticipatory tension OK ("won't come online", "can't land on the launch pad").
+- [ ] `description` frames the scenario as a mission and names the agent's role; same banned-words / bug-class restriction as Beat 1.
 - [ ] **Beat 1 — `Mission setup — …`** is exactly one step. The explanation contains none of the banned words (`broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, `unsafe`, `blocked`, `taint`) and no concrete bug specifics (image tags, taint keys, etc.). The deployment is framed as a mission objective.
-- [ ] **Beat 2 — `Mission status check — …`** is one or more steps. Copy frames each as a status verification; the friction is *discovered*, not announced.
+- [ ] **Beat 2 — `Mission status check — …`** is **one step** in the typical case (single `kubectl get pods …` that surfaces the friction). A second step only if the friction needs multi-resource observation to be visible. **Do not** put `describe pod` / `get events` / node-side commands here — they belong in Beat 4.
 - [ ] **Beat 3 — `Call the agent for help`** is exactly one step. The UC's invocation variant (UI/chat vs CLI invoke vs hybrid) is declared in the step explanation, and the exact prompt to paste/run is surfaced as a markdown block.
 - [ ] **Beat 4 — `What we'd have done by hand`** is exactly one step. No `commands[]`, no `fileEdits`. The recap names the manual `kubectl` commands as friction the participant skipped.
 - [ ] Every `commands[].command` runs as-is in the VS Code server terminal (NFR-010).

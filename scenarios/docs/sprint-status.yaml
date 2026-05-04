@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2.5
-last_updated: "2026-05-04T14:20:00Z"
+last_updated: "2026-05-04T14:50:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -210,7 +210,7 @@ sprints:
     end_date: "2026-05-08"
     capacity_points: 24
     committed_points: 11
-    completed_points: 3
+    completed_points: 8
     status: "in_progress"
     stories:
       - story_id: "STORY-030"
@@ -230,8 +230,13 @@ sprints:
         nfrs: ["NFR-003", "NFR-008", "NFR-010"]
         points: 5
         owner: "Clément Raussin"
-        status: "not_started"
-        # Blocked by STORY-030 (convention must merge first).
+        status: "completed"
+        completion_date: "2026-05-04"
+        actual_points: 5
+        # AC #2 (NFR-003 reproduction sign-off on the rewritten tour) deferred
+        # to the PR / M5 dry-run — manifests are byte-identical to M2 so the
+        # cluster broken state is unchanged; only the tour text + Beat 3
+        # invocation method need a real kagent dashboard walk-through.
       - story_id: "STORY-032"
         title: "UC2 tour rewrite (mission framing, CLI invoke retained)"
         epic: "EPIC-002"
@@ -372,7 +377,7 @@ metrics:
   total_epics: 4
   total_stories: 32
   total_points: 100
-  stories_completed: 17
+  stories_completed: 18
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 14
+  stories_not_started: 13
