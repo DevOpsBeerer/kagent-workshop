@@ -1,7 +1,7 @@
 {
   "id": "kagent-uc0-install",
   "title": "UC0 — Install kagent",
-  "description": "Run this first. Install kagent on your slice and confirm your OpenAI key is wired in, so the diagnostic UCs that follow have a working agent runtime.",
+  "description": "Run this first. Install kagent on your slice so the diagnostic UCs that follow have a working agent runtime.",
   "steps": [
     {
       "title": "Check your cluster",
@@ -9,13 +9,6 @@
       "commands": [
         { "label": "Show current context", "command": "kubectl config current-context" },
         { "label": "List nodes", "command": "kubectl get nodes" }
-      ]
-    },
-    {
-      "title": "Verify your OpenAI credentials",
-      "explanation": "kagent agents call an LLM backend. The workshop uses **OpenAI**; the `OPENAI_API_KEY` env var is already set on your VS Code server by `workshop-infrastructure`. We just confirm it's visible — the per-UC `artemis-llm` ModelConfig will reference a Kubernetes Secret derived from this key.\n\nThe command below prints only the first 8 characters as a sanity check, never the full key.",
-      "commands": [
-        { "label": "Check the key is set", "command": "echo \"$OPENAI_API_KEY\" | cut -c1-8 && echo '...(truncated)'" }
       ]
     },
     {

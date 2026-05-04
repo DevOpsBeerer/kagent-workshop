@@ -6,30 +6,29 @@
 **Type:** Prep tour (run-this-first — see `docs/tour-content-conventions.md` §`Prep tours`)
 **FR / NFR:** FR-006 (tour content convention), NFR-009 / NFR-010 / NFR-011
 
-UC0 is the workshop's run-this-first prep tour. It installs kagent on the participant's vCluster slice and confirms their `OPENAI_API_KEY` is in the env, so UC1–UC4 can run with a working agent runtime.
+UC0 is the workshop's run-this-first prep tour. It installs kagent on the participant's vCluster slice so UC1–UC4 can run with a working agent runtime.
 
 ## Files in this directory
 
 ```
 uc0/
   README.md          this file
-  tour.json          4-step prep tour
+  tour.json          3-step prep tour
 ```
 
-UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no diagnostic agent CRD to ship. The four tour steps drive `kagent install --profile demo` directly against the participant's slice.
+UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no diagnostic agent CRD to ship. The three tour steps drive `kagent install --profile demo` directly against the participant's slice.
 
 ## Prerequisites
 
-- `OPENAI_API_KEY` set in the env on the participant's VS Code server (provisioned by `workshop-infrastructure`).
+- `OPENAI_API_KEY` already set in the env on the participant's VS Code server (provisioned by `workshop-infrastructure`). UC0 does **not** print or read the value — UC1's `artemis-llm` ModelConfig is what consumes it via a Kubernetes Secret.
 - `kubectl` and the `kagent` CLI on `PATH` (slice setup).
 - A reachable Kubernetes cluster — the per-participant vCluster slice. UC0's first step verifies this.
 
-## The four steps
+## The three steps
 
 1. **Check your cluster** — `kubectl config current-context` + `kubectl get nodes`.
-2. **Verify your OpenAI credentials** — partial-key echo (first 8 chars) of `$OPENAI_API_KEY`. The full key is never printed.
-3. **Install kagent via CLI** — `kagent install --profile demo` then `kubectl rollout status deployment/kagent-controller -n kagent`. The `--profile demo` choice is documented in the tour's Beat 3 explanation; rationale: UC3 reuses the demo profile's pre-packaged Prometheus / Grafana agents (architecture L300).
-4. **Verify the installation** — kagent CRDs registered, controller pod `Running`, ModelConfigs in the `kagent` namespace.
+2. **Install kagent via CLI** — `kagent install --profile demo` then `kubectl rollout status deployment/kagent-controller -n kagent`. The `--profile demo` choice is documented in the tour step's explanation; rationale: UC3 reuses the demo profile's pre-packaged Prometheus / Grafana agents (architecture L300).
+3. **Verify the installation** — kagent CRDs registered, controller pod `Running`, ModelConfigs in the `kagent` namespace.
 
 ## Why a "prep tour" exception?
 

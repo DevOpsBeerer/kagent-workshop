@@ -56,7 +56,7 @@ Authors running the local dev loop (see below) should pin the same version.
 | UC3 | OOMKilled + on-the-fly Grafana dashboard       | [`uc3/`](uc3/README.md)    | `kagent-uc3-oom-killed`          |
 | UC4 | Multi-agent coordinator (a2a) + custom MCP     | [`uc4/`](uc4/README.md)    | `kagent-uc4-coordinator`         |
 
-**Suggested ordering:** UC0 → UC1 → UC2 → UC3 → UC4. UC0 installs kagent on the participant's slice; UC1 establishes the single-agent / single-source pattern; UC2 adds multi-tool correlation; UC3 brings external observability; UC4 is the multi-agent climax with the custom MCP and the visible bulb-colour payoff. UC0 is a [prep tour](docs/tour-content-conventions.md#prep-tours-uc0-exception) — flat 4 steps, no diagnostic agent — while UC1–UC4 follow the [4-beat mission framing](docs/tour-content-conventions.md#the-4-beats).
+**Suggested ordering:** UC0 → UC1 → UC2 → UC3 → UC4. UC0 installs kagent on the participant's slice; UC1 establishes the single-agent / single-source pattern; UC2 adds multi-tool correlation; UC3 brings external observability; UC4 is the multi-agent climax with the custom MCP and the visible bulb-colour payoff. UC0 is a [prep tour](docs/tour-content-conventions.md#prep-tours-uc0-exception) — flat 3 steps, no diagnostic agent — while UC1–UC4 follow the [4-beat mission framing](docs/tour-content-conventions.md#the-4-beats).
 
 ## Artemis lore index
 
@@ -109,6 +109,16 @@ make uc1-down         # delete uc1 resources, keep cluster up
 - `make kagent-install` — `helm upgrade --install` of kagent **v0.9.0** into the current context (idempotent).
 - `make uc<N>-up` (N ∈ 1..4) — chains `kind-up` → `kagent-install` → applies `uc<N>/manifests/` and `uc<N>/agents/`. No-ops gracefully when those dirs are still empty (the per-UC content lands in M2–M4).
 - `make uc<N>-down` — deletes the UC's resources but leaves the kind cluster up so the next `uc<M>-up` is fast. `make kind-down` is the hard reset (use when NFR-003 cold-deploy reproduction is what you're testing).
+
+**Previewing tours locally (before launching VS Code):**
+
+The `workshop-tour` VS Code extension reads tour files from `.workshop-tour/` in the open workspace, but the repo authors them under `uc<N>/tour.json`. **Before opening this workspace in VS Code**, run:
+
+```bash
+./scripts/sync-workshop-tour.sh
+```
+
+The script copies every `uc<N>/tour.json` into `.workshop-tour/uc<N>-tour.json` (sorted by UC), clearing any stale `.workshop-tour/*.json` entries first. Re-run it after every tour edit before reloading VS Code so the extension picks up the latest content. (Workshop-time distribution is owned by `workshop-infrastructure` — see *Tour distribution* above; this script is the author-local equivalent.)
 
 **Lint targets** (run before opening a PR):
 

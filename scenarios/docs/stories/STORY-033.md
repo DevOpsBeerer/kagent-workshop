@@ -198,6 +198,9 @@ The original draft's 5th step (deploy `workshop` namespace) is dropped per the s
 
 ### Implementation Notes (2026-05-04)
 
+#### Post-implementation tweak (2026-05-04, follow-up)
+The original `tour.json` shipped with **4 steps**: cluster check / OpenAI credential echo / install / verify. The credential-echo step (`echo "$OPENAI_API_KEY" | cut -c1-8 …`) was subsequently **removed at the user's request** — even a partial-key echo touches the secret value, and the per-UC `artemis-llm` ModelConfig is what actually consumes the key downstream (the participant doesn't need to see it). UC0 is now a **3-step prep tour** (cluster check → install → verify); the original AC #3 reference to four steps + the "Verify your OpenAI credentials" item are both obsolete. The `OPENAI_API_KEY` env var stays in the prereqs (downstream UCs need it), it just isn't echoed.
+
 #### Spike outcome — `kagent install --profile demo`
 `kagent install --help` on the locally-installed CLI does not differentiate `--profile demo` from `--profile minimal` in its help output (both flags resolve to the same `Installation profile (minimal|demo)` line). Without a real cluster to compare side-by-side, **`--profile demo` is the chosen default** based on the architecture L300 constraint — UC3 reuses kagent's pre-packaged Prometheus / Grafana agents, and `demo` is the obviously-named profile that ships them. Switching to `--profile minimal` is a one-line change in `uc0/tour.json` Beat 3 if a future spike on v0.9.0 shows the demo profile is unnecessary. The choice is documented in the Beat 3 explanation (italicised one-liner, same pattern as STORY-031).
 
