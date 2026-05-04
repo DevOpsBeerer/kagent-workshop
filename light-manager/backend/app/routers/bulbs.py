@@ -43,10 +43,10 @@ def _ensure_slot_valid(slot: int) -> None:
         )
 
 
-UserParam = Annotated[str, Query(min_length=1, description="Participant login (e.g. participant-01)")]
+UserParam = Annotated[str, Query(min_length=1, description="ARTEMIS operator login (e.g. operator-01)")]
 
 
-@router.get("", response_model=list[BulbRead], summary="List the 3 bulbs of a user")
+@router.get("", response_model=list[BulbRead], summary="Read the 3 mission beacons of an operator")
 def list_user_bulbs(user: UserParam) -> list[BulbRead]:
     with Session(engine) as session:
         _ensure_user_exists(session, user)
@@ -56,7 +56,7 @@ def list_user_bulbs(user: UserParam) -> list[BulbRead]:
         return [BulbRead.model_validate(b) for b in bulbs]
 
 
-@router.put("/{slot}", response_model=BulbRead, summary="Update one bulb's RGB color")
+@router.put("/{slot}", response_model=BulbRead, summary="Set one mission beacon's RGB colour")
 def update_user_bulb(slot: int, user: UserParam, payload: BulbUpdate) -> BulbRead:
     _ensure_slot_valid(slot)
     with Session(engine) as session:

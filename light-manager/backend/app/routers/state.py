@@ -19,7 +19,7 @@ class UserState(BaseModel):
 @router.get(
     "",
     response_model=list[UserState],
-    summary="Snapshot of every participant and their 3 bulbs (for the global view)",
+    summary="Mission Control snapshot — every operator and their 3 beacons",
 )
 def get_state() -> list[UserState]:
     with Session(engine) as session:

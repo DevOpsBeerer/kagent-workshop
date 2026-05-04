@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import Bulb from "../components/Bulb";
 import { fetchState, type FetchStateResult } from "../api/client";
 import type { UserStateDto } from "../types";
+import logoUrl from "../images/LOGO.svg";
 
 const POLL_INTERVAL_MS = 1500;
 const ACTIVITY_HIGHLIGHT_MS = 5000;
@@ -80,14 +81,15 @@ export default function Global() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-5">
       <header className="max-w-[1800px] mx-auto flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="text-lg sm:text-xl font-semibold">
-          <span className="text-slate-500">Light Manager — </span>
-          <span>Vue globale formateur</span>
+        <h1 className="flex items-center gap-3 text-lg sm:text-xl font-semibold">
+          <img src={logoUrl} alt="APOGASA · ARTEMIS" className="h-6 brightness-0 invert" />
+          <span className="text-slate-500">—</span>
+          <span>Mission Control · Global view</span>
         </h1>
         <div className="flex items-center gap-3 text-xs text-slate-400">
-          {state.kind === "ok" && <span>{state.users.length} participants · polling 1.5s</span>}
+          {state.kind === "ok" && <span>{state.users.length} operators · telemetry 1.5s</span>}
           <Link to="/" className="hover:text-slate-200 underline-offset-2 hover:underline">
-            ← accueil
+            ← home
           </Link>
           <Link to="/admin" className="hover:text-slate-200 underline-offset-2 hover:underline">
             admin →
@@ -96,12 +98,12 @@ export default function Global() {
       </header>
 
       {state.kind === "loading" && (
-        <p className="text-center text-slate-500 mt-10">Chargement…</p>
+        <p className="text-center text-slate-500 mt-10">Loading…</p>
       )}
 
       {state.kind === "error" && (
         <p className="max-w-xl mx-auto text-center text-amber-300 mt-6">
-          Erreur réseau : {state.message}
+          Network error: {state.message}
         </p>
       )}
 
@@ -131,7 +133,7 @@ export default function Global() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-mono text-slate-300 hover:text-sky-300 truncate"
-                    title={`Ouvrir la vue de ${user.login} dans un nouvel onglet`}
+                    title={`Open ${user.login}'s view in a new tab`}
                   >
                     {user.login}
                   </a>

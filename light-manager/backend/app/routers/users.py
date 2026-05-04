@@ -23,7 +23,7 @@ class UserRead(BaseModel):
     created_at: datetime
 
 
-@router.get("", response_model=list[str], summary="List all participant logins")
+@router.get("", response_model=list[str], summary="List all ARTEMIS operator logins")
 def list_users() -> list[str]:
     with Session(engine) as session:
         return [row for row in session.exec(select(User.login).order_by(User.login)).all()]
@@ -33,7 +33,7 @@ def list_users() -> list[str]:
     "",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new participant (with 3 default bulbs)",
+    summary="Enrol a new ARTEMIS operator (with 3 default mission beacons)",
 )
 def create_user(payload: UserCreate) -> UserRead:
     login = payload.login.strip()
@@ -53,7 +53,7 @@ def create_user(payload: UserCreate) -> UserRead:
     "/{login}",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
-    summary="Delete a participant (cascades to bulbs)",
+    summary="Decommission an ARTEMIS operator (cascades to mission beacons)",
 )
 def delete_user(login: str) -> Response:
     with Session(engine) as session:
