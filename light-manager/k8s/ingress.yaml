@@ -15,10 +15,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - light-manager.example.com
+    - mlc-system.workshop.qcs.ovh
     secretName: light-manager-tls
   rules:
-  - host: light-manager.example.com
+  - host: mlc-system.workshop.qcs.ovh
     http:
       paths:
       - path: /
