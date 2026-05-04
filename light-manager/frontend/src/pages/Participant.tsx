@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 
 import Bulb from "../components/Bulb";
 import EndpointHelp from "../components/EndpointHelp";
-import { fetchBulbs, type FetchBulbsResult } from "../api/client";
+import { fetchBulbs, resetBulbs, type FetchBulbsResult } from "../api/client";
 import type { BulbDto } from "../types";
 import logoUrl from "../images/LOGO.svg";
 
@@ -18,6 +18,18 @@ type State =
 export default function Participant() {
   const { login = "" } = useParams<{ login: string }>();
   const [state, setState] = useState<State>({ kind: "loading" });
+  const [resetting, setResetting] = useState(false);
+
+  async function handleResetMe() {
+    if (!login) return;
+    if (!window.confirm("Reset your 3 beacons to (0, 0, 0)?")) return;
+    setResetting(true);
+    const result = await resetBulbs(login);
+    setResetting(false);
+    if (result.kind === "error") {
+      window.alert(`Failed to reset: ${result.message}`);
+    }
+  }
 
   useEffect(() => {
     if (!login) return;
@@ -69,9 +81,21 @@ export default function Participant() {
           <span className="text-slate-500">— </span>
           <span className="font-mono text-sky-300">{login}</span>
         </h1>
-        <Link to="/" className="text-sm text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline">
-          ← change callsign
-        </Link>
+        <div className="flex items-center gap-3 text-sm text-slate-400">
+          {state.kind === "ok" && (
+            <button
+              type="button"
+              onClick={handleResetMe}
+              disabled={resetting}
+              className="px-3 py-1 rounded text-xs font-semibold bg-rose-900/60 hover:bg-rose-800/80 text-rose-100 border border-rose-800 disabled:opacity-50 transition-colors"
+            >
+              {resetting ? "Resetting…" : "Reset beacons"}
+            </button>
+          )}
+          <Link to="/" className="hover:text-slate-200 underline-offset-2 hover:underline">
+            ← change callsign
+          </Link>
+        </div>
       </header>
 
       {state.kind === "loading" && (

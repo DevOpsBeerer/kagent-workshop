@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Bulb from "../components/Bulb";
-import { fetchState, type FetchStateResult } from "../api/client";
+import PasswordGate from "../components/PasswordGate";
+import { fetchState, resetBulbs, type FetchStateResult } from "../api/client";
 import type { UserStateDto } from "../types";
 import logoUrl from "../images/LOGO.svg";
 
@@ -23,10 +24,29 @@ function bulbSignature(users: UserStateDto[]): Map<string, string> {
 }
 
 export default function Global() {
+  return (
+    <PasswordGate>
+      <GlobalPanel />
+    </PasswordGate>
+  );
+}
+
+function GlobalPanel() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [now, setNow] = useState<number>(() => Date.now());
+  const [resetting, setResetting] = useState(false);
   const lastActivityRef = useRef<Map<string, number>>(new Map());
   const previousSigRef = useRef<Map<string, string> | null>(null);
+
+  async function handleResetAll() {
+    if (!window.confirm("Reset every operator's beacons to (0, 0, 0)?")) return;
+    setResetting(true);
+    const result = await resetBulbs();
+    setResetting(false);
+    if (result.kind === "error") {
+      window.alert(`Failed to reset: ${result.message}`);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -88,6 +108,14 @@ export default function Global() {
         </h1>
         <div className="flex items-center gap-3 text-xs text-slate-400">
           {state.kind === "ok" && <span>{state.users.length} operators · telemetry 1.5s</span>}
+          <button
+            type="button"
+            onClick={handleResetAll}
+            disabled={resetting}
+            className="px-3 py-1 rounded text-xs font-semibold bg-rose-900/60 hover:bg-rose-800/80 text-rose-100 border border-rose-800 disabled:opacity-50 transition-colors"
+          >
+            {resetting ? "Resetting…" : "Reset all"}
+          </button>
           <Link to="/" className="hover:text-slate-200 underline-offset-2 hover:underline">
             ← home
           </Link>
