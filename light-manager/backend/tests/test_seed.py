@@ -25,8 +25,8 @@ def test_seed_creates_40_users_with_3_bulbs_each():
     assert len(users) == PARTICIPANT_COUNT
     assert len(bulbs) == PARTICIPANT_COUNT * BULBS_PER_USER
     logins = {u.login for u in users}
-    assert "participant-01" in logins
-    assert "participant-40" in logins
+    assert "operator-01" in logins
+    assert "operator-40" in logins
     assert all(bulb.r == 0 and bulb.g == 0 and bulb.b == 0 for bulb in bulbs)
 
 

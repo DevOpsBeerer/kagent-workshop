@@ -13,25 +13,25 @@ function buildEndpoints(login: string, origin: string): Endpoint[] {
     {
       method: "GET",
       path: `/api/bulbs?user=${login}`,
-      description: "Lister tes 3 ampoules et leur état RGB courant.",
+      description: "Read your 3 mission beacons and their current RGB state.",
       curl: `curl '${origin}/api/bulbs?user=${u}'`,
     },
     {
       method: "PUT",
       path: `/api/bulbs/1?user=${login}`,
-      description: "Allumer le slot 1 en rouge.",
+      description: "Light beacon 1 in red.",
       curl: `curl -X PUT -H 'Content-Type: application/json' \\\n  -d '{"r":255,"g":0,"b":0}' \\\n  '${origin}/api/bulbs/1?user=${u}'`,
     },
     {
       method: "PUT",
       path: `/api/bulbs/2?user=${login}`,
-      description: "Allumer le slot 2 en vert.",
+      description: "Light beacon 2 in green.",
       curl: `curl -X PUT -H 'Content-Type: application/json' \\\n  -d '{"r":0,"g":255,"b":0}' \\\n  '${origin}/api/bulbs/2?user=${u}'`,
     },
     {
       method: "PUT",
       path: `/api/bulbs/3?user=${login}`,
-      description: "Allumer le slot 3 en bleu.",
+      description: "Light beacon 3 in blue.",
       curl: `curl -X PUT -H 'Content-Type: application/json' \\\n  -d '{"r":0,"g":0,"b":255}' \\\n  '${origin}/api/bulbs/3?user=${u}'`,
     },
   ];
@@ -43,9 +43,9 @@ export default function EndpointHelp({ login }: { login: string }) {
 
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 sm:p-6">
-      <h2 className="text-lg font-semibold mb-1">Endpoints utiles</h2>
+      <h2 className="text-lg font-semibold mb-1">Pilot endpoints</h2>
       <p className="text-sm text-slate-400 mb-4">
-        Ces commandes te permettent de piloter tes 3 ampoules depuis ton serveur MCP. Clique sur « Copier » et colle dans ton terminal.
+        Use these commands to pilot your 3 mission beacons from your MCP server. Click "Copy" and paste in your terminal.
       </p>
       <ul className="space-y-3">
         {endpoints.map((ep) => (
@@ -90,10 +90,10 @@ function EndpointRow({ ep }: { ep: Endpoint }) {
         <button
           type="button"
           onClick={copy}
-          aria-label="Copier la commande curl"
+          aria-label="Copy curl command"
           className="absolute top-2 right-2 px-2.5 py-1 rounded text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
         >
-          {copied ? "Copié !" : "Copier"}
+          {copied ? "Copied!" : "Copy"}
         </button>
       </div>
     </li>

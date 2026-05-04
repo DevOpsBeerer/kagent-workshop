@@ -1,8 +1,10 @@
-# Light Manager
+# Light Manager — APOGASA · ARTEMIS
 
-App web qui simule 40 × 3 ampoules RGB pilotées par API. Support du workshop MCP du **2026-05-20**.
+Console des balises de mission du programme **ARTEMIS** (APOGASA — *ARTEMIS Program Of Geneva Aeronautics and Space Administration*). 40 opérateurs × 3 balises RGB pilotées par API. Support du workshop MCP du **2026-05-20**.
 
 Stack : **FastAPI** + SQLite côté back, **React + Vite + Tailwind** côté front.
+
+> Note : « light-manager » reste le nom technique (image, package, manifests Kubernetes). La marque APOGASA · ARTEMIS est purement narrative — c'est l'habillage workshop autour du même service.
 
 ---
 
@@ -54,10 +56,10 @@ docker run --rm -p 8000:8000 light-manager
 
 ## Routes UI
 
-- `/` — saisie login
-- `/u/<login>` — vue participant (3 ampoules + commandes curl)
-- `/global` — vue formateur (mosaïque 40 × 3)
-- `/admin` — création / suppression de participants
+- `/` — saisie indicatif opérateur
+- `/u/<login>` — vue opérateur (3 balises de mission + commandes curl)
+- `/global` — vue contrôle mission (mosaïque 40 × 3)
+- `/admin` — enrôlement / désaffectation d'opérateurs
 
 ## Endpoints API
 

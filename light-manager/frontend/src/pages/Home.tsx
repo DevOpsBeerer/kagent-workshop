@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import logoUrl from "../images/LOGO.svg";
+
 export default function Home() {
   const [login, setLogin] = useState("");
   const navigate = useNavigate();
@@ -15,20 +17,25 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100 p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
-        <header className="text-center space-y-2">
-          <h1 className="text-3xl font-semibold">Light Manager</h1>
+        <header className="text-center space-y-4">
+          <img
+            src={logoUrl}
+            alt="APOGASA · ARTEMIS"
+            className="mx-auto w-72 max-w-full brightness-0 invert"
+          />
           <p className="text-slate-400 text-sm">
-            Saisis ton login pour voir tes 3 ampoules et les commandes de pilotage.
+            Enter your operator callsign to view your 3 mission beacons
+            and pilot commands.
           </p>
         </header>
 
         <label className="block space-y-2">
-          <span className="text-sm text-slate-300">Login participant</span>
+          <span className="text-sm text-slate-300">Operator callsign</span>
           <input
             type="text"
             value={login}
             onChange={(e) => setLogin(e.target.value)}
-            placeholder="participant-01"
+            placeholder="operator-01"
             autoFocus
             autoComplete="off"
             spellCheck={false}
@@ -41,23 +48,27 @@ export default function Home() {
           disabled={!login.trim()}
           className="w-full px-4 py-3 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 disabled:text-slate-500 font-semibold transition-colors"
         >
-          Voir mes ampoules
+          Access my beacons
         </button>
 
         <p className="text-xs text-slate-500 text-center">
-          Si tu n'as pas de login, demande au formateur.
+          No callsign? Ask Mission Control.
         </p>
 
         <div className="pt-4 border-t border-slate-900 text-center text-xs text-slate-600 space-x-3">
-          <span>Formateur :</span>
+          <span>Mission Control:</span>
           <Link to="/global" className="hover:text-slate-300 underline-offset-2 hover:underline">
-            vue globale
+            global view
           </Link>
           <span>·</span>
           <Link to="/admin" className="hover:text-slate-300 underline-offset-2 hover:underline">
             admin
           </Link>
         </div>
+
+        <p className="pt-2 text-[10px] text-center text-slate-700 leading-relaxed">
+          ARTEMIS Program Of Geneva Aeronautics and Space Administration
+        </p>
       </form>
     </main>
   );
