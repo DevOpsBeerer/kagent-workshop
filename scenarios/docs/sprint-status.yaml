@@ -1,0 +1,338 @@
+# BMAD Method Sprint Status
+# Generated: 2026-04-28T00:00:00Z
+# Project: kagent-workshop-scenarios
+
+project_name: "kagent-workshop-scenarios"
+project_level: 2
+sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
+current_sprint: 2
+last_updated: "2026-05-03T18:00:00Z"
+
+# Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
+# Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
+
+team:
+  size: 2
+  members:
+    - "Clément Raussin"
+    - "Quentin Rodic"
+  default_uc_ownership:
+    UC1: "Clément Raussin"
+    UC2: "Quentin Rodic"
+    UC3: "Clément Raussin"
+    UC4: "joint"
+
+sprints:
+  - sprint_number: 1
+    milestone: "M1"
+    goal: "Lock the conventions before parallel UC work starts: schemas vendored, FastAPI skeleton + variants ready, author dev loop functional, root docs and CODEOWNERS in place."
+    start_date: "2026-04-28"
+    end_date: "2026-05-01"
+    capacity_points: 30
+    committed_points: 26
+    completed_points: 24
+    status: "completed"
+    stories:
+      - story_id: "STORY-001"
+        title: "Initialize repo skeleton"
+        epic: "EPIC-001"
+        frs: ["FR-001"]
+        points: 1
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-28"
+        actual_points: 1
+      - story_id: "STORY-002"
+        title: "Vendor workshop-tour schema + make validate-tours"
+        epic: "EPIC-001"
+        frs: ["FR-002"]
+        points: 2
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-28"
+        actual_points: 2
+      - story_id: "STORY-003"
+        title: "Vendor kagent v0.9.0 CRDs + make lint-agents"
+        epic: "EPIC-001"
+        nfrs: ["NFR-005"]
+        points: 2
+        owner: "joint"
+        status: "skipped"
+        skip_reason: "Deferred from M1: kagent CRDs reach the cluster via the canonical OCI helm chart (oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds) installed by `make kagent-install`; offline lint-agents is a nice-to-have, not a workshop blocker. M2 manifests get end-to-end-validated by `make uc<N>-up` against a real cluster instead. Re-evaluate before M5."
+      - story_id: "STORY-004"
+        title: "Root README"
+        epic: "EPIC-001"
+        frs: ["FR-003"]
+        points: 3
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
+      - story_id: "STORY-005"
+        title: "Author dev loop (preflight, kind, Makefile)"
+        epic: "EPIC-001"
+        frs: ["FR-004"]
+        points: 5
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 5
+      - story_id: "STORY-006"
+        title: "Artemis naming convention + lore index"
+        epic: "EPIC-001"
+        frs: ["FR-005"]
+        points: 2
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 2
+      - story_id: "STORY-007"
+        title: "Tour content convention doc"
+        epic: "EPIC-001"
+        frs: ["FR-006"]
+        points: 1
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 1
+      - story_id: "STORY-008"
+        title: "apps/_skeleton FastAPI base"
+        epic: "EPIC-001"
+        frs: ["FR-007"]
+        points: 3
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
+      - story_id: "STORY-009"
+        title: "apps/mission-control variant"
+        epic: "EPIC-001"
+        frs: ["FR-007"]
+        points: 1
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 1
+      - story_id: "STORY-010"
+        title: "apps/lunar-rover-telemetry variant (/leak + /metrics)"
+        epic: "EPIC-001"
+        frs: ["FR-007"]
+        points: 3
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
+      - story_id: "STORY-011"
+        title: "CODEOWNERS + gitleaks + lint-manifests CI hooks"
+        epic: "EPIC-001"
+        nfrs: ["NFR-008", "NFR-006", "NFR-011"]
+        points: 3
+        owner: "joint"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
+
+  - sprint_number: 2
+    milestone: "M2"
+    goal: "Deliver UC1 and UC2 in parallel — first two reproducible scenarios + tours + cross-author signed reproductions."
+    start_date: "2026-05-04"
+    end_date: "2026-05-08"
+    capacity_points: 30
+    committed_points: 20
+    completed_points: 20
+    # Implementation 6/6 done; cross-author repro sign-offs on STORY-014 (Quentin → was on Clément's slate)
+    # and STORY-017 (Clément → reciprocal swap) remain deferred until Clément is back or until M5 dry-run.
+    status: "completed"
+    stories:
+      - story_id: "STORY-012"
+        title: "UC1 manifests + agent CRDs"
+        epic: "EPIC-002"
+        frs: ["FR-008"]
+        points: 5
+        owner: "Clément Raussin"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 5
+      - story_id: "STORY-013"
+        title: "UC1 tour.json"
+        epic: "EPIC-002"
+        frs: ["FR-009"]
+        points: 3
+        owner: "Clément Raussin"
+        status: "completed"
+        completion_date: "2026-04-30"
+        actual_points: 3
+      - story_id: "STORY-014"
+        title: "UC1 README + cross-author repro"
+        epic: "EPIC-002"
+        frs: ["FR-008"]
+        nfrs: ["NFR-003"]
+        points: 2
+        owner: "Quentin Rodic"  # re-attributed: Clément OOO at start of M2; Quentin ghost-authored the README. Cross-author repro AC therefore lands on Clément when he is back.
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 2
+      - story_id: "STORY-015"
+        title: "UC2 manifests + bootstrap taint Job + agent CRDs"
+        epic: "EPIC-002"
+        frs: ["FR-010"]
+        points: 5
+        owner: "Quentin Rodic"
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 5
+      - story_id: "STORY-016"
+        title: "UC2 tour.json"
+        epic: "EPIC-002"
+        frs: ["FR-011"]
+        points: 3
+        owner: "Quentin Rodic"
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 3
+      - story_id: "STORY-017"
+        title: "UC2 README + cross-author repro"
+        epic: "EPIC-002"
+        frs: ["FR-010"]
+        nfrs: ["NFR-003"]
+        points: 2
+        owner: "Quentin Rodic"
+        status: "completed"
+        completion_date: "2026-05-03"
+        actual_points: 2
+        # AC #2 (Clément runs UC2 repro on fresh kind + signs off) deferred until Clément is back
+        # or until M5 dry-run (STORY-028) covers it. README authoring (AC #1) is complete.
+
+  - sprint_number: 3
+    milestone: "M3"
+    goal: "Deliver UC3 with on-the-fly Grafana dashboard, and unblock UC4 by completing the MCP source and packaging in parallel."
+    start_date: "2026-05-11"
+    end_date: "2026-05-13"
+    capacity_points: 30
+    committed_points: 23
+    completed_points: 0
+    status: "not_started"
+    stories:
+      - story_id: "STORY-018"
+        title: "infra/observability/ Prom + Graf bundle"
+        epic: "EPIC-003"
+        frs: ["FR-012"]
+        points: 5
+        owner: "Clément Raussin"
+        status: "not_started"
+      - story_id: "STORY-019"
+        title: "UC3 manifests + agent CRDs"
+        epic: "EPIC-003"
+        frs: ["FR-012"]
+        points: 5
+        owner: "Clément Raussin"
+        status: "not_started"
+      - story_id: "STORY-020"
+        title: "UC3 tour.json (leak loop + dashboard URL)"
+        epic: "EPIC-003"
+        frs: ["FR-013"]
+        points: 3
+        owner: "Clément Raussin"
+        status: "not_started"
+      - story_id: "STORY-021"
+        title: "UC3 README + cross-author repro"
+        epic: "EPIC-003"
+        frs: ["FR-012"]
+        nfrs: ["NFR-003"]
+        points: 2
+        owner: "Clément Raussin"
+        status: "not_started"
+      - story_id: "STORY-022"
+        title: "KMCP MCP source + tenancy guard + tests"
+        epic: "EPIC-004"
+        frs: ["FR-016"]
+        nfrs: ["NFR-012"]
+        points: 5
+        owner: "Quentin Rodic"
+        status: "not_started"
+      - story_id: "STORY-023"
+        title: "MCP packaging — Dockerfile + manifests + ToolServer"
+        epic: "EPIC-004"
+        frs: ["FR-016"]
+        points: 3
+        owner: "Quentin Rodic"
+        status: "not_started"
+
+  - sprint_number: 4
+    milestone: "M4"
+    goal: "Deliver UC4 — multi-symptom cluster, a2a coordinator, custom MCP integrated end-to-end, bulbs visibly change colour."
+    start_date: "2026-05-13"
+    end_date: "2026-05-17"
+    capacity_points: 24
+    committed_points: 14
+    completed_points: 0
+    status: "not_started"
+    stories:
+      - story_id: "STORY-024"
+        title: "UC4 multi-symptom manifests"
+        epic: "EPIC-004"
+        frs: ["FR-014"]
+        points: 3
+        owner: "joint"
+        status: "not_started"
+      - story_id: "STORY-025"
+        title: "UC4 coordinator a2a Agent CRD"
+        epic: "EPIC-004"
+        frs: ["FR-014", "FR-017"]
+        points: 5
+        owner: "joint"
+        status: "not_started"
+      - story_id: "STORY-026"
+        title: "UC4 tour.json"
+        epic: "EPIC-004"
+        frs: ["FR-015"]
+        points: 3
+        owner: "joint"
+        status: "not_started"
+      - story_id: "STORY-027"
+        title: "UC4 README + cross-author repro"
+        epic: "EPIC-004"
+        frs: ["FR-014", "FR-017"]
+        nfrs: ["NFR-003"]
+        points: 3
+        owner: "joint"
+        status: "not_started"
+
+  - sprint_number: 5
+    milestone: "M5"
+    goal: "Lock the artefacts: end-to-end dry-run signed off by both authors, blockers patched, repo tagged for the workshop."
+    start_date: "2026-05-18"
+    end_date: "2026-05-19"
+    capacity_points: 12
+    committed_points: 6
+    completed_points: 0
+    status: "not_started"
+    stories:
+      - story_id: "STORY-028"
+        title: "Full dry-run end-to-end"
+        nfrs: ["NFR-003", "NFR-010"]
+        points: 3
+        owner: "joint"
+        status: "not_started"
+      - story_id: "STORY-029"
+        title: "M5 corrections + freeze + git tag"
+        points: 3
+        owner: "joint"
+        status: "not_started"
+
+velocity:
+  sprint_1: 24
+  sprint_2: 20
+  sprint_3: null
+  sprint_4: null
+  sprint_5: null
+  rolling_average: 22
+
+metrics:
+  total_epics: 4
+  total_stories: 29
+  total_points: 89
+  stories_completed: 16
+  stories_in_progress: 0
+  stories_skipped: 1
+  stories_not_started: 12

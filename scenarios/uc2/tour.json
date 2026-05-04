@@ -1,0 +1,95 @@
+{
+  "id": "kagent-uc2-pod-pending",
+  "title": "UC2 — A new mission-control replica won't land on the launch pad",
+  "description": "Diagnose a Pending Pod blocked by a synthetic node taint with the help of the artemis-launch-pad-debugger agent. Live the manual cross-resource dance — pod, then node, then events — before watching the agent correlate all three into one root cause.",
+  "steps": [
+    {
+      "title": "Apply the broken state",
+      "explanation": "A replacement `mission-control` replica needs to come up, but the launch pad has been declared unsafe — a synthetic node taint blocks scheduling. Apply the manifests below to your vCluster. The five files are dropped into your workspace by this step (`fileEdits`), then applied with a single `kubectl apply -f`.\n\nThe applied bundle is: a namespace, RBAC for the bootstrap Job, the bootstrap Job itself (which taints the only node and forces a rollout restart), a Service, and the broken Deployment. The Deployment uses the **real** `mission-control:v1` image — only the scheduling constraint is unsatisfiable.",
+      "fileEdits": [
+        {
+          "type": "create",
+          "path": "uc2/manifests/00-namespace.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: artemis-uc2\n  labels:\n    kagent-workshop/uc: uc2\n    kagent-workshop/scenario: pod-pending\n"
+        },
+        {
+          "type": "create",
+          "path": "uc2/manifests/10-rbac.yaml",
+          "overwrite": true,
+          "content": "# RBAC for the bootstrap-launch-pad-fault Job (20-bootstrap-taint-job.yaml).\n#\n# The Job needs two cluster-scoped + namespaced permissions:\n#   - patch nodes  → to apply the synthetic taint via `kubectl taint`\n#   - patch deploy → to `kubectl rollout restart` mission-control after the taint,\n#                    which closes the cold-deploy race that would otherwise let a\n#                    Pod bind to the node before the taint lands (NFR-003).\n#\n# Both permissions are scoped to the absolute minimum verbs required.\napiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: bootstrap-launch-pad-fault\n  namespace: artemis-uc2\n  labels:\n    kagent-workshop/uc: uc2\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nmetadata:\n  name: artemis-uc2-bootstrap-node-tainter\n  labels:\n    kagent-workshop/uc: uc2\nrules:\n  - apiGroups: [\"\"]\n    resources: [\"nodes\"]\n    verbs: [\"get\", \"list\", \"patch\"]\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRoleBinding\nmetadata:\n  name: artemis-uc2-bootstrap-node-tainter\n  labels:\n    kagent-workshop/uc: uc2\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: ClusterRole\n  name: artemis-uc2-bootstrap-node-tainter\nsubjects:\n  - kind: ServiceAccount\n    name: bootstrap-launch-pad-fault\n    namespace: artemis-uc2\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: Role\nmetadata:\n  name: bootstrap-deployment-restarter\n  namespace: artemis-uc2\n  labels:\n    kagent-workshop/uc: uc2\nrules:\n  - apiGroups: [\"apps\"]\n    resources: [\"deployments\"]\n    verbs: [\"get\", \"patch\"]\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: bootstrap-deployment-restarter\n  namespace: artemis-uc2\n  labels:\n    kagent-workshop/uc: uc2\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: Role\n  name: bootstrap-deployment-restarter\nsubjects:\n  - kind: ServiceAccount\n    name: bootstrap-launch-pad-fault\n    namespace: artemis-uc2\n"
+        },
+        {
+          "type": "create",
+          "path": "uc2/manifests/20-bootstrap-taint-job.yaml",
+          "overwrite": true,
+          "content": "# bootstrap-launch-pad-fault — applies the synthetic node taint that blocks\n# mission-control from scheduling, then forces a rollout restart so the Pod\n# is re-evaluated against the now-tainted node (closes the cold-deploy race\n# where the scheduler binds the Pod before the taint lands — NFR-003).\n#\n# Idempotency:\n#   - `kubectl taint --overwrite` is idempotent on identical key=value:effect.\n#   - `kubectl rollout restart` always succeeds; if no Pod is currently scheduled\n#     it just bumps the Deployment's pod template hash, producing a new Pending\n#     Pod that hits the taint deterministically.\n#   - The Job itself is named, not generateName'd; re-applying the same manifest\n#     is a no-op (\"unchanged\"). To re-run, delete the Job first.\napiVersion: batch/v1\nkind: Job\nmetadata:\n  name: bootstrap-launch-pad-fault\n  namespace: artemis-uc2\n  labels:\n    kagent-workshop/uc: uc2\nspec:\n  backoffLimit: 4\n  activeDeadlineSeconds: 120\n  ttlSecondsAfterFinished: 600\n  template:\n    metadata:\n      labels:\n        kagent-workshop/uc: uc2\n        app: bootstrap-launch-pad-fault\n    spec:\n      serviceAccountName: bootstrap-launch-pad-fault\n      restartPolicy: OnFailure\n      containers:\n        - name: tainter\n          image: docker.io/bitnami/kubectl:1.31.0\n          command: [\"/bin/bash\", \"-eu\", \"-o\", \"pipefail\", \"-c\"]\n          args:\n            - |\n              echo \"[bootstrap] tainting all nodes with artemis.kagent.dev/launch-pad-fault=true:NoSchedule\"\n              kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault=true:NoSchedule --overwrite\n\n              echo \"[bootstrap] waiting up to 60s for deployment/mission-control to exist in artemis-uc2\"\n              for i in $(seq 1 60); do\n                if kubectl get -n artemis-uc2 deploy/mission-control >/dev/null 2>&1; then\n                  echo \"[bootstrap] deployment found after ${i}s\"\n                  break\n                fi\n                sleep 1\n              done\n\n              if ! kubectl get -n artemis-uc2 deploy/mission-control >/dev/null 2>&1; then\n                echo \"[bootstrap] deployment did not appear within 60s — taint applied; exiting\"\n                exit 0\n              fi\n\n              echo \"[bootstrap] forcing rollout restart of mission-control to surface the untolerated-taint event\"\n              kubectl rollout restart -n artemis-uc2 deploy/mission-control\n\n              echo \"[bootstrap] done\"\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"32Mi\"\n            limits:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n"
+        },
+        {
+          "type": "create",
+          "path": "uc2/manifests/30-service.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: mission-control\n  namespace: artemis-uc2\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc2\nspec:\n  type: ClusterIP\n  selector:\n    app: mission-control\n  ports:\n    - name: http\n      port: 8000\n      targetPort: http\n      protocol: TCP\n"
+        },
+        {
+          "type": "create",
+          "path": "uc2/manifests/40-deployment.yaml",
+          "overwrite": true,
+          "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: mission-control\n  namespace: artemis-uc2\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc2\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: mission-control\n  template:\n    metadata:\n      labels:\n        app: mission-control\n    spec:\n      # Deliberately no toleration for artemis.kagent.dev/launch-pad-fault — the\n      # bootstrap Job (20-bootstrap-taint-job.yaml) applies that taint with\n      # NoSchedule effect, leaving the Pod Pending with an \"untolerated taint\"\n      # event (FR-010). The image tag :v1 is real (the same one UC4's\n      # mission-control-pending Deployment will reuse) — only the scheduling\n      # constraint is unsatisfiable, per FR-010 AC.\n      containers:\n        - name: mission-control\n          image: ghcr.io/kagent-workshop/mission-control:v1\n          ports:\n            - name: http\n              containerPort: 8000\n          env:\n            - name: APP_IDENTITY\n              value: mission-control\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"64Mi\"\n            limits:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n"
+        }
+      ],
+      "commands": [
+        {
+          "label": "Apply the manifests",
+          "command": "kubectl apply -f uc2/manifests/"
+        }
+      ]
+    },
+    {
+      "title": "CLI baseline — first look at the pod",
+      "explanation": "Give the bootstrap Job ~30 s to taint the node and bump the Deployment, then start where any on-call would: the workload's own pods. Run the three commands below in order.\n\nNotice how each one tells you that **something** is wrong but none of them name the cause. The pod is `Pending`. Its events mention scheduling, but the Pod itself doesn't carry the taint — the **node** does. You'll have to switch resources to find it.",
+      "commands": [
+        {
+          "label": "List pods",
+          "command": "kubectl get pods -n artemis-uc2 -l app=mission-control"
+        },
+        {
+          "label": "Describe the pod",
+          "command": "kubectl describe pod -n artemis-uc2 -l app=mission-control"
+        },
+        {
+          "label": "Recent events in the namespace",
+          "command": "kubectl get events -n artemis-uc2 --sort-by=.lastTimestamp"
+        }
+      ]
+    },
+    {
+      "title": "CLI baseline — now look at the node",
+      "explanation": "The Pod is Pending and the scheduler emitted `FailedScheduling: 0/1 nodes are available: 1 node(s) had untolerated taint`. To name the taint, switch to the node side. The taint key, value, and effect are all under the `Taints:` section of `describe node`.\n\nYou now have the answer — but you assembled it yourself, by hand, from two resource kinds. That's the friction the agent is about to remove.",
+      "commands": [
+        {
+          "label": "List nodes",
+          "command": "kubectl get nodes"
+        },
+        {
+          "label": "Describe the node (look at Taints:)",
+          "command": "kubectl describe node $(kubectl get nodes -o name | head -n1)"
+        }
+      ]
+    },
+    {
+      "title": "Now ask the agent",
+      "explanation": "Hand the same problem to **`artemis-launch-pad-debugger`**. The agent has the same Kubernetes read tools you used above — `get/describe pod`, `get/describe node`, `get events` — the difference is that it correlates them across the two resource kinds in a single synthesis.\n\nThe agent runs in the `artemis-uc2` namespace and uses the participant-scoped `artemis-llm` ModelConfig.",
+      "commands": [
+        {
+          "label": "Ask the agent",
+          "command": "kagent invoke --agent artemis-launch-pad-debugger --namespace artemis-uc2 --task 'The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.'"
+        }
+      ]
+    },
+    {
+      "title": "What did the agent do better?",
+      "explanation": "In the CLI baseline you held two pieces of state from two resource kinds — a Pending Pod with a `FailedScheduling` event, and a Node with an `artemis.kagent.dev/launch-pad-fault=true:NoSchedule` taint — and joined them yourself. The agent ran the same tools across both resources and returned a single sentence: **the only node carries a synthetic `artemis.kagent.dev/launch-pad-fault=true:NoSchedule` taint, which the `mission-control` Pod does not tolerate**.\n\nThis is one notch above UC1's value: same idea (one synthesis instead of N commands), but now the synthesis crosses a resource boundary the participant had to cross by hand. UC3 will scale this further to external observability; UC4 to multi-agent fan-out."
+    }
+  ]
+}

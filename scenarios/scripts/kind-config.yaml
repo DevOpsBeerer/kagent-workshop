@@ -1,0 +1,14 @@
+# scripts/kind-config.yaml — author dev-loop kind cluster config (FR-004).
+# Used by `make kind-up`. Single-node control-plane, K8s ≥ 1.28 (NFR-006).
+#
+# Bumping the node image: pick a kindest/node tag for a K8s version ≥ 1.28
+# from https://github.com/kubernetes-sigs/kind/releases — the version your
+# `kind` binary supports. The workshop runtime targets vanilla K8s, so the
+# minor version here is not load-bearing as long as it's ≥ 1.28.
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kagent-workshop
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.31.0

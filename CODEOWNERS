@@ -1,0 +1,40 @@
+# CODEOWNERS — kagent-workshop
+#
+# Enforces the per-UC ownership boundary required by NFR-008 of
+# kagent-workshop-scenarios (and the team's "1 UC par dev" policy from the
+# product brief). Last-match-wins: the per-UC rules below override the
+# default-fallback `*` rule for files inside `scenarios/uc<N>/`.
+#
+# ⚠ Verify the GitHub handles before the first PR opens. CODEOWNERS silently
+#   does nothing for unrecognised handles — the worst failure mode for an
+#   anti-collision policy. The handles below are the architecture-doc
+#   placeholders and may need updating to match the team's real GitHub usernames.
+
+# Default fallback — both authors review anything not matched below.
+*  @clement-raussin @qrodic
+
+# Sibling project — out of scope for the scenarios authors but kept under joint
+# review so a stray cross-project edit gets caught.
+/light-manager/  @clement-raussin @qrodic
+
+# scenarios/ — per-UC ownership boundary (NFR-008)
+/scenarios/uc1/  @clement-raussin
+/scenarios/uc2/  @qrodic
+/scenarios/uc3/  @clement-raussin
+/scenarios/uc4/  @clement-raussin @qrodic
+
+# scenarios/ — shared dirs require both authors
+/scenarios/apps/        @clement-raussin @qrodic
+/scenarios/infra/       @clement-raussin @qrodic
+/scenarios/mcp/         @clement-raussin @qrodic
+/scenarios/schemas/     @clement-raussin @qrodic
+/scenarios/scripts/     @clement-raussin @qrodic
+/scenarios/docs/        @clement-raussin @qrodic
+/scenarios/bmad/        @clement-raussin @qrodic
+/scenarios/Makefile     @clement-raussin @qrodic
+/scenarios/README.md    @clement-raussin @qrodic
+/scenarios/.gitignore   @clement-raussin @qrodic
+
+# CI/CD lives at the workshop repo root
+/.github/    @clement-raussin @qrodic
+/CODEOWNERS  @clement-raussin @qrodic

@@ -1,0 +1,129 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://devopsdays.org/schemas/workshop-tour.json",
+	"title": "Workshop Tour",
+	"description": "A guided tour definition for the workshop-tour VS Code extension.",
+	"type": "object",
+	"required": ["id", "title", "steps"],
+	"additionalProperties": false,
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "Stable identifier for the tour. Used to track active tour state.",
+			"minLength": 1
+		},
+		"title": {
+			"type": "string",
+			"description": "Human-readable tour title shown in the side-bar.",
+			"minLength": 1
+		},
+		"description": {
+			"type": "string",
+			"description": "Short summary of what the tour covers."
+		},
+		"steps": {
+			"type": "array",
+			"description": "Ordered list of steps the user walks through.",
+			"minItems": 1,
+			"items": { "$ref": "#/definitions/step" }
+		}
+	},
+	"definitions": {
+		"step": {
+			"type": "object",
+			"required": ["title", "explanation"],
+			"additionalProperties": false,
+			"properties": {
+				"title": {
+					"type": "string",
+					"description": "Step heading.",
+					"minLength": 1
+				},
+				"explanation": {
+					"type": "string",
+					"description": "Markdown body explaining the step.",
+					"minLength": 1
+				},
+				"commands": {
+					"type": "array",
+					"description": "Shell commands the user can copy or run from the step.",
+					"items": { "$ref": "#/definitions/command" }
+				},
+				"fileEdits": {
+					"type": "array",
+					"description": "File edits the user can apply from the step.",
+					"items": { "$ref": "#/definitions/fileEdit" }
+				}
+			}
+		},
+		"command": {
+			"type": "object",
+			"required": ["label", "command"],
+			"additionalProperties": false,
+			"properties": {
+				"label": {
+					"type": "string",
+					"description": "Button label shown in the webview.",
+					"minLength": 1
+				},
+				"command": {
+					"type": "string",
+					"description": "Shell command to copy or execute.",
+					"minLength": 1
+				}
+			}
+		},
+		"fileEdit": {
+			"oneOf": [
+				{ "$ref": "#/definitions/createFileEdit" },
+				{ "$ref": "#/definitions/patchFileEdit" }
+			]
+		},
+		"createFileEdit": {
+			"type": "object",
+			"description": "Create a new file (or overwrite an existing one when `overwrite` is true).",
+			"required": ["type", "path", "content"],
+			"additionalProperties": false,
+			"properties": {
+				"type": { "const": "create" },
+				"path": {
+					"type": "string",
+					"description": "Workspace-relative path of the file to create.",
+					"minLength": 1
+				},
+				"content": {
+					"type": "string",
+					"description": "Full file contents to write."
+				},
+				"overwrite": {
+					"type": "boolean",
+					"description": "If true, replace the file when it already exists. Defaults to false.",
+					"default": false
+				}
+			}
+		},
+		"patchFileEdit": {
+			"type": "object",
+			"description": "Patch an existing file by replacing the first occurrence of `find` with `replace`.",
+			"required": ["type", "path", "find", "replace"],
+			"additionalProperties": false,
+			"properties": {
+				"type": { "const": "patch" },
+				"path": {
+					"type": "string",
+					"description": "Workspace-relative path of the file to patch.",
+					"minLength": 1
+				},
+				"find": {
+					"type": "string",
+					"description": "Anchor string to locate in the file.",
+					"minLength": 1
+				},
+				"replace": {
+					"type": "string",
+					"description": "Replacement string substituted for the anchor."
+				}
+			}
+		}
+	}
+}

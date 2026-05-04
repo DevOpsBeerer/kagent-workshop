@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-control
+  namespace: artemis-uc1
+  labels:
+    app: mission-control
+    kagent-workshop/uc: uc1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mission-control
+  template:
+    metadata:
+      labels:
+        app: mission-control
+    spec:
+      containers:
+        - name: mission-control
+          # Tag deliberately not published — produces ImagePullBackOff on first pull (FR-008).
+          # The :v1 tag (real, used by UC2) is published by workshop-infrastructure; :v999 is not.
+          image: ghcr.io/kagent-workshop/mission-control:v999
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: mission-control
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

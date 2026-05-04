@@ -1,0 +1,19 @@
+# apps/mission-control/pyproject.toml — UC1 + UC2 baseline FastAPI variant (FR-007).
+# Forked from apps/_skeleton/. Same dep contract; identity defaults to mission-control.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kagent-workshop-mission-control"
+version = "0.1.0"
+description = "UC1 + UC2 baseline FastAPI app for kagent-workshop-scenarios — Artemis 'mission-control' identity."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[tool.setuptools]
+py-modules = ["main"]

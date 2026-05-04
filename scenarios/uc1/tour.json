@@ -1,0 +1,69 @@
+{
+  "id": "kagent-uc1-imagepullbackoff",
+  "title": "UC1 — Mission control's roster won't come online",
+  "description": "Diagnose an ImagePullBackOff on the Artemis mission-control deployment with the help of the artemis-mission-control-debugger agent. Feel the manual diagnostic friction first; then watch the agent shortcut three commands into one synthesis.",
+  "steps": [
+    {
+      "title": "Apply the broken state",
+      "explanation": "Mission control's deploy is hours late. Apply the manifests below to your vCluster — the **deployment.yaml** intentionally references a tag that never shipped (`mission-control:v999`), so this will reproduce the on-call ticket you're about to investigate.\n\nThe three files are dropped into your workspace by this step (`fileEdits`), then applied with a single `kubectl apply -f`.",
+      "fileEdits": [
+        {
+          "type": "create",
+          "path": "uc1/manifests/00-namespace.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: artemis-uc1\n  labels:\n    kagent-workshop/uc: uc1\n    kagent-workshop/scenario: imagepullbackoff\n"
+        },
+        {
+          "type": "create",
+          "path": "uc1/manifests/10-service.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: mission-control\n  namespace: artemis-uc1\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc1\nspec:\n  type: ClusterIP\n  selector:\n    app: mission-control\n  ports:\n    - name: http\n      port: 8000\n      targetPort: http\n      protocol: TCP\n"
+        },
+        {
+          "type": "create",
+          "path": "uc1/manifests/20-deployment.yaml",
+          "overwrite": true,
+          "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: mission-control\n  namespace: artemis-uc1\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc1\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: mission-control\n  template:\n    metadata:\n      labels:\n        app: mission-control\n    spec:\n      containers:\n        - name: mission-control\n          # Tag deliberately not published — produces ImagePullBackOff on first pull (FR-008).\n          image: ghcr.io/kagent-workshop/mission-control:v999\n          ports:\n            - name: http\n              containerPort: 8000\n          env:\n            - name: APP_IDENTITY\n              value: mission-control\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"64Mi\"\n            limits:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n"
+        }
+      ],
+      "commands": [
+        {
+          "label": "Apply the manifests",
+          "command": "kubectl apply -f uc1/manifests/"
+        }
+      ]
+    },
+    {
+      "title": "CLI baseline — listen to mission-control",
+      "explanation": "Run the three commands below in order. Notice that you'll be holding three separate pieces of evidence — the pod's phase, the failing container's reason, and the recent events — and you'll have to piece them together yourself before you can name a root cause.\n\nGive the kubelet ~30 s to attempt the pull before checking the pod state.",
+      "commands": [
+        {
+          "label": "List pods",
+          "command": "kubectl get pods -n artemis-uc1"
+        },
+        {
+          "label": "Describe the pod",
+          "command": "kubectl describe pod -n artemis-uc1 -l app=mission-control"
+        },
+        {
+          "label": "Recent events",
+          "command": "kubectl get events -n artemis-uc1 --sort-by=.lastTimestamp"
+        }
+      ]
+    },
+    {
+      "title": "Now ask the agent",
+      "explanation": "Hand the same problem to **`artemis-mission-control-debugger`**. The agent has the same Kubernetes read tools you used above (`get pod`, `describe pod`, `get events`) — the difference is that it correlates them in one synthesis and reports a single sentence of root cause.\n\nThe agent runs in the `artemis-uc1` namespace and uses the participant-scoped `artemis-llm` ModelConfig.",
+      "commands": [
+        {
+          "label": "Ask the agent",
+          "command": "kagent invoke --agent artemis-mission-control-debugger --namespace artemis-uc1 --task 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'"
+        }
+      ]
+    },
+    {
+      "title": "What did the agent do better?",
+      "explanation": "In the CLI baseline you ran three commands and had to combine three pieces of state to reach a verdict: the pod's `Waiting` phase, the container's `ImagePullBackOff` reason, and the kubelet's repeated pull-failed events. The agent ran the same three tools and returned a single sentence of root cause: **the deploy targets `mission-control:v999`, which was never published**.\n\nThis is the simplest case of agent-vs-CLI value: same tools, same evidence, one synthesis instead of three. UC2 will scale this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out. For now, multiply this single-incident saving by the dozen incidents an on-call rotation handles in a week — that's the value the workshop is selling."
+    }
+  ]
+}

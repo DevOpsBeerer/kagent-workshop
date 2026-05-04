@@ -7,7 +7,7 @@ project_type: "api"
 project_level: 2
 communication_language: "English"
 output_language: "English"
-last_updated: "2026-04-27T09:30:00Z"
+last_updated: "2026-04-28T00:00:00Z"
 
 # Workflow Status Tracking
 # Status values:
@@ -38,7 +38,7 @@ workflow_status:
   # Phase 2: Planning (Required - choose one based on project level)
   - name: prd
     phase: 2
-    status: "required"  # required for level 2+, recommended for level 1
+    status: "docs/prd-kagent-workshop-scenarios-2026-04-27.md"
     description: "Product Requirements Document"
 
   - name: tech-spec
@@ -54,7 +54,7 @@ workflow_status:
   # Phase 3: Solutioning (Conditional on project level)
   - name: architecture
     phase: 3
-    status: "required"  # required for level 2+
+    status: "docs/architecture-kagent-workshop-scenarios-2026-04-28.md"
     description: "System architecture design"
 
   - name: solutioning-gate-check
@@ -63,4 +63,9 @@ workflow_status:
     description: "Validate architecture against requirements"
 
   # Phase 4: Implementation (Required)
+  - name: sprint-planning
+    phase: 4
+    status: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
+    description: "Sprint plan with milestone-aligned stories"
+
   # Note: Implementation tracked in sprint-status.yaml

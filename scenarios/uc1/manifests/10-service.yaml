@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mission-control
+  namespace: artemis-uc1
+  labels:
+    app: mission-control
+    kagent-workshop/uc: uc1
+spec:
+  type: ClusterIP
+  selector:
+    app: mission-control
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
