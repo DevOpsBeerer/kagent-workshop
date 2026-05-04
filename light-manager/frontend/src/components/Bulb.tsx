@@ -25,7 +25,7 @@ export default function Bulb({ slot, r, g, b, size = 96, className }: Props) {
       height={size}
       viewBox="0 0 100 100"
       role="img"
-      aria-label={`Ampoule slot ${slot ?? "?"} : RGB(${r}, ${g}, ${b})`}
+      aria-label={`Mission beacon ${slot ?? "?"}: RGB(${r}, ${g}, ${b})`}
       className={className}
     >
       <defs>

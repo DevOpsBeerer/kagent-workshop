@@ -17,7 +17,16 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Light Manager", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="APOGASA · ARTEMIS Beacons",
+    description=(
+        "ARTEMIS mission-status beacon console — APOGASA "
+        "(ARTEMIS Program Of Geneva Aeronautics and Space Administration). "
+        "Each operator pilots three RGB mission beacons via this API."
+    ),
+    version="0.1.0",
+    lifespan=lifespan,
+)
 
 
 @app.exception_handler(RequestValidationError)

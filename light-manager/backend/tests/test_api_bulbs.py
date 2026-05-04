@@ -5,7 +5,7 @@ from app.main import app
 
 def test_get_bulbs_returns_three_for_known_user():
     with TestClient(app) as client:
-        response = client.get("/api/bulbs", params={"user": "participant-01"})
+        response = client.get("/api/bulbs", params={"user": "operator-01"})
 
     assert response.status_code == 200
     bulbs = response.json()
@@ -36,7 +36,7 @@ def test_put_bulb_updates_color_and_get_reflects_it():
     with TestClient(app) as client:
         put_response = client.put(
             "/api/bulbs/1",
-            params={"user": "participant-02"},
+            params={"user": "operator-02"},
             json=payload,
         )
         assert put_response.status_code == 200
@@ -46,7 +46,7 @@ def test_put_bulb_updates_color_and_get_reflects_it():
         assert body["g"] == 0
         assert body["b"] == 128
 
-        get_response = client.get("/api/bulbs", params={"user": "participant-02"})
+        get_response = client.get("/api/bulbs", params={"user": "operator-02"})
         assert get_response.status_code == 200
         slot1 = next(b for b in get_response.json() if b["slot"] == 1)
         assert (slot1["r"], slot1["g"], slot1["b"]) == (255, 0, 128)
@@ -68,7 +68,7 @@ def test_put_bulb_404_for_invalid_slot():
         for invalid_slot in (0, 4, 99):
             response = client.put(
                 f"/api/bulbs/{invalid_slot}",
-                params={"user": "participant-03"},
+                params={"user": "operator-03"},
                 json={"r": 1, "g": 1, "b": 1},
             )
             assert response.status_code == 404, f"slot={invalid_slot}"
@@ -78,21 +78,21 @@ def test_put_bulb_400_for_invalid_rgb():
     with TestClient(app) as client:
         too_high = client.put(
             "/api/bulbs/1",
-            params={"user": "participant-04"},
+            params={"user": "operator-04"},
             json={"r": 999, "g": 0, "b": 0},
         )
         assert too_high.status_code == 400
 
         negative = client.put(
             "/api/bulbs/1",
-            params={"user": "participant-04"},
+            params={"user": "operator-04"},
             json={"r": -1, "g": 0, "b": 0},
         )
         assert negative.status_code == 400
 
         missing_field = client.put(
             "/api/bulbs/1",
-            params={"user": "participant-04"},
+            params={"user": "operator-04"},
             json={"r": 0, "g": 0},
         )
         assert missing_field.status_code == 400

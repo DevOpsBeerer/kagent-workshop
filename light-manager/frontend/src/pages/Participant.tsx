@@ -5,6 +5,7 @@ import Bulb from "../components/Bulb";
 import EndpointHelp from "../components/EndpointHelp";
 import { fetchBulbs, type FetchBulbsResult } from "../api/client";
 import type { BulbDto } from "../types";
+import logoUrl from "../images/LOGO.svg";
 
 const POLL_INTERVAL_MS = 1500;
 
@@ -63,39 +64,40 @@ export default function Participant() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
       <header className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-semibold">
-          <span className="text-slate-500">Light Manager — </span>
+        <h1 className="flex items-center gap-3 text-xl sm:text-2xl font-semibold">
+          <img src={logoUrl} alt="APOGASA · ARTEMIS" className="h-7 brightness-0 invert" />
+          <span className="text-slate-500">— </span>
           <span className="font-mono text-sky-300">{login}</span>
         </h1>
         <Link to="/" className="text-sm text-slate-400 hover:text-slate-200 underline-offset-2 hover:underline">
-          ← changer de login
+          ← change callsign
         </Link>
       </header>
 
       {state.kind === "loading" && (
-        <p className="text-center text-slate-500">Chargement…</p>
+        <p className="text-center text-slate-500">Loading…</p>
       )}
 
       {state.kind === "not-found" && (
         <div className="max-w-xl mx-auto text-center bg-rose-950/60 border border-rose-800 rounded-xl p-6 mt-6">
           <p className="text-rose-100 font-semibold text-lg">
-            Login inconnu, demande au formateur.
+            Unknown callsign — contact Mission Control.
           </p>
           <p className="text-rose-300/80 text-sm mt-2">
-            Login utilisé : <code className="font-mono">{login}</code>
+            Callsign used: <code className="font-mono">{login}</code>
           </p>
           <Link
             to="/"
             className="inline-block mt-4 text-sm text-sky-400 hover:text-sky-300 underline-offset-2 hover:underline"
           >
-            Retour à l'accueil
+            Back to home
           </Link>
         </div>
       )}
 
       {state.kind === "error" && (
         <p className="max-w-xl mx-auto text-center text-amber-300 mt-6">
-          Erreur réseau : {state.message}
+          Network error: {state.message}
         </p>
       )}
 
@@ -109,7 +111,7 @@ export default function Participant() {
               >
                 <Bulb slot={bulb.slot} r={bulb.r} g={bulb.g} b={bulb.b} size={140} />
                 <div className="text-center space-y-1">
-                  <div className="text-xs sm:text-sm text-slate-400">Slot {bulb.slot}</div>
+                  <div className="text-xs sm:text-sm text-slate-400">Beacon {bulb.slot}</div>
                   <code className="font-mono text-sm sm:text-base text-slate-100 tabular-nums">
                     RGB({bulb.r}, {bulb.g}, {bulb.b})
                   </code>

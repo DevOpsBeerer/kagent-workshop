@@ -14,5 +14,5 @@ resources:
 #   kubectl apply -k .
 images:
 - name: light-manager
-  newName: light-manager
-  newTag: dev
+  newName: rg.fr-par.scw.cloud/apogasa/mlc-system
+  newTag: v1.0.0
