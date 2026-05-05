@@ -1,6 +1,6 @@
 # Tour content conventions
 
-**Source of truth** for the structure of every `uc<N>/tour.json` in this repo. Every tour story (STORY-013 / 016 / 020 / 026 / 031 / 032) cites FR-006; this doc is the operational form of that FR.
+**Source of truth** for the structure of every `uc<N>/tour.json` in this repo. Every tour story (STORY-013 / 016 / 020 / 026 / 031 / 032 / 034) cites FR-006; this doc is the operational form of that FR.
 
 > Workshop participants do not read this doc. They follow the rendered tour in their VS Code workshop-tour extension. This doc is for the two repo authors writing those tours.
 
@@ -68,9 +68,33 @@ The tour `id` (e.g. `kagent-uc1-imagepullbackoff`) is **exempted** from the rule
 
 **Good** — target replacement:
 
-> *description*: "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat — UC1 is the participant's first contact with a kagent agent."
+> *description*: "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat."
 >
 > *Beat 1 explanation*: "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the manifests below to deploy `mission-control` to your vCluster — namespace, service, deployment. Once the apply completes, the roster should be reachable."
+
+### No meta-references in prose
+
+Participant-visible fields (`description` and every step's `title`/`explanation`) must not name other tours by handle (`UC<N>`, "the next UC", "the previous one"), pull on cross-tour temporal pointers ("later", "earlier", "the UCs that follow"), or expose author-side audit metadata (`STORY-…` citations, `Beat <N>` references inside prose, architecture line citations). The participant lives the mission; they are not reading a table of contents.
+
+The `id` and `title` exemptions documented above this section apply here too: tour `id` retains `UC<N>` (stable handle, not rendered as prose); tour `title` retains `UC<N> — <purpose>` (sidebar bookmark, not prose). Everything else — `description` and step `explanation` strings — is prose, and the rule applies in full.
+
+Audit notes — spike-frozen invocation forms, profile-selection rationale, architecture line citations — belong in `uc<N>/README.md` under an *Author notes* heading, not in `tour.json`. The engineering trace stays preserved on the author side; participant prose stays clean.
+
+**Bad** — leaked meta-references that this sub-rule retires (originally shipped by STORY-031 / 032 / 033, scrubbed by STORY-034):
+
+> *description (UC1)*: "… — UC1 is the participant's first contact with a kagent agent."
+>
+> *Beat 3 explanation (UC1)*: "*Beat 3 invocation form (frozen by STORY-031 spike): `kagent dashboard` foregrounds the port-forward and auto-opens the browser; alive until `Ctrl+C`.*"
+>
+> *Beat 4 explanation (UC1 / UC2)*: "UC2 will scale this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out."
+
+**Good** — same scenarios, re-anchored (the form STORY-034 ships):
+
+> *description (UC1)*: "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat."
+>
+> *Beat 3 explanation (UC1)*: ends after the chat-reading instruction; the `kagent dashboard` rationale lives in `uc1/README.md` under *Author notes*.
+>
+> *Beat 4 explanation (UC1 / UC2)*: closes after "Multiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling." — no cross-UC roadmap tail.
 
 ## Beat 3 invocation: UI/chat vs CLI invoke
 
@@ -216,7 +240,8 @@ When implementing STORY-013 / 016 / 020 / 026 / 031 / 032 (or any future tour):
 - [ ] **Beat 1 — `Mission setup — …`** is exactly one step. The explanation contains none of the banned words (`broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, `unsafe`, `blocked`, `taint`) and no concrete bug specifics (image tags, taint keys, etc.). The deployment is framed as a mission objective.
 - [ ] **Beat 2 — `Mission status check — …`** is **one step** in the typical case (single `kubectl get pods …` that surfaces the friction). A second step only if the friction needs multi-resource observation to be visible. **Do not** put `describe pod` / `get events` / node-side commands here — they belong in Beat 4.
 - [ ] **Beat 3 — `Call the agent for help`** is exactly one step. The UC's invocation variant (UI/chat vs CLI invoke vs hybrid) is declared in the step explanation, and the exact prompt to paste/run is surfaced as a markdown block.
-- [ ] **Beat 4 — `What we'd have done by hand`** is exactly one step. No `commands[]`, no `fileEdits`. The recap names the manual `kubectl` commands as friction the participant skipped.
+- [ ] **Beat 4 — `What we'd have done by hand`** is exactly one step. No `commands[]`, no `fileEdits`. The recap names the manual `kubectl` commands as friction the participant skipped. **No cross-UC roadmap tail** ("UC<N+1> will scale this …") per §`The no-spoiler rule` *No meta-references in prose*.
+- [ ] **No meta-references in prose.** Participant-visible fields (`description`, step `title`/`explanation`) contain no `UC<N>` mentions, no `STORY-…` or `Beat <N>` author citations, no "later"/"earlier"/"the UCs that follow" cross-tour pointers (per §`The no-spoiler rule` sub-rule). Audit notes live in `uc<N>/README.md` under *Author notes*.
 - [ ] Every `commands[].command` runs as-is in the VS Code server terminal (NFR-010).
 - [ ] All copy is English (NFR-009).
 - [ ] `make validate-tours` clean on a local run.

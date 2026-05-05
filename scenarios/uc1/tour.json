@@ -1,7 +1,7 @@
 {
   "id": "kagent-uc1-imagepullbackoff",
   "title": "UC1 — Mission control's roster won't come online",
-  "description": "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat — UC1 is the participant's first contact with a kagent agent.",
+  "description": "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat.",
   "steps": [
     {
       "title": "Mission setup — bring today's roster online",
@@ -45,7 +45,7 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard.\n\nThe command below opens the dashboard (it port-forwards `kagent-ui` and points your browser at it). The command stays running in the terminal — leave it running while you use the chat, then `Ctrl+C` once you have the answer.\n\nIn the dashboard, open the chat for **`artemis-mission-control-debugger`** (namespace `artemis-uc1`) and paste the following prompt:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you ran by hand (`get pod`, `describe pod`, `get events`) — only it correlates them in one synthesis. Read the response directly in the chat surface.\n\n*Beat 3 invocation form (frozen by STORY-031 spike): `kagent dashboard` foregrounds the port-forward and auto-opens the browser; alive until `Ctrl+C`.*",
+      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard.\n\nThe command below opens the dashboard (it port-forwards `kagent-ui` and points your browser at it). The command stays running in the terminal — leave it running while you use the chat, then `Ctrl+C` once you have the answer.\n\nIn the dashboard, open the chat for **`artemis-mission-control-debugger`** (namespace `artemis-uc1`) and paste the following prompt:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you ran by hand (`get pod`, `describe pod`, `get events`) — only it correlates them in one synthesis. Read the response directly in the chat surface.",
       "commands": [
         {
           "label": "Open the kagent dashboard",
@@ -55,7 +55,7 @@
     },
     {
       "title": "What we'd have done by hand",
-      "explanation": "Without the agent, you would have run three `kubectl` commands and joined the evidence yourself:\n\n```bash\nkubectl get pods -n artemis-uc1\nkubectl describe pod -n artemis-uc1 -l app=mission-control\nkubectl get events -n artemis-uc1 --sort-by=.lastTimestamp\n```\n\nThree pieces of state to combine into a verdict: the pod's `Waiting` phase, the container's `ImagePullBackOff` reason, and the kubelet's repeated pull-failed events. The agent ran the same three tools and returned a single sentence of root cause: **the deploy targets `mission-control:v999`, which was never published**.\n\nYou ran one command (`kubectl get pods`) just to see something was off — you didn't have to walk the rest. Multiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling. UC2 will scale this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out."
+      "explanation": "Without the agent, you would have run three `kubectl` commands and joined the evidence yourself:\n\n```bash\nkubectl get pods -n artemis-uc1\nkubectl describe pod -n artemis-uc1 -l app=mission-control\nkubectl get events -n artemis-uc1 --sort-by=.lastTimestamp\n```\n\nThree pieces of state to combine into a verdict: the pod's `Waiting` phase, the container's `ImagePullBackOff` reason, and the kubelet's repeated pull-failed events. The agent ran the same three tools and returned a single sentence of root cause: **the deploy targets `mission-control:v999`, which was never published**.\n\nYou ran one command (`kubectl get pods`) just to see something was off — you didn't have to walk the rest. Multiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling."
     }
   ]
 }

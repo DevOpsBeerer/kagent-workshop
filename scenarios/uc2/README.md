@@ -127,6 +127,14 @@ For each cold-deploy iteration:
 
 **Sign-off:** record the run in the PR description per the M5 dry-run convention — three timestamps, four "OK" lines for checks (a)/(b)/(c)/(d), and a one-line note on whether step 5 was exercised. The cross-author sign-off (Clément ↔ Quentin) lands on the PR per NFR-003 AC #2 before the M5 dry-run.
 
+## Author notes
+
+The note below captures the chosen invocation form for Beat 3, relocated from `tour.json`'s participant text per the convention's *No meta-references in prose* rule (`../docs/tour-content-conventions.md`). Participants never read this section; authors come here to find the *why* behind the Beat 3 invocation form.
+
+### Beat 3 invocation form
+
+`kagent invoke --agent <agent-name> --namespace <ns> --task '<prompt>'` is UC2's CLI invocation per the convention's *Beat 3 invocation: UI/chat vs CLI invoke* clause. UC2 declares the CLI variant to demonstrate kagent's terminal-side surface in addition to the dashboard chat surface UC1 uses. The agent's response prints to the terminal; the prompt is also surfaced in the step's markdown so the participant can copy-paste-modify it for re-runs without leaving the tour.
+
 ## Cleanup
 
 ```bash

@@ -1,7 +1,7 @@
 {
   "id": "kagent-uc0-install",
   "title": "UC0 — Install kagent",
-  "description": "Run this first. Install kagent on your slice so the diagnostic UCs that follow have a working agent runtime.",
+  "description": "Run this first. Install kagent on your slice — every Artemis mission tour assumes a working agent runtime is already on the cluster.",
   "steps": [
     {
       "title": "Check your cluster",
@@ -13,7 +13,7 @@
     },
     {
       "title": "Install kagent via CLI",
-      "explanation": "kagent ships a CLI that handles the full install — CRDs, controller, and the demo profile's pre-packaged agents (the Prometheus / Grafana agents UC3 will reuse).\n\n- `--profile demo` provisions the demo profile so UC3 finds the pre-packaged Prom/Grafana agents already wired (architecture L300). Switch to `--profile minimal` only if UC3's needs change.\n- The CLI installs into the `kagent` namespace by default.\n- `kubectl rollout status` waits for the controller to be `Available` before we move on.\n\n*Beat 3 install form (frozen by STORY-033 spike): `kagent install --profile demo` — the CLI's only documented profiles are `minimal` and `demo` per `kagent install --help`; `demo` is selected for UC3 reuse.*",
+      "explanation": "kagent ships a CLI that handles the full install — CRDs, controller, and the demo profile's pre-packaged agents (Prometheus / Grafana agents shipped alongside the controller).\n\n- `--profile demo` is the broadest install — controller plus the pre-packaged Prometheus / Grafana agents that observability missions rely on. The other documented profile, `--profile minimal`, ships the controller alone.\n- The CLI installs into the `kagent` namespace by default.\n- `kubectl rollout status` waits for the controller to be `Available` before we move on.",
       "commands": [
         { "label": "Install kagent", "command": "kagent install --profile demo" },
         { "label": "Watch the rollout", "command": "kubectl rollout status deployment/kagent-controller -n kagent" }
@@ -21,7 +21,7 @@
     },
     {
       "title": "Verify the installation",
-      "explanation": "Confirm the kagent CRDs are registered, the controller is `Running`, and any default ModelConfig that ships with the demo profile is visible.\n\nThe per-UC `artemis-llm` ModelConfig is created later by UC1's apply step — zero or one ModelConfig in the `kagent` namespace at this point is fine.",
+      "explanation": "Confirm the kagent CRDs are registered, the controller is `Running`, and any default ModelConfig that ships with the demo profile is visible.\n\nAny per-scenario `ModelConfig` is provisioned by the mission that needs it; an empty list at this point is fine.",
       "commands": [
         { "label": "List kagent CRDs", "command": "kubectl get crds | grep kagent" },
         { "label": "Check controller pod", "command": "kubectl get pods -n kagent" },

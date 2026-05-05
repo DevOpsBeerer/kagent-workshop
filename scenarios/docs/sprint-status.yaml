@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2.5
-last_updated: "2026-05-04T16:30:00Z"
+last_updated: "2026-05-05T12:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -276,13 +276,17 @@ sprints:
 
   - sprint_number: 3
     milestone: "M3"
-    goal: "Deliver UC3 with on-the-fly Grafana dashboard, and unblock UC4 by completing the MCP source and packaging in parallel."
+    goal: "Deliver UC3 with on-the-fly Grafana dashboard, and unblock UC4 by completing the MCP source and packaging in parallel. Also close the narrative axis: scrub UC/meta-references from UC0/UC1/UC2 tour prose so STORY-020 (UC3) inherits a clean convention."
     start_date: "2026-05-11"
     end_date: "2026-05-13"
     capacity_points: 30
-    committed_points: 23
-    completed_points: 0
+    committed_points: 25
+    completed_points: 2
     status: "not_started"
+    # STORY-034 (2 pts) implemented out-of-band on 2026-05-05 — ahead of sprint start
+    # so the updated convention is in place before STORY-020 (UC3 tour) is authored.
+    # Sprint formally starts 2026-05-11; the 2 pts already landed bring sprint into
+    # an early-credit posture but do not change the start_date or the rest of the slate.
     stories:
       - story_id: "STORY-018"
         title: "infra/observability/ Prom + Graf bundle"
@@ -328,6 +332,27 @@ sprints:
         points: 3
         owner: "Quentin Rodic"
         status: "not_started"
+      - story_id: "STORY-034"
+        title: "Scrub UC/meta-references from tour prose (UC0, UC1, UC2) + convention rule update"
+        epic: "EPIC-002"  # bundled; UC0 + convention slices are EPIC-001 spillover (see story doc)
+        frs: ["FR-006", "FR-009", "FR-011"]
+        nfrs: ["NFR-008", "NFR-009", "NFR-010"]
+        points: 2
+        owner: "Quentin Rodic"
+        status: "completed"
+        completion_date: "2026-05-05"
+        actual_points: 2
+        # Created and implemented out-of-band on 2026-05-05, ahead of Sprint 3 start
+        # (2026-05-11) so STORY-020 (UC3 tour, Clément) inherits the updated convention.
+        # All 11 leaked strings catalogued in the Leaks inventory have been scrubbed
+        # from uc0/uc1/uc2 tour.json; audit notes (STORY-031/033 spike forms,
+        # --profile demo rationale, Beat 3 invocation forms) relocated to per-UC
+        # README.md Author notes sections; convention doc gained the
+        # "No meta-references in prose" sub-rule and a leak-free Good example.
+        # `make validate-tours` green, custom audit confirms zero meta-references in
+        # participant-visible fields. Cross-author repro by Clément deferred to the
+        # M5 dry-run (STORY-028) per the same pattern as STORY-031/032/033 — purely
+        # textual change, no cluster behaviour impact.
 
   - sprint_number: 4
     milestone: "M4"
@@ -402,9 +427,9 @@ velocity:
 
 metrics:
   total_epics: 4
-  total_stories: 33
-  total_points: 103
-  stories_completed: 20
+  total_stories: 34
+  total_points: 105
+  stories_completed: 21
   stories_in_progress: 0
   stories_skipped: 1
   stories_not_started: 12
