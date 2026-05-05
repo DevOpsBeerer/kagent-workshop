@@ -19,7 +19,6 @@ spec:
       containers:
         - name: mission-control
           # Tag deliberately not published — produces ImagePullBackOff on first pull (FR-008).
-          # The :v1 tag (real, used by UC2) is published by workshop-infrastructure; :v999 is not.
           image: ghcr.io/kagent-workshop/mission-control:v999
           ports:
             - name: http

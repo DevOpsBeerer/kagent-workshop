@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 
 import Bulb from "../components/Bulb";
-import { fetchState, type FetchStateResult } from "../api/client";
+import PasswordGate from "../components/PasswordGate";
+import TopBar from "../components/TopBar";
+import { fetchState, resetBulbs, type FetchStateResult } from "../api/client";
 import type { UserStateDto } from "../types";
-import logoUrl from "../images/LOGO.svg";
 
 const POLL_INTERVAL_MS = 1500;
 const ACTIVITY_HIGHLIGHT_MS = 5000;
@@ -23,10 +23,29 @@ function bulbSignature(users: UserStateDto[]): Map<string, string> {
 }
 
 export default function Global() {
+  return (
+    <PasswordGate>
+      <GlobalPanel />
+    </PasswordGate>
+  );
+}
+
+function GlobalPanel() {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [now, setNow] = useState<number>(() => Date.now());
+  const [resetting, setResetting] = useState(false);
   const lastActivityRef = useRef<Map<string, number>>(new Map());
   const previousSigRef = useRef<Map<string, string> | null>(null);
+
+  async function handleResetAll() {
+    if (!window.confirm("Reset every operator's beacons to (0, 0, 0)?")) return;
+    setResetting(true);
+    const result = await resetBulbs();
+    setResetting(false);
+    if (result.kind === "error") {
+      window.alert(`Failed to reset: ${result.message}`);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,89 +97,143 @@ export default function Global() {
     };
   }, []);
 
+  const activeCount =
+    state.kind === "ok"
+      ? state.users.filter((u) => {
+          const ts = lastActivityRef.current.get(u.login);
+          return ts !== undefined && now - ts < ACTIVITY_HIGHLIGHT_MS;
+        }).length
+      : 0;
+
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-3 sm:p-5">
-      <header className="max-w-[1800px] mx-auto flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 className="flex items-center gap-3 text-lg sm:text-xl font-semibold">
-          <img src={logoUrl} alt="APOGASA · ARTEMIS" className="h-6 brightness-0 invert" />
-          <span className="text-slate-500">—</span>
-          <span>Mission Control · Global view</span>
-        </h1>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          {state.kind === "ok" && <span>{state.users.length} operators · telemetry 1.5s</span>}
-          <Link to="/" className="hover:text-slate-200 underline-offset-2 hover:underline">
-            ← home
-          </Link>
-          <Link to="/admin" className="hover:text-slate-200 underline-offset-2 hover:underline">
-            admin →
-          </Link>
-        </div>
-      </header>
+    <main className="min-h-screen bg-grid">
+      <TopBar
+        subtitle="Mission control"
+        right={
+          <div className="flex items-center gap-4">
+            {state.kind === "ok" && (
+              <div className="hidden sm:flex items-center gap-4 font-display text-[10px] tracking-[0.22em] uppercase">
+                <Stat label="Operators" value={state.users.length} />
+                <Stat label="Active" value={activeCount} accent="ok" />
+                <Stat label="Telemetry" value="1.5s" accent="dim" />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleResetAll}
+              disabled={resetting}
+              className="btn-danger"
+            >
+              {resetting ? "Resetting…" : "Reset all"}
+            </button>
+          </div>
+        }
+      />
 
-      {state.kind === "loading" && (
-        <p className="text-center text-slate-500 mt-10">Loading…</p>
-      )}
+      <div className="mx-auto max-w-[1800px] px-3 sm:px-5 py-5">
+        {state.kind === "loading" && (
+          <p className="text-center text-[var(--color-ink-dim)] py-12 font-display text-xs tracking-[0.22em] uppercase">
+            Establishing telemetry…
+          </p>
+        )}
 
-      {state.kind === "error" && (
-        <p className="max-w-xl mx-auto text-center text-amber-300 mt-6">
-          Network error: {state.message}
-        </p>
-      )}
+        {state.kind === "error" && (
+          <p className="text-center text-[var(--color-amber)] py-6 font-display text-xs tracking-[0.2em] uppercase">
+            Network error: {state.message}
+          </p>
+        )}
 
-      {state.kind === "ok" && (
-        <section
-          className="mx-auto grid gap-2 max-w-[1800px]"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          }}
-        >
-          {state.users.map((user) => {
-            const lastActivity = lastActivityRef.current.get(user.login);
-            const isActive =
-              lastActivity !== undefined && now - lastActivity < ACTIVITY_HIGHLIGHT_MS;
-            return (
-              <article
-                key={user.login}
-                className={`flex flex-col gap-1.5 p-2.5 rounded-lg border transition-colors ${
-                  isActive
-                    ? "border-emerald-500/70 bg-emerald-950/30"
-                    : "border-slate-800 bg-slate-900/40"
-                }`}
-              >
-                <header className="flex items-center justify-between gap-2">
-                  <a
-                    href={`/u/${encodeURIComponent(user.login)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs font-mono text-slate-300 hover:text-sky-300 truncate"
-                    title={`Open ${user.login}'s view in a new tab`}
-                  >
-                    {user.login}
-                  </a>
-                  <span
-                    aria-hidden="true"
-                    className={`size-2 rounded-full shrink-0 ${
-                      isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-700"
-                    }`}
-                  />
-                </header>
-                <div className="flex items-center justify-around gap-1">
-                  {user.bulbs.map((b) => (
-                    <Bulb
-                      key={b.slot}
-                      slot={b.slot}
-                      r={b.r}
-                      g={b.g}
-                      b={b.b}
-                      size={42}
+        {state.kind === "ok" && (
+          <section
+            className="grid gap-2"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+            }}
+          >
+            {state.users.map((user) => {
+              const lastActivity = lastActivityRef.current.get(user.login);
+              const isActive =
+                lastActivity !== undefined && now - lastActivity < ACTIVITY_HIGHLIGHT_MS;
+              return (
+                <article
+                  key={user.login}
+                  className={`panel transition-colors ${
+                    isActive
+                      ? "border-[var(--color-ok)] shadow-[0_0_0_1px_var(--color-ok),_0_0_24px_rgba(107,212,161,0.2)]"
+                      : ""
+                  }`}
+                >
+                  <header className="panel-header !py-1.5 !px-2.5 !gap-1.5">
+                    <span
+                      className="corner !w-1.5 !h-1.5"
+                      style={{
+                        background: isActive
+                          ? "var(--color-ok)"
+                          : "var(--color-accent)",
+                      }}
+                      aria-hidden="true"
                     />
-                  ))}
-                </div>
-              </article>
-            );
-          })}
-        </section>
-      )}
+                    <a
+                      href={`/u/${encodeURIComponent(user.login)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-[10px] tracking-normal lowercase truncate text-[var(--color-ink)] hover:text-[var(--color-accent-bright)] flex-1 normal-case"
+                      title={`Open ${user.login}'s view in a new tab`}
+                    >
+                      {user.login}
+                    </a>
+                    <span
+                      aria-hidden="true"
+                      className={`size-1.5 shrink-0 ${
+                        isActive
+                          ? "bg-[var(--color-ok)] animate-pulse"
+                          : "bg-[var(--color-edge-strong)]"
+                      }`}
+                    />
+                  </header>
+                  <div className="flex items-center justify-around gap-1 p-2">
+                    {user.bulbs.map((b) => (
+                      <Bulb
+                        key={b.slot}
+                        slot={b.slot}
+                        r={b.r}
+                        g={b.g}
+                        b={b.b}
+                        size={42}
+                      />
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+        )}
+      </div>
     </main>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent = "default",
+}: {
+  label: string;
+  value: string | number;
+  accent?: "default" | "ok" | "dim";
+}) {
+  const valueColor =
+    accent === "ok"
+      ? "text-[var(--color-ok)]"
+      : accent === "dim"
+        ? "text-[var(--color-ink-dim)]"
+        : "text-[var(--color-accent-bright)]";
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[var(--color-ink-faint)]">{label}</span>
+      <span className={`font-mono text-[12px] tabular-nums ${valueColor}`}>
+        {value}
+      </span>
+    </div>
   );
 }

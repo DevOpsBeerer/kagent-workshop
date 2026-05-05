@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlmodel import Session, select
 
@@ -77,3 +77,35 @@ def update_user_bulb(slot: int, user: UserParam, payload: BulbUpdate) -> BulbRea
         session.commit()
         session.refresh(bulb)
         return BulbRead.model_validate(bulb)
+
+
+@router.post(
+    "/reset",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    summary="Reset beacons to (0,0,0) — one operator if `user` is given, otherwise everyone",
+)
+def reset_bulbs(
+    user: Annotated[
+        str | None,
+        Query(
+            min_length=1,
+            description="ARTEMIS operator login; if omitted, reset every operator",
+        ),
+    ] = None,
+) -> Response:
+    now = datetime.now(timezone.utc)
+    with Session(engine) as session:
+        if user is not None:
+            _ensure_user_exists(session, user)
+            stmt = select(Bulb).where(Bulb.user_login == user)
+        else:
+            stmt = select(Bulb)
+        for bulb in session.exec(stmt).all():
+            bulb.r = 0
+            bulb.g = 0
+            bulb.b = 0
+            bulb.updated_at = now
+            session.add(bulb)
+        session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

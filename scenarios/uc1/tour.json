@@ -1,11 +1,11 @@
 {
   "id": "kagent-uc1-imagepullbackoff",
   "title": "UC1 — Mission control's roster won't come online",
-  "description": "Diagnose an ImagePullBackOff on the Artemis mission-control deployment with the help of the artemis-mission-control-debugger agent. Feel the manual diagnostic friction first; then watch the agent shortcut three commands into one synthesis.",
+  "description": "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to artemis-mission-control-debugger through the kagent dashboard chat — UC1 is the participant's first contact with a kagent agent.",
   "steps": [
     {
-      "title": "Apply the broken state",
-      "explanation": "Mission control's deploy is hours late. Apply the manifests below to your vCluster — the **deployment.yaml** intentionally references a tag that never shipped (`mission-control:v999`), so this will reproduce the on-call ticket you're about to investigate.\n\nThe three files are dropped into your workspace by this step (`fileEdits`), then applied with a single `kubectl apply -f`.",
+      "title": "Mission setup — bring today's roster online",
+      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the manifests below to deploy `mission-control` to your vCluster — namespace, service, deployment. Once the apply completes, the roster should be reachable on the cluster.\n\nThe three files are dropped into your workspace by this step (`fileEdits`), then applied with a single `kubectl apply -f`.",
       "fileEdits": [
         {
           "type": "create",
@@ -34,36 +34,28 @@
       ]
     },
     {
-      "title": "CLI baseline — listen to mission-control",
-      "explanation": "Run the three commands below in order. Notice that you'll be holding three separate pieces of evidence — the pod's phase, the failing container's reason, and the recent events — and you'll have to piece them together yourself before you can name a root cause.\n\nGive the kubelet ~30 s to attempt the pull before checking the pod state.",
+      "title": "Mission status check — is the roster live?",
+      "explanation": "Mission control should be online by now. Check that the roster pod has come up. Give the kubelet ~30 s to settle before running the command — if the pod is not Running, you'll see it here, and that's our cue to call in help.",
       "commands": [
         {
           "label": "List pods",
           "command": "kubectl get pods -n artemis-uc1"
-        },
-        {
-          "label": "Describe the pod",
-          "command": "kubectl describe pod -n artemis-uc1 -l app=mission-control"
-        },
-        {
-          "label": "Recent events",
-          "command": "kubectl get events -n artemis-uc1 --sort-by=.lastTimestamp"
         }
       ]
     },
     {
-      "title": "Now ask the agent",
-      "explanation": "Hand the same problem to **`artemis-mission-control-debugger`**. The agent has the same Kubernetes read tools you used above (`get pod`, `describe pod`, `get events`) — the difference is that it correlates them in one synthesis and reports a single sentence of root cause.\n\nThe agent runs in the `artemis-uc1` namespace and uses the participant-scoped `artemis-llm` ModelConfig.",
+      "title": "Call the agent for help",
+      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard.\n\nThe command below opens the dashboard (it port-forwards `kagent-ui` and points your browser at it). The command stays running in the terminal — leave it running while you use the chat, then `Ctrl+C` once you have the answer.\n\nIn the dashboard, open the chat for **`artemis-mission-control-debugger`** (namespace `artemis-uc1`) and paste the following prompt:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you ran by hand (`get pod`, `describe pod`, `get events`) — only it correlates them in one synthesis. Read the response directly in the chat surface.\n\n*Beat 3 invocation form (frozen by STORY-031 spike): `kagent dashboard` foregrounds the port-forward and auto-opens the browser; alive until `Ctrl+C`.*",
       "commands": [
         {
-          "label": "Ask the agent",
-          "command": "kagent invoke --agent artemis-mission-control-debugger --namespace artemis-uc1 --task 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'"
+          "label": "Open the kagent dashboard",
+          "command": "kagent dashboard"
         }
       ]
     },
     {
-      "title": "What did the agent do better?",
-      "explanation": "In the CLI baseline you ran three commands and had to combine three pieces of state to reach a verdict: the pod's `Waiting` phase, the container's `ImagePullBackOff` reason, and the kubelet's repeated pull-failed events. The agent ran the same three tools and returned a single sentence of root cause: **the deploy targets `mission-control:v999`, which was never published**.\n\nThis is the simplest case of agent-vs-CLI value: same tools, same evidence, one synthesis instead of three. UC2 will scale this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out. For now, multiply this single-incident saving by the dozen incidents an on-call rotation handles in a week — that's the value the workshop is selling."
+      "title": "What we'd have done by hand",
+      "explanation": "Without the agent, you would have run three `kubectl` commands and joined the evidence yourself:\n\n```bash\nkubectl get pods -n artemis-uc1\nkubectl describe pod -n artemis-uc1 -l app=mission-control\nkubectl get events -n artemis-uc1 --sort-by=.lastTimestamp\n```\n\nThree pieces of state to combine into a verdict: the pod's `Waiting` phase, the container's `ImagePullBackOff` reason, and the kubelet's repeated pull-failed events. The agent ran the same three tools and returned a single sentence of root cause: **the deploy targets `mission-control:v999`, which was never published**.\n\nYou ran one command (`kubectl get pods`) just to see something was off — you didn't have to walk the rest. Multiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling. UC2 will scale this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out."
     }
   ]
 }

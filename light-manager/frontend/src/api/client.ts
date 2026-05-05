@@ -131,3 +131,26 @@ export async function deleteUser(login: string): Promise<DeleteUserResult> {
     };
   }
 }
+
+
+export type ResetBulbsResult =
+  | { kind: "ok" }
+  | { kind: "not-found" }
+  | { kind: "error"; message: string };
+
+export async function resetBulbs(login?: string): Promise<ResetBulbsResult> {
+  const url = login
+    ? `/api/bulbs/reset?user=${encodeURIComponent(login)}`
+    : `/api/bulbs/reset`;
+  try {
+    const response = await fetch(url, { method: "POST" });
+    if (response.status === 204) return { kind: "ok" };
+    if (response.status === 404) return { kind: "not-found" };
+    return { kind: "error", message: `HTTP ${response.status}` };
+  } catch (err) {
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : "unknown",
+    };
+  }
+}

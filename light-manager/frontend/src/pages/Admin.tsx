@@ -1,12 +1,21 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
 
+import Panel from "../components/Panel";
+import PasswordGate from "../components/PasswordGate";
+import TopBar from "../components/TopBar";
 import { createUser, deleteUser, fetchUsers } from "../api/client";
-import logoUrl from "../images/LOGO.svg";
 
 type Feedback = { kind: "success" | "error" | "info"; message: string };
 
 export default function Admin() {
+  return (
+    <PasswordGate>
+      <AdminPanel />
+    </PasswordGate>
+  );
+}
+
+function AdminPanel() {
   const [logins, setLogins] = useState<string[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [newLogin, setNewLogin] = useState("");
@@ -83,111 +92,112 @@ export default function Admin() {
     }
   }
 
-  const feedbackStyle =
+  const feedbackColor =
     feedback?.kind === "success"
-      ? "bg-emerald-950/70 border-emerald-700 text-emerald-200"
+      ? "border-[var(--color-ok-deep)] text-[var(--color-ok)]"
       : feedback?.kind === "error"
-        ? "bg-rose-950/70 border-rose-700 text-rose-200"
-        : "bg-slate-800 border-slate-700 text-slate-200";
+        ? "border-[var(--color-danger-deep)] text-[var(--color-danger)]"
+        : "border-[var(--color-edge)] text-[var(--color-ink)]";
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
-      <header className="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="flex items-center gap-3 text-xl sm:text-2xl font-semibold">
-          <img src={logoUrl} alt="APOGASA · ARTEMIS" className="h-7 brightness-0 invert" />
-          <span className="text-slate-500">—</span>
-          <span>Operations Center</span>
-        </h1>
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <Link to="/" className="hover:text-slate-200 underline-offset-2 hover:underline">
-            ← home
-          </Link>
-          <Link to="/global" className="hover:text-slate-200 underline-offset-2 hover:underline">
-            mission control →
-          </Link>
-        </div>
-      </header>
+    <main className="min-h-screen bg-grid">
+      <TopBar subtitle="Operations center" />
 
-      <div className="max-w-3xl mx-auto space-y-6">
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold mb-1">Enrol an operator</h2>
-          <p className="text-sm text-slate-400 mb-4">
-            Creates an operator and their 3 mission beacons at (0, 0, 0). The callsign must be unique.
-          </p>
-          <form onSubmit={handleCreate} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={newLogin}
-              onChange={(e) => setNewLogin(e.target.value)}
-              placeholder="operator-41"
-              autoComplete="off"
-              spellCheck={false}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-slate-950 border border-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-mono"
-              disabled={submitting}
-            />
-            <button
-              type="submit"
-              disabled={submitting || !newLogin.trim()}
-              className="px-5 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:bg-slate-800 disabled:text-slate-500 font-semibold transition-colors"
-            >
-              {submitting ? "Enrolling…" : "Enrol"}
-            </button>
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 space-y-5">
+        <Panel title="Enrol operator" icon={<PlusIcon />}>
+          <form onSubmit={handleCreate} className="p-5 sm:p-6 space-y-4">
+            <p className="text-xs text-[var(--color-ink-dim)]">
+              Creates an operator and their 3 mission beacons at (0, 0, 0). The
+              callsign must be unique.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-faint)]" />
+                <input
+                  type="text"
+                  value={newLogin}
+                  onChange={(e) => setNewLogin(e.target.value)}
+                  placeholder="operator-41"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="input-fld"
+                  disabled={submitting}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={submitting || !newLogin.trim()}
+                className="btn-primary sm:w-40"
+              >
+                {submitting ? "Enrolling…" : "Enrol"}
+              </button>
+            </div>
           </form>
-        </section>
+        </Panel>
 
         {feedback && (
           <div
             role="status"
             aria-live="polite"
-            className={`rounded-lg border px-4 py-3 text-sm ${feedbackStyle}`}
+            className={`border bg-[var(--color-panel)] px-4 py-3 text-xs font-mono ${feedbackColor}`}
           >
             {feedback.message}
           </div>
         )}
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50">
-          <header className="flex items-center justify-between px-5 sm:px-6 py-3 border-b border-slate-800">
-            <h2 className="text-lg font-semibold">ARTEMIS Operators</h2>
-            <span className="text-xs text-slate-500">
+        <Panel
+          title="ARTEMIS Operators"
+          icon={<UsersIcon />}
+          right={
+            <span className="font-mono text-[10px] text-[var(--color-ink-dim)]">
               {logins ? `${logins.length} on duty` : "—"}
             </span>
-          </header>
-
+          }
+        >
           {loadError && (
-            <p className="px-5 sm:px-6 py-4 text-sm text-amber-300">
+            <p className="px-5 sm:px-6 py-4 text-xs text-[var(--color-amber)] font-mono">
               Failed to load list: {loadError}
             </p>
           )}
 
           {logins === null && !loadError && (
-            <p className="px-5 sm:px-6 py-4 text-sm text-slate-500">Loading…</p>
+            <p className="px-5 sm:px-6 py-4 text-xs text-[var(--color-ink-dim)] font-display tracking-[0.22em] uppercase">
+              Loading…
+            </p>
           )}
 
           {logins && logins.length === 0 && (
-            <p className="px-5 sm:px-6 py-4 text-sm text-slate-500">No operators on duty yet.</p>
+            <p className="px-5 sm:px-6 py-4 text-xs text-[var(--color-ink-dim)] font-display tracking-[0.22em] uppercase">
+              No operators on duty yet.
+            </p>
           )}
 
           {logins && logins.length > 0 && (
-            <ul className="divide-y divide-slate-800">
-              {logins.map((login) => (
+            <ul className="divide-y divide-[var(--color-edge)]">
+              {logins.map((login, idx) => (
                 <li
                   key={login}
-                  className="flex items-center justify-between gap-3 px-5 sm:px-6 py-2.5"
+                  className="flex items-center justify-between gap-3 px-5 sm:px-6 py-2.5 hover:bg-[var(--color-panel-2)]/50 transition-colors"
                 >
-                  <a
-                    href={`/u/${encodeURIComponent(login)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-sm text-slate-200 hover:text-sky-300 truncate"
-                    title={`Open ${login}'s view in a new tab`}
-                  >
-                    {login}
-                  </a>
+                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <span className="font-mono text-[10px] text-[var(--color-ink-faint)] tabular-nums w-6 shrink-0">
+                      {String(idx + 1).padStart(3, "0")}
+                    </span>
+                    <a
+                      href={`/u/${encodeURIComponent(login)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-sm text-[var(--color-ink)] hover:text-[var(--color-accent-bright)] truncate"
+                      title={`Open ${login}'s view in a new tab`}
+                    >
+                      {login}
+                    </a>
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleDelete(login)}
                     disabled={deleting === login}
-                    className="px-3 py-1 rounded text-xs font-semibold bg-rose-900/60 hover:bg-rose-800/80 text-rose-100 border border-rose-800 disabled:opacity-50 transition-colors"
+                    className="btn-danger"
                   >
                     {deleting === login ? "Decommissioning…" : "Decommission"}
                   </button>
@@ -195,8 +205,46 @@ export default function Admin() {
               ))}
             </ul>
           )}
-        </section>
+        </Panel>
       </div>
     </main>
+  );
+}
+
+function UserIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="square"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+      <path d="M12 4v16M4 12h16" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M22 18c0-2.5-2-4.5-5-4.5" />
+    </svg>
   );
 }

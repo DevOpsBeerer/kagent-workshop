@@ -9,7 +9,7 @@ UC1 is the workshop's opening scenario: the simplest single-agent diagnosis path
 
 ## Artemis narrative
 
-Mission control's new on-shift roster fails to come online. The deploy was approved at the end of yesterday's pad shift and the on-call has woken up to find the `mission-control` Pod stuck — the kubelet is dutifully retrying an image pull that will never succeed because the requested build tag (`:v999`) was never published. The participant plays the on-call, walks the manual diagnosis once, then hands the pager to **`artemis-mission-control-debugger`**, who does the correlation in one synthesis. See [`docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc.
+Mission control is bringing today's on-shift roster online for the Artemis pad shift, but the new replica isn't reaching the cluster — the deploy went out at the end of yesterday's pad shift and the on-call has woken up to a stuck pod. The participant plays the on-call: applies the deployment as a routine mission setup, sweeps the pod and events as a status check, discovers the friction by hand, then hands the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard chat. The agent's response in the chat closes the diagnostic loop in one synthesis. See [`docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc, and [`docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) for the 4-beat structure (mission setup → status check → call the agent → manual recap).
 
 ## The bug
 
@@ -27,7 +27,7 @@ The `mission-control` image is the FastAPI variant from `apps/mission-control/` 
 2. The container's image reference: `ghcr.io/kagent-workshop/mission-control:v999`.
 3. Recent events: repeated `Failed to pull image … manifest unknown` from the kubelet.
 
-The participant's job in the CLI baseline is to combine those three; the agent's job in the next beat is to do the same combination in one shot.
+In the tour, **Mission status check** is intentionally minimal — a single `kubectl get pods` that surfaces the friction (pod not Running). The full three-command diagnosis is what the participant *would* have walked manually without the agent; in the tour, the agent absorbs it, and Beat 4 (`What we'd have done by hand`) names what was skipped.
 
 ## Expected agent diagnosis
 
@@ -43,7 +43,7 @@ The diagnostic agent is **`artemis-mission-control-debugger`** (see [`agents/age
 
 > The `mission-control` Pod in `artemis-uc1` is in `ImagePullBackOff` because its container references `ghcr.io/kagent-workshop/mission-control:v999`, an image tag that has never been published. Update the Deployment to a published tag (e.g. `:v1`) and re-apply.
 
-The pedagogical point made in the tour's Beat 3 ("What did the agent do better?"): same tools, same evidence, three commands collapsed into one synthesis. UC2 scales this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out.
+The pedagogical point made in the tour's Beat 4 ("What we'd have done by hand"): same tools, same evidence, three commands collapsed into one synthesis — the participant skipped them. UC2 scales this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out.
 
 ## Files in this directory
 
