@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: artemis-bulb-mcp
+  namespace: artemis-mcp
+  labels:
+    app: artemis-bulb-mcp
+    kagent-workshop/component: mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: artemis-bulb-mcp
+  template:
+    metadata:
+      labels:
+        app: artemis-bulb-mcp
+        kagent-workshop/component: mcp
+    spec:
+      containers:
+        - name: artemis-bulb-mcp
+          image: rg.fr-par.scw.cloud/apogasa/artemis-bulb-mcp:v0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mcp
+              containerPort: 8080
+              protocol: TCP
+          # Two env vars are required at runtime; both injected by
+          # workshop-infrastructure via the Secret + ConfigMap referenced below.
+          # No committed values for either — NFR-011 (no secrets in repo).
+          envFrom:
+            # Secret artemis-bulb-mcp-tenancy must define:
+            #   WORKSHOP_PARTICIPANT_LOGIN — the participant's login (NFR-012
+            #     pinned tenancy; the MCP rejects every call where user != this).
+            - secretRef:
+                name: artemis-bulb-mcp-tenancy
+            # ConfigMap artemis-bulb-mcp-config must define:
+            #   LIGHT_MANAGER_URL — the in-cluster URL for the multi-tenant
+            #     light-manager service the MCP wraps (FR-016).
+            - configMapRef:
+                name: artemis-bulb-mcp-config
+          # Belt-and-braces: even if the image's CMD is overridden, the env
+          # makes main.py default to HTTP transport on 0.0.0.0:8080.
+          env:
+            - name: MCP_TRANSPORT_MODE
+              value: "http"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          # TCP-only probes (FastMCP's /mcp endpoint expects SSE-shaped requests;
+          # plain HTTP GETs return 4xx, which kubelet's httpGet probe treats as
+          # unhealthy). The TCP probe just verifies the listener is alive.
+          readinessProbe:
+            tcpSocket:
+              port: mcp
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: mcp
+            initialDelaySeconds: 30
+            periodSeconds: 30

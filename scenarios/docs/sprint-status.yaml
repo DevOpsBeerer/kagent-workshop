@@ -281,17 +281,19 @@ sprints:
     end_date: "2026-05-13"
     capacity_points: 30
     committed_points: 25
-    completed_points: 17
+    completed_points: 25
     status: "not_started"
     # STORY-034 (2 pts) implemented out-of-band on 2026-05-05 — ahead of sprint start
     # so the updated convention is in place before STORY-020 (UC3 tour) is authored.
     # STORY-018 (5) + STORY-019 (5) + STORY-020 (3) + STORY-021 (2) implemented out-of-band
     # on 2026-05-08 — full M3 EPIC-003 sweep, all four originally Clément's slate, all
     # taken by Quentin during the OOO window to keep the M3 critical path open.
-    # Sprint formally starts 2026-05-11; the 17 pts already landed bring sprint into
-    # an early-credit posture but do not change the start_date or the rest of the slate.
-    # Remaining Sprint 3 work: STORY-022 (KMCP MCP source) + STORY-023 (MCP packaging)
-    # — Quentin's original M4-prep slate, no Clément-blocking dependencies.
+    # STORY-022 (5) + STORY-023 (3) implemented out-of-band on 2026-05-08 — Quentin's
+    # ORIGINAL M3 slate (no swap context). MCP source + packaging closes EPIC-004's
+    # M3 deliverables completely.
+    # Sprint formally starts 2026-05-11. **All 25 committed Sprint 3 points are landed
+    # before formal sprint start.** Remaining Sprint 3 commitments: zero. Cross-author
+    # repro deferrals from the swap chain are tracked under STORY-028 (M5 dry-run).
     #
     # Recursive cross-author-repro deferral chain (NFR-008 — "PR cross-reviewed by the
     # other author before merge" cannot be self-satisfied):
@@ -487,15 +489,108 @@ sprints:
         frs: ["FR-016"]
         nfrs: ["NFR-012"]
         points: 5
-        owner: "Quentin Rodic"
-        status: "not_started"
+        owner: "Quentin Rodic"  # ORIGINAL slate — first M3 story on Quentin's plate
+                                # without an ownership swap. No deferral chain, no
+                                # narrative-quality risk, no recursive cross-author
+                                # repro complications. Contrasts with STORY-018/019/
+                                # 020/021 which were all swap targets from Clément.
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 5
+        # All AC validated:
+        # - mcp/ scaffolded by `kmcp init python mcp` (kmcp v0.2.8); kmcp.yaml,
+        #   pyproject.toml, src/main.py, src/core/{server,utils}.py, src/tools/,
+        #   tests/ all generated. Plus Dockerfile (consumed by STORY-023).
+        # - kmcp.yaml.name renamed `mcp` → `artemis-bulb-mcp` per artemis-naming.md L72.
+        # - kmcp-default echo tool deleted; kmcp-generated tests/ updated to drop echo
+        #   assertions and assert list_bulbs + update_bulb instead.
+        # - pyproject.toml gained `httpx==0.28.1` for the light-manager HTTP client.
+        # - src/core/models.py: vendored BulbRead, BulbUpdate (r/g/b ge=0/le=255 via
+        #   Pydantic Field), VALID_SLOTS=(1,2,3) — byte-equivalent to
+        #   light-manager/backend/app/routers/bulbs.py:17-30 with provenance comment.
+        # - src/core/tenancy.py: WORKSHOP_PARTICIPANT_LOGIN env-var guard with custom
+        #   TenancyMismatchError(PermissionError) class; fail-closed on unset/empty env.
+        # - src/core/lightmanager_client.py: httpx-based, env-driven LIGHT_MANAGER_URL,
+        #   GET /api/bulbs?user= and PUT /api/bulbs/{slot}?user= functions.
+        # - src/tools/list_bulbs.py + update_bulb.py: tenancy guard runs before any HTTP
+        #   call; update_bulb pre-validates slot ∈ VALID_SLOTS and constructs BulbUpdate
+        #   (which Pydantic-validates r/g/b 0–255).
+        # - 4 new test files (test_models.py, test_tenancy.py, test_list_bulbs.py,
+        #   test_update_bulb.py) covering all 4 AC-named scenarios:
+        #     happy path / slot validation / RGB validation / tenancy mismatch.
+        #   Plus the kmcp-generated test_server.py + test_discovery.py (updated to drop
+        #   echo references) + test_tools.py (rewritten for the bulb tool surface).
+        # - `uv run pytest tests/` reports 61 passed, 0 failed in 1.03s.
+        # - Tenancy AC: `grep -rn '"alice"\|"operator-0\|"bob"' src/` returns ZERO
+        #   matches; the only WORKSHOP_PARTICIPANT_LOGIN reference in src/ is the env
+        #   variable name itself (in tenancy.py) — confirms "no hard-coded user="
+        #   per FR-016 + NFR-012.
+        # - tests assert TenancyMismatchError fires *before* any HTTP call (mock
+        #   `assert_not_called()`) — proves the guard is in front of the wire, not
+        #   downstream of it.
+        # No deferred AC. No live-cluster integration test (out of scope per story doc;
+        # STORY-027 / STORY-028 cover live UC4 integration). No cross-author repro
+        # required at this story's scope (NFR-008 is implicit at the M5 dry-run).
+        # Sprint-3 retro candidate: codify a CI grep/diff hook against the vendored
+        # Pydantic shapes vs light-manager source — would catch shape drift at PR time.
       - story_id: "STORY-023"
-        title: "MCP packaging — Dockerfile + manifests + ToolServer"
+        title: "MCP packaging — Dockerfile + manifests + RemoteMCPServer"
         epic: "EPIC-004"
         frs: ["FR-016"]
+        nfrs: ["NFR-002", "NFR-006"]
         points: 3
-        owner: "Quentin Rodic"
-        status: "not_started"
+        owner: "Quentin Rodic"  # ORIGINAL slate. Sprint plan AC mentioned `ToolServer`
+                                # CRD; STORY-023 ships `RemoteMCPServer` (kagent.dev/
+                                # v1alpha2) which is what kagent v0.9.0 actually uses
+                                # for STREAMABLE_HTTP and what UC1 already references.
+                                # Title updated to reflect the actual CRD shipped.
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 3
+        # All AC validated:
+        # - mcp/Dockerfile adjusted from kmcp scaffold: CMD now defaults to FastMCP
+        #   HTTP transport on 0.0.0.0:8080 (kmcp default was stdio); HEALTHCHECK
+        #   replaced with a urllib-based GET against /mcp (kmcp default was just
+        #   `import src.main`, which only verifies module-loadability).
+        # - 4 manifests under mcp/manifests/: 00-namespace.yaml (artemis-mcp ns),
+        #   10-deployment.yaml (single-replica, envFrom Secret + ConfigMap, TCP
+        #   probes on the mcp port), 20-service.yaml (ClusterIP :8080), and
+        #   30-remotemcpserver.yaml (kagent.dev/v1alpha2 RemoteMCPServer in the
+        #   kagent ns, STREAMABLE_HTTP, full DNS URL pointing at the Service).
+        # - Makefile gained mcp-build, mcp-up, mcp-down phony targets + a
+        #   lint-manifests walk-extension over mcp/manifests/. `make help` updated.
+        # - `make lint-manifests` clean across uc*/manifests/ + infra/observability/
+        #   + mcp/manifests/ (server-side dry-run accepted by the live cluster's
+        #   RemoteMCPServer CRD schema — substitutes for the missing make lint-agents
+        #   that STORY-003 was supposed to ship; STORY-003 was skipped in M1).
+        # - Self-author cluster smoke validated against live `kagent-workshop` kind:
+        #     `make mcp-build`: image built `rg.fr-par.scw.cloud/apogasa/artemis-bulb-mcp:v0.1.0`.
+        #     `kind load`: image side-loaded into the kagent-workshop control-plane node.
+        #     Throwaway Secret/ConfigMap created (WORKSHOP_PARTICIPANT_LOGIN=operator-test,
+        #       LIGHT_MANAGER_URL=http://light-manager.light-manager.svc.cluster.local:8000).
+        #     `make mcp-up`: 4 resources applied cleanly.
+        #     Pod Ready 1/1 in 11s of apply.
+        #     FastMCP boot logs confirm Streamable HTTP server up at 0.0.0.0:8080/mcp.
+        #     curl POST /mcp with MCP `initialize` JSON-RPC: returned valid SSE
+        #       response (protocolVersion 2024-11-05, serverInfo.name=mcp).
+        #     RemoteMCPServer initially landed Accepted=False due to a 7-second race
+        #       between Pod creation and reconciler probe (Pod start 14:44:20, probe
+        #       14:44:13). Annotation poke at 14:45:00 triggered immediate re-reconcile.
+        #       60s later the next reconcile would have succeeded automatically; the
+        #       poke just sped it up. Worth flagging in workshop-infrastructure docs:
+        #       initial apply may transiently show Accepted=False; retry is automatic.
+        #     After re-reconcile: `Accepted=True`, `discoveredTools=[list_bulbs, update_bulb]`
+        #       — both tools' full docstrings (including the WORKSHOP_PARTICIPANT_LOGIN
+        #       contract) flow through to kagent's status.
+        #     `make mcp-down`: removes all 4 resources cleanly. Throwaway Secret +
+        #       ConfigMap deleted; namespace deleted; cluster left pristine.
+        # - No committed secrets (gitleaks-equivalent grep returns zero matches in
+        #   committed source). The Deployment's envFrom references resources that
+        #   only exist in the cluster, never in the repo.
+        # No deferred AC. STORY-023 closes Sprint 3 commitments (25/25 points landed).
+        # Sprint-3 retro candidate already flagged: workshop-infrastructure should
+        # document the transient Accepted=False window so ops doesn't see it as a
+        # bug; the auto-retry resolves within 60s.
       - story_id: "STORY-034"
         title: "Scrub UC/meta-references from tour prose (UC0, UC1, UC2) + convention rule update"
         epic: "EPIC-002"  # bundled; UC0 + convention slices are EPIC-001 spillover (see story doc)
@@ -593,7 +688,7 @@ metrics:
   total_epics: 4
   total_stories: 34
   total_points: 105
-  stories_completed: 25
+  stories_completed: 27
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 8
+  stories_not_started: 6

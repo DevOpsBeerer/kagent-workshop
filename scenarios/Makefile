@@ -15,6 +15,14 @@ UC_MANIFEST_DIRS := $(wildcard uc*/manifests)
 OBSERVABILITY_DIR := infra/observability
 OBSERVABILITY_NAMESPACE := artemis-observability
 
+# ── MCP packaging (STORY-023, FR-016) ──
+MCP_DIR             := mcp
+MCP_NAMESPACE       := artemis-mcp
+MCP_IMAGE_REGISTRY  := rg.fr-par.scw.cloud/apogasa
+MCP_IMAGE_NAME      := artemis-bulb-mcp
+MCP_IMAGE_TAG       := v0.1.0
+MCP_IMAGE           := $(MCP_IMAGE_REGISTRY)/$(MCP_IMAGE_NAME):$(MCP_IMAGE_TAG)
+
 # ── Author dev loop (STORY-005, FR-004) ──
 KIND_CLUSTER     := kagent-workshop
 KIND_CONFIG      := scripts/kind-config.yaml
@@ -26,6 +34,7 @@ UCS              := 1 2 3 4
 
 .PHONY: help validate-tours lint-manifests preflight kind-up kind-down kagent-install \
         observability-up observability-down \
+        mcp-build mcp-up mcp-down \
         $(addprefix uc,$(addsuffix -up,$(UCS))) \
         $(addprefix uc,$(addsuffix -down,$(UCS)))
 
@@ -41,6 +50,9 @@ help:
 	@echo "  kagent-install    Helm-install kagent v$(KAGENT_VERSION) into the current cluster"
 	@echo "  observability-up  Apply $(OBSERVABILITY_DIR)/ (Prom + Graf) — auto-installed by uc3-up / uc4-up"
 	@echo "  observability-down Delete $(OBSERVABILITY_DIR)/ resources"
+	@echo "  mcp-build         Build the MCP Docker image as $(MCP_IMAGE)"
+	@echo "  mcp-up            Apply $(MCP_DIR)/manifests/ (artemis-bulb-mcp Deployment + Service + RemoteMCPServer)"
+	@echo "  mcp-down          Delete $(MCP_DIR)/manifests/ resources"
 	@echo "  uc<N>-up          kind-up + kagent-install + apply uc<N>/manifests + uc<N>/agents"
 	@echo "                    (uc3-up / uc4-up additionally bring up the observability bundle)"
 	@echo "  uc<N>-down        Delete UC<N> resources (cluster stays up; use kind-down to nuke)"
@@ -77,6 +89,12 @@ lint-manifests:
 	else \
 		echo "lint-manifests: $(OBSERVABILITY_DIR)/kustomization.yaml absent — skipping."; \
 	fi; \
+	if compgen -G "$(MCP_DIR)/manifests/*.yaml" >/dev/null; then \
+		echo "lint-manifests: kubectl apply --dry-run=client -f $(MCP_DIR)/manifests/"; \
+		kubectl apply --dry-run=client -f $(MCP_DIR)/manifests/ || rc=1; \
+	else \
+		echo "lint-manifests: $(MCP_DIR)/manifests/ empty — skipping."; \
+	fi; \
 	exit $$rc
 
 # ── Author dev loop ──
@@ -112,6 +130,28 @@ observability-up: kagent-install
 
 observability-down:
 	@kubectl delete -k $(OBSERVABILITY_DIR)/ --ignore-not-found
+
+# MCP packaging (STORY-023) — Dockerfile build + per-vCluster manifest apply.
+# `mcp-build` produces an image tagged for the apogasa registry; CI publishes
+# the image (workshop-infrastructure responsibility). For local validation,
+# `kind load docker-image $(MCP_IMAGE) --name $(KIND_CLUSTER)` side-loads it.
+mcp-build:
+	@echo "mcp-build: docker build -t $(MCP_IMAGE) $(MCP_DIR)/"
+	@docker build -t $(MCP_IMAGE) $(MCP_DIR)/
+
+mcp-up:
+	@if compgen -G "$(MCP_DIR)/manifests/*.yaml" >/dev/null; then \
+		echo "mcp-up: kubectl apply -f $(MCP_DIR)/manifests/"; \
+		kubectl apply -f $(MCP_DIR)/manifests/; \
+	else \
+		echo "mcp-up: $(MCP_DIR)/manifests/ empty — nothing to apply."; \
+	fi
+
+mcp-down:
+	@if compgen -G "$(MCP_DIR)/manifests/*.yaml" >/dev/null; then \
+		kubectl delete -f $(MCP_DIR)/manifests/ --ignore-not-found; \
+	fi
+	@echo "mcp-down: done."
 
 # Per-UC up/down targets, generated for every N in $(UCS).
 define UC_TARGETS

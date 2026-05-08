@@ -1,0 +1,33 @@
+# RemoteMCPServer (kagent.dev/v1alpha2) pointing at the artemis-bulb-mcp Service.
+#
+# Lives in the `kagent` namespace per docs/artemis-naming.md L72 — kagent CRDs
+# are cluster-scope-discoverable (`kubectl get rmcps -n kagent`) regardless of
+# where the workload they reference lives. The MCP Pod + Service live in
+# `artemis-mcp`; cross-namespace reachability is via full DNS in the URL.
+#
+# Spec shape mirrors the cluster's own kagent-tool-server RemoteMCPServer
+# (verified during STORY-019's spike): protocol STREAMABLE_HTTP, 30s timeout,
+# 5m sseReadTimeout, terminateOnClose true.
+#
+# Sprint plan AC mentioned "ToolServer" CRD but kagent v0.9.0 ships both
+# v1alpha1 ToolServer and v1alpha2 RemoteMCPServer; UC1 already uses
+# RemoteMCPServer (uc1/agents/agent.yaml), so STORY-023 ships the same.
+# See docs/stories/STORY-023.md §"Sprint plan AC vs. actual kagent v0.9.0
+# CRD shape" for the rationale.
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: artemis-bulb-mcp
+  namespace: kagent
+  labels:
+    kagent-workshop/component: mcp
+spec:
+  description: |
+    Per-vCluster MCP wrapping light-manager bulbs API; tenancy-pinned to
+    WORKSHOP_PARTICIPANT_LOGIN (NFR-012). Provides list_bulbs(user) and
+    update_bulb(user, slot, r, g, b) tools to the UC4 mission coordinator.
+  protocol: STREAMABLE_HTTP
+  url: http://artemis-bulb-mcp.artemis-mcp.svc.cluster.local:8080/mcp
+  timeout: 30s
+  sseReadTimeout: 5m0s
+  terminateOnClose: true

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: artemis-bulb-mcp
+  namespace: artemis-mcp
+  labels:
+    app: artemis-bulb-mcp
+    kagent-workshop/component: mcp
+spec:
+  type: ClusterIP
+  selector:
+    app: artemis-bulb-mcp
+  ports:
+    - name: mcp
+      port: 8080
+      targetPort: mcp
+      protocol: TCP

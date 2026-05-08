@@ -1,0 +1,23 @@
+name: artemis-bulb-mcp
+framework: fastmcp-python
+version: 0.1.0
+description: Per-vCluster MCP wrapping light-manager bulbs API; tenancy-pinned to WORKSHOP_PARTICIPANT_LOGIN (NFR-012). UC4 coordinator's color-update tool surface (FR-016).
+author: Quentin Rodic
+email: noreply@example.com
+secrets:
+    local:
+        enabled: false
+        provider: env
+        file: .env.local
+    production:
+        enabled: false
+        provider: kubernetes
+        secretName: mcp-secrets-production
+        namespace: default
+    staging:
+        enabled: false
+        provider: kubernetes
+        secretName: mcp-secrets-staging
+        namespace: default
+created_at: 2026-05-08T16:22:35.321195687+02:00
+updated_at: 2026-05-08T16:22:35.322742006+02:00
