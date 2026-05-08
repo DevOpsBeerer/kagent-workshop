@@ -19,9 +19,9 @@ A single Deployment under one namespace, blocked at the scheduling layer by a sy
 | ----------------------------- | --------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Namespace                     | `artemis-uc2`                                 | cluster-scoped        | Labelled `kagent-workshop/uc=uc2`, `kagent-workshop/scenario=pod-pending`.                                  |
 | ServiceAccount + RBAC         | `bootstrap-launch-pad-fault` + 2 RoleBindings | mixed                 | ClusterRole grants `nodes/patch` (for the taint); namespaced Role grants `deployments/patch` (for the rollout restart). Least-privilege. |
-| Job                           | `bootstrap-launch-pad-fault`                  | `artemis-uc2`         | `bitnami/kubectl:1.31.0`. Taints all nodes with `artemis.kagent.dev/launch-pad-fault=true:NoSchedule`, then `kubectl rollout restart`s the Deployment. **The bit that makes the broken state deterministic.** |
+| Job                           | `bootstrap-launch-pad-fault`                  | `artemis-uc2`         | `rg.fr-par.scw.cloud/apogasa/kubectl:1.31.0`. Taints all nodes with `artemis.kagent.dev/launch-pad-fault=true:NoSchedule`, then `kubectl rollout restart`s the Deployment. **The bit that makes the broken state deterministic.** |
 | Service                       | `mission-control`                             | `artemis-uc2`         | ClusterIP, port 8000 → container port `http`. Present so a working pod would be reachable.                  |
-| Deployment                    | `mission-control`                             | `artemis-uc2`         | `replicas: 1`, image `ghcr.io/kagent-workshop/mission-control:v1` (real tag), no toleration — **the broken bit**. |
+| Deployment                    | `mission-control`                             | `artemis-uc2`         | `replicas: 1`, image `rg.fr-par.scw.cloud/apogasa/mission-control:v1` (real tag), no toleration — **the broken bit**. |
 
 The mechanism, end-to-end:
 

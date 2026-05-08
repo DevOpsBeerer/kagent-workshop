@@ -24,7 +24,7 @@ spec:
       # constraint is unsatisfiable, per FR-010 AC.
       containers:
         - name: mission-control
-          image: ghcr.io/kagent-workshop/mission-control:v1
+          image: rg.fr-par.scw.cloud/apogasa/mission-control:v1
           ports:
             - name: http
               containerPort: 8000

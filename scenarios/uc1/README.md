@@ -18,13 +18,13 @@ A single Deployment under one namespace, deliberately broken at the image-tag le
 | Resource    | Name                  | Where it lives        | Notes                                                                                       |
 | ----------- | --------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
 | Namespace   | `artemis-uc1`         | cluster-scoped        | Labelled `kagent-workshop/uc=uc1`, `kagent-workshop/scenario=imagepullbackoff`.             |
-| Deployment  | `mission-control`     | `artemis-uc1`         | `replicas: 1`, image `ghcr.io/kagent-workshop/mission-control:v999` — **the broken bit**.   |
+| Deployment  | `mission-control`     | `artemis-uc1`         | `replicas: 1`, image `rg.fr-par.scw.cloud/apogasa/mission-control:v999` — **the broken bit**.   |
 | Service     | `mission-control`     | `artemis-uc1`         | ClusterIP, port 8000 → container port `http`. Present so a working pod would be reachable.  |
 
 The `mission-control` image is the FastAPI variant from `apps/mission-control/` (FR-007). Tag `:v1` exists and is used unbroken by UC2; `:v999` is intentionally not published. On apply, the kubelet attempts the pull, fails, backs off, and the Pod settles in `Waiting / ImagePullBackOff` (after one or two `ErrImagePull` cycles) within ~30 s on kind. Three pieces of state name the failure:
 
 1. The Pod's phase: `Pending`, container state `Waiting` with reason `ImagePullBackOff`.
-2. The container's image reference: `ghcr.io/kagent-workshop/mission-control:v999`.
+2. The container's image reference: `rg.fr-par.scw.cloud/apogasa/mission-control:v999`.
 3. Recent events: repeated `Failed to pull image … manifest unknown` from the kubelet.
 
 In the tour, **Mission status check** is intentionally minimal — a single `kubectl get pods` that surfaces the friction (pod not Running). The full three-command diagnosis is what the participant *would* have walked manually without the agent; in the tour, the agent absorbs it, and Beat 4 (`What we'd have done by hand`) names what was skipped.
@@ -41,7 +41,7 @@ The diagnostic agent is **`artemis-mission-control-debugger`** (see [`agents/age
 
 **Expected agent output** (one or two sentences, deterministic across runs to within phrasing):
 
-> The `mission-control` Pod in `artemis-uc1` is in `ImagePullBackOff` because its container references `ghcr.io/kagent-workshop/mission-control:v999`, an image tag that has never been published. Update the Deployment to a published tag (e.g. `:v1`) and re-apply.
+> The `mission-control` Pod in `artemis-uc1` is in `ImagePullBackOff` because its container references `rg.fr-par.scw.cloud/apogasa/mission-control:v999`, an image tag that has never been published. Update the Deployment to a published tag (e.g. `:v1`) and re-apply.
 
 The pedagogical point made in the tour's Beat 4 ("What we'd have done by hand"): same tools, same evidence, three commands collapsed into one synthesis — the participant skipped them. UC2 scales this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out.
 
@@ -89,7 +89,7 @@ For each cold-deploy iteration:
    # (b) Image reference is the unpublished tag
    kubectl get deploy mission-control -n artemis-uc1 \
      -o jsonpath='{.spec.template.spec.containers[0].image}'
-   # → ghcr.io/kagent-workshop/mission-control:v999
+   # → rg.fr-par.scw.cloud/apogasa/mission-control:v999
 
    # (c) Kubelet has logged at least one pull failure event
    kubectl get events -n artemis-uc1 --field-selector reason=Failed

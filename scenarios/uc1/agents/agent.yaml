@@ -12,7 +12,7 @@ apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
   name: artemis-mission-control-debugger
-  namespace: artemis-uc1
+  namespace: kagent
   labels:
     kagent-workshop/uc: uc1
 spec:
@@ -21,7 +21,7 @@ spec:
     Diagnoses why the Artemis `mission-control` deployment is not coming up in
     the `artemis-uc1` namespace. Specialised in image-pull failures.
   declarative:
-    modelConfig: artemis-llm
+    modelConfig: default-model-config
     systemMessage: |
       You are an Artemis mission-control on-call SRE. Your job is to diagnose
       why the `mission-control` Deployment in the `artemis-uc1` namespace is
@@ -38,7 +38,9 @@ spec:
     tools:
       - type: McpServer
         mcpServer:
-          name: kagent-tools-k8s
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kagent-tool-server
           namespace: kagent
           toolNames:
             - k8s_get_pod
