@@ -1,0 +1,56 @@
+# Prometheus scrape config.
+#
+# Two jobs:
+#   1. `prometheus`         — self-scrape on localhost:9090 so the Prom UI shows
+#                             at least one healthy target before any UC ships.
+#   2. `kubernetes-services` — `kubernetes_sd_configs: role: endpoints` filtered
+#                             to Services labelled `monitoring=prom`. This is
+#                             how UC3 / UC4 opt into being scraped without any
+#                             per-UC scrape-config edits (architecture §C5).
+#
+# Workshop-fast intervals (15s) — the UC3 leak curve needs to surface within
+# seconds of the participant starting the loop, not on the operator-style 60s
+# default.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-server
+  namespace: artemis-observability
+  labels:
+    app: prometheus-server
+    kagent-workshop/component: observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ['localhost:9090']
+
+      - job_name: kubernetes-services
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          # Keep only endpoints whose backing Service carries monitoring=prom.
+          - source_labels: [__meta_kubernetes_service_label_monitoring]
+            action: keep
+            regex: prom
+          # If the Service annotates a custom metrics path, honour it.
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          # Surface namespace + service name as labels on every series so the
+          # UC3 agent can query `process_resident_memory_bytes{kubernetes_service_name="..."}`.
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: replace
+            target_label: kubernetes_port_name

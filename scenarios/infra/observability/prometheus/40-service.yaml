@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-server
+  namespace: artemis-observability
+  labels:
+    app: prometheus-server
+    kagent-workshop/component: observability
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus-server
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http
+      protocol: TCP

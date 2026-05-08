@@ -1,0 +1,23 @@
+# infra/observability/ — vanilla Prometheus + Grafana single-replica install
+# shared by UC3 (FR-012) and UC4. No operator (NFR-006); emptyDir storage
+# (the workshop is ephemeral); anonymous-admin Grafana (per-participant
+# vCluster contains the exposure). See STORY-018 + docs/architecture-…md §C5.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: artemis-observability
+
+resources:
+  - 00-namespace.yaml
+  - prometheus/10-rbac.yaml
+  - prometheus/20-configmap-scrape.yaml
+  - prometheus/30-deployment.yaml
+  - prometheus/40-service.yaml
+  - grafana/20-configmap-datasource.yaml
+  - grafana/30-deployment.yaml
+  - grafana/40-service.yaml
+
+labels:
+  - includeSelectors: false
+    pairs:
+      kagent-workshop/component: observability

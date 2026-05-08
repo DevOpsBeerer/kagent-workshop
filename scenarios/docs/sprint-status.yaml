@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2.5
-last_updated: "2026-05-05T12:00:00Z"
+last_updated: "2026-05-08T12:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -281,20 +281,48 @@ sprints:
     end_date: "2026-05-13"
     capacity_points: 30
     committed_points: 25
-    completed_points: 2
+    completed_points: 7
     status: "not_started"
     # STORY-034 (2 pts) implemented out-of-band on 2026-05-05 — ahead of sprint start
     # so the updated convention is in place before STORY-020 (UC3 tour) is authored.
-    # Sprint formally starts 2026-05-11; the 2 pts already landed bring sprint into
+    # STORY-018 (5 pts) implemented out-of-band on 2026-05-08 with ownership re-attributed
+    # from Clément (OOO) to Quentin to keep the M3 critical path open — STORY-019/020/021
+    # all `Deps: STORY-018` per sprint plan.
+    # Sprint formally starts 2026-05-11; the 7 pts already landed bring sprint into
     # an early-credit posture but do not change the start_date or the rest of the slate.
     stories:
       - story_id: "STORY-018"
         title: "infra/observability/ Prom + Graf bundle"
         epic: "EPIC-003"
         frs: ["FR-012"]
+        nfrs: ["NFR-002", "NFR-006"]
         points: 5
-        owner: "Clément Raussin"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: Clément OOO at start of M3; Quentin took
+                                # the bundle so STORY-019/020/021 (Clément's slate, all
+                                # `Deps: STORY-018`) aren't blocked when he's back.
+                                # Cross-author repro AC therefore lands on Clément when
+                                # he is back — bundled with STORY-021's repro pass.
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 5
+        # All AC validated against a live kind cluster (kagent-workshop): Prom + Graf
+        # both Ready 1/1 in 31s; `Prometheus Server is Ready.`; Grafana /api/health OK
+        # (db ok, v11.3.0); provisioned Prom datasource present + isDefault: true +
+        # `Successfully queried the Prometheus API.` from the /api/datasources/uid/.../health
+        # probe; sentinel Service with monitoring=prom picked up by kubernetes_sd within
+        # 20s with 32 droppedTargets confirming the relabel filter; re-apply reports every
+        # object `unchanged` (idempotent); make lint-manifests clean over uc*/manifests/
+        # and infra/observability/. `kubectl top` AC skipped — metrics-server not in this
+        # kind cluster (pre-existing kind setup gap, not a STORY-018 blocker).
+        # Cross-author repro by Clément deferred to STORY-021's repro pass / M5 dry-run
+        # STORY-028 — same pattern as STORY-014/017/031/032/033/034.
+        # Out-of-scope finding flagged for follow-up: `make kagent-install` uses
+        # `helm install` not `helm upgrade --install`, so re-running it on a cluster
+        # that already has kagent fails with "cannot re-use a name that is still in use".
+        # `make uc3-up` therefore can't bring the bundle up cleanly until kagent-install
+        # is made idempotent; for STORY-018 validation the bundle was applied directly
+        # via `kubectl apply -k infra/observability/`. Tracking under STORY-035 candidate
+        # / sprint-3 retro.
       - story_id: "STORY-019"
         title: "UC3 manifests + agent CRDs"
         epic: "EPIC-003"
@@ -429,7 +457,7 @@ metrics:
   total_epics: 4
   total_stories: 34
   total_points: 105
-  stories_completed: 21
+  stories_completed: 22
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 12
+  stories_not_started: 11

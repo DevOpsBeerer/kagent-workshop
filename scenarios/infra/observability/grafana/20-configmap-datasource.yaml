@@ -1,0 +1,26 @@
+# Grafana provisioned datasource.
+#
+# Mounted at /etc/grafana/provisioning/datasources/ — Grafana picks it up at
+# boot via its filesystem provisioning mechanism (apiVersion: 1). The kagent
+# pre-packaged Grafana sub-agent (FR-012 AC, wired by STORY-019) doesn't have
+# to name the datasource by ID because isDefault: true is set.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: artemis-observability
+  labels:
+    app: grafana
+    kagent-workshop/component: observability
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server.artemis-observability.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+        jsonData:
+          timeInterval: 15s

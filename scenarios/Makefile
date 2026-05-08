@@ -11,6 +11,10 @@ AJV         := npx --yes ajv-cli@5
 # ── Manifest lint (STORY-011, NFR-006) ──
 UC_MANIFEST_DIRS := $(wildcard uc*/manifests)
 
+# ── Observability bundle (STORY-018, FR-012) ──
+OBSERVABILITY_DIR := infra/observability
+OBSERVABILITY_NAMESPACE := artemis-observability
+
 # ── Author dev loop (STORY-005, FR-004) ──
 KIND_CLUSTER     := kagent-workshop
 KIND_CONFIG      := scripts/kind-config.yaml
@@ -21,6 +25,7 @@ KAGENT_REPO_URL  := https://kagent-dev.github.io/kagent
 UCS              := 1 2 3 4
 
 .PHONY: help validate-tours lint-manifests preflight kind-up kind-down kagent-install \
+        observability-up observability-down \
         $(addprefix uc,$(addsuffix -up,$(UCS))) \
         $(addprefix uc,$(addsuffix -down,$(UCS)))
 
@@ -34,7 +39,10 @@ help:
 	@echo "  kind-up           Create the local kind cluster '$(KIND_CLUSTER)' (idempotent)"
 	@echo "  kind-down         Delete the local kind cluster"
 	@echo "  kagent-install    Helm-install kagent v$(KAGENT_VERSION) into the current cluster"
+	@echo "  observability-up  Apply $(OBSERVABILITY_DIR)/ (Prom + Graf) — auto-installed by uc3-up / uc4-up"
+	@echo "  observability-down Delete $(OBSERVABILITY_DIR)/ resources"
 	@echo "  uc<N>-up          kind-up + kagent-install + apply uc<N>/manifests + uc<N>/agents"
+	@echo "                    (uc3-up / uc4-up additionally bring up the observability bundle)"
 	@echo "  uc<N>-down        Delete UC<N> resources (cluster stays up; use kind-down to nuke)"
 
 # ── Schema validation ──
@@ -50,19 +58,25 @@ validate-tours:
 # ── Manifest lint ──
 
 lint-manifests:
-	@if [ -z "$(UC_MANIFEST_DIRS)" ]; then \
-		echo "lint-manifests: no uc*/manifests/ dirs yet — nothing to validate."; \
-		exit 0; \
+	@rc=0; \
+	if [ -z "$(UC_MANIFEST_DIRS)" ]; then \
+		echo "lint-manifests: no uc*/manifests/ dirs yet — skipping per-UC walk."; \
+	else \
+		for d in $(UC_MANIFEST_DIRS); do \
+			if compgen -G "$$d/*.yaml" >/dev/null; then \
+				echo "lint-manifests: kubectl apply --dry-run=client -f $$d"; \
+				kubectl apply --dry-run=client -f $$d || rc=1; \
+			else \
+				echo "lint-manifests: $$d is empty — skipping."; \
+			fi; \
+		done; \
 	fi; \
-	rc=0; \
-	for d in $(UC_MANIFEST_DIRS); do \
-		if compgen -G "$$d/*.yaml" >/dev/null; then \
-			echo "lint-manifests: kubectl apply --dry-run=client -f $$d"; \
-			kubectl apply --dry-run=client -f $$d || rc=1; \
-		else \
-			echo "lint-manifests: $$d is empty — skipping."; \
-		fi; \
-	done; \
+	if [ -f "$(OBSERVABILITY_DIR)/kustomization.yaml" ]; then \
+		echo "lint-manifests: kubectl apply --dry-run=client -k $(OBSERVABILITY_DIR)/"; \
+		kubectl apply --dry-run=client -k $(OBSERVABILITY_DIR)/ || rc=1; \
+	else \
+		echo "lint-manifests: $(OBSERVABILITY_DIR)/kustomization.yaml absent — skipping."; \
+	fi; \
 	exit $$rc
 
 # ── Author dev loop ──
@@ -87,6 +101,17 @@ kagent-install:
     --namespace kagent \
     --create-namespace \
 	--wait
+
+# Observability bundle (STORY-018) — auto-installed by uc3-up / uc4-up.
+observability-up: kagent-install
+	@echo "observability-up: kubectl apply -k $(OBSERVABILITY_DIR)/"
+	@kubectl apply -k $(OBSERVABILITY_DIR)/
+	@echo "observability-up: waiting for prometheus-server + grafana to become Ready"
+	@kubectl rollout status -n $(OBSERVABILITY_NAMESPACE) deploy/prometheus-server --timeout=120s
+	@kubectl rollout status -n $(OBSERVABILITY_NAMESPACE) deploy/grafana --timeout=120s
+
+observability-down:
+	@kubectl delete -k $(OBSERVABILITY_DIR)/ --ignore-not-found
 
 # Per-UC up/down targets, generated for every N in $(UCS).
 define UC_TARGETS
@@ -115,3 +140,9 @@ uc$(1)-down:
 endef
 
 $(foreach n,$(UCS),$(eval $(call UC_TARGETS,$(n))))
+
+# UC3 + UC4 additionally depend on the observability bundle (STORY-018).
+# Declared outside the macro so UC1/UC2 author dev-loop cycles stay fast — they
+# don't pull Prom + Graf images on every iteration.
+uc3-up: observability-up
+uc4-up: observability-up

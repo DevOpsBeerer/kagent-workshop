@@ -1,0 +1,42 @@
+# RBAC for Prometheus' kubernetes_sd_configs (role: endpoints).
+#
+# Prom needs cluster-scoped read on services / endpoints / pods / nodes to
+# resolve the targets the scrape config selects via the `monitoring=prom`
+# Service label. This is the minimum verb set documented for the `endpoints`
+# SD role; trimming further breaks discovery silently.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-server
+  namespace: artemis-observability
+  labels:
+    app: prometheus-server
+    kagent-workshop/component: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: artemis-observability-prometheus
+  labels:
+    kagent-workshop/component: observability
+rules:
+  - apiGroups: [""]
+    resources: ["services", "endpoints", "pods", "nodes", "nodes/metrics"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: artemis-observability-prometheus
+  labels:
+    kagent-workshop/component: observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: artemis-observability-prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-server
+    namespace: artemis-observability
