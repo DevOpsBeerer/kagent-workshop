@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lunar-rover-telemetry
+  namespace: artemis-uc3
+  labels:
+    app: lunar-rover-telemetry
+    kagent-workshop/uc: uc3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lunar-rover-telemetry
+  template:
+    metadata:
+      labels:
+        app: lunar-rover-telemetry
+    spec:
+      # Deliberately no readinessProbe / livenessProbe — under memory pressure
+      # a slow probe would race with the OOM cycle and surface as a probe
+      # failure event instead of OOMKilled, masking UC3's friction signal.
+      # NFR-003: the broken state must be manifest-side, no probe-flap.
+      containers:
+        - name: lunar-rover-telemetry
+          # Real published tag — semver-style for this app variant
+          # (UC1's mission-control uses :v1 / :v999; lunar-rover-telemetry
+          # publishes :v1.0.0). The leak symptom is driven by the 64Mi
+          # limit below + participant-triggered POST /leak
+          # (apps/lunar-rover-telemetry/main.py), not by anything image-side.
+          image: rg.fr-par.scw.cloud/apogasa/lunar-rover-telemetry:v1.0.0
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: lunar-rover-telemetry
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "500m"
+              # The OOM driver: 64Mi is below the working set ~70 calls to
+              # POST /leak produces (1 MiB per call), so the kernel reaps
+              # the container deterministically (FR-012 AC).
+              memory: "64Mi"

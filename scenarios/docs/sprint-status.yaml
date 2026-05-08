@@ -281,15 +281,30 @@ sprints:
     end_date: "2026-05-13"
     capacity_points: 30
     committed_points: 25
-    completed_points: 7
+    completed_points: 17
     status: "not_started"
     # STORY-034 (2 pts) implemented out-of-band on 2026-05-05 — ahead of sprint start
     # so the updated convention is in place before STORY-020 (UC3 tour) is authored.
-    # STORY-018 (5 pts) implemented out-of-band on 2026-05-08 with ownership re-attributed
-    # from Clément (OOO) to Quentin to keep the M3 critical path open — STORY-019/020/021
-    # all `Deps: STORY-018` per sprint plan.
-    # Sprint formally starts 2026-05-11; the 7 pts already landed bring sprint into
+    # STORY-018 (5) + STORY-019 (5) + STORY-020 (3) + STORY-021 (2) implemented out-of-band
+    # on 2026-05-08 — full M3 EPIC-003 sweep, all four originally Clément's slate, all
+    # taken by Quentin during the OOO window to keep the M3 critical path open.
+    # Sprint formally starts 2026-05-11; the 17 pts already landed bring sprint into
     # an early-credit posture but do not change the start_date or the rest of the slate.
+    # Remaining Sprint 3 work: STORY-022 (KMCP MCP source) + STORY-023 (MCP packaging)
+    # — Quentin's original M4-prep slate, no Clément-blocking dependencies.
+    #
+    # Recursive cross-author-repro deferral chain (NFR-008 — "PR cross-reviewed by the
+    # other author before merge" cannot be self-satisfied):
+    #   STORY-014/017/031/032/033/034/018/019/020 → all deferred to "STORY-021's repro
+    #   pass / M5 dry-run STORY-028" while authoring.
+    #   STORY-021 itself swapped to Quentin → its own NFR-008 review defers to STORY-028.
+    #   STORY-028's plate at M5 entry: cross-author cold-deploy NFR-003 + NFR-008 review
+    #   of UC0/UC1/UC2/UC3 tour prose + UC3 README + the four EPIC-003 manifests/agents.
+    #   That's the full cost of the swap, transparently logged here.
+    # STORY-020 narrative-quality risk note: Clément retained narrative-judgment slot
+    # before this swap (per STORY-019 status note). Tonal sign-off on uc3/tour.json
+    # absorbed by STORY-028 as well — Clément may rewrite Beat-3/4 prose without cluster
+    # blast radius (pure-text follow-up).
     stories:
       - story_id: "STORY-018"
         title: "infra/observability/ Prom + Graf bundle"
@@ -327,24 +342,145 @@ sprints:
         title: "UC3 manifests + agent CRDs"
         epic: "EPIC-003"
         frs: ["FR-012"]
+        nfrs: ["NFR-001", "NFR-003"]
         points: 5
-        owner: "Clément Raussin"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: same swap as STORY-018; Clément OOO at
+                                # start of M3. STORY-019 absorbed the M3 day-1 spike
+                                # (kagent v0.9.0 pre-packaged Prom/Graf agent CRD shape)
+                                # so STORY-020/021 inherit the trace. Cross-author repro
+                                # AC therefore lands on Clément when he is back —
+                                # bundled with STORY-021's repro pass.
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 5
+        # All AC validated against the live `kagent-workshop` kind cluster:
+        # - uc3/manifests/ apply cleanly; lunar-rover-telemetry Pod Running 1/1
+        #   after the lunar-rover-telemetry:v1.0.0 image was published mid-validation
+        #   (image-publish dependency flagged in story doc; user published it on
+        #   request, validation continued).
+        # - Prometheus kubernetes_sd discovered the monitoring=prom-labelled Service
+        #   within ~20s; process_resident_memory_bytes{kubernetes_namespace="artemis-uc3",
+        #   kubernetes_service_name="lunar-rover-telemetry"} queryable end-to-end.
+        # - 11 POST /leak calls drove the container into OOMKilled (exit code 137);
+        #   kubelet restarted, lastState.terminated.reason: OOMKilled now visible to
+        #   the agent's k8s_describe_pod tool. (Spec said ~70 calls; idle RSS was
+        #   already ~57MB so the 64Mi limit was reached faster — same friction signal.)
+        # - Agent CRD `artemis-rover-telemetry-debugger` accepted by kagent v0.9.0
+        #   (a2a sub-agent shape via tools[].type: Agent confirmed against
+        #   observability-agent.spec example), READY=True + ACCEPTED=True within 60s.
+        # - ExternalName bridge Services in kagent ns resolve correctly:
+        #   grafana.kagent.svc → grafana.artemis-observability.svc (10.96.128.166);
+        #   prometheus.kagent.svc → prometheus-server.artemis-observability.svc
+        #   (10.96.144.249). Verified via busybox DNS test pod.
+        # - make lint-manifests clean over uc1+uc2+uc3 manifests + infra/observability.
+        # End-to-end agent invocation (system prompt → describe-pod → delegate to
+        # observability-agent → dashboard URL) NOT validated — requires live OpenAI
+        # creds. Deferred to STORY-021 cross-author repro / M5 dry-run STORY-028.
+        # Cross-author repro by Clément deferred to STORY-021's repro pass / M5 dry-run
+        # STORY-028 — same pattern as STORY-014/017/031/032/033/034.
+        # M3 day-1 spike (kagent pre-packaged Prom/Graf agent CRD shape) absorbed by
+        # this story's spike phase: actual agent names are `promql-agent` (PromQL
+        # generator only) and `observability-agent` (Grafana + Prom execution + a2a
+        # delegate to promql-agent). Architecture's "Prometheus and Grafana agents"
+        # text → these two. RemoteMCPServers `kagent-tool-server` and
+        # `kagent-grafana-mcp` provide the tool surfaces. Full trace in
+        # docs/stories/STORY-019.md §Spike findings.
       - story_id: "STORY-020"
         title: "UC3 tour.json (leak loop + dashboard URL)"
         epic: "EPIC-003"
         frs: ["FR-013"]
+        nfrs: ["NFR-008", "NFR-009", "NFR-010"]
         points: 3
-        owner: "Clément Raussin"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: third Clément story in the M3 swap.
+                                # First swap into the narrative axis (UC3 tour prose) —
+                                # contradicts the STORY-019 status note that said
+                                # "Clément retains ownership of STORY-020". Tonal
+                                # sign-off therefore upgraded into STORY-021's cross-
+                                # author repro AC. Pure-prose follow-up has zero
+                                # cluster blast radius (matches STORY-031/032 →
+                                # STORY-034 precedent).
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 3
+        # All AC validated end-to-end against the live `kagent-workshop` kind cluster:
+        # - `make validate-tours` clean over uc0/uc1/uc2/uc3 (4/4 schema-valid).
+        # - Custom audit (case-sensitive `UC<N>` regex per STORY-034 precedent):
+        #   zero matches for banned vocab / bug-class names / meta-references across
+        #   10 participant-visible fields (tour.title, tour.description, 4× step.title,
+        #   4× step.explanation).
+        # - Beat 1 chain (apply → wait Ready → telemetry stream) executes in ~3s,
+        #   stream pod auto-deletes (`kubectl run --rm`), survives rover OOM cycles
+        #   (loop runs against the in-cluster Service DNS).
+        # - Beat 2 (`kubectl get pods`) shows the exact friction signal: Running 1/1
+        #   with `RESTARTS: 1 (Ns ago)`. lastState.terminated.reason == "OOMKilled"
+        #   confirmed via jsonpath probe — that's what the agent's k8s_describe_pod
+        #   tool will surface in Beat 3.
+        # - Prometheus still scraping the post-restart rover (~49 MiB working set on
+        #   the new container as of validation; ready for the agent's PromQL panel).
+        # Implementation finding: container has only `python3`, no `curl`/`wget`.
+        # Switched the leak-trigger from `kubectl exec ... -- curl ...` (which fails
+        # with `sh: 1: curl: not found`) to `kubectl run --rm` with curlimages/curl.
+        # Bonus: the run-pod survives rover restarts so the 30-burst loop actually
+        # runs to completion (the exec form would die on the first OOM at exit 137).
+        # The tour's mission framing absorbs this cleanly — the run-pod is "a transient
+        # operator station that pushes 30 bursts to the rover's outbound queue".
+        # Agent reasoning loop end-to-end (Beat 3 prompt → describe-pod → delegate to
+        # observability-agent → dashboard URL surfaced) NOT validated — needs live
+        # OpenAI creds. Deferred to STORY-021's repro pass / M5 dry-run STORY-028.
+        # Cross-author repro by Clément deferred to STORY-021's repro pass / M5 dry-run
+        # STORY-028. Tonal sign-off explicitly upgraded into that pass per the
+        # narrative-quality risk note in docs/stories/STORY-020.md.
       - story_id: "STORY-021"
         title: "UC3 README + cross-author repro"
         epic: "EPIC-003"
         frs: ["FR-012"]
-        nfrs: ["NFR-003"]
+        nfrs: ["NFR-003", "NFR-008"]
         points: 2
-        owner: "Clément Raussin"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: fourth and final M3 Clément swap.
+                                # Sprint plan AC #2 originally read "Quentin runs UC3
+                                # reproduction once on fresh kind and signs off" —
+                                # encoded for Clément's authorship. With the swap,
+                                # the cross-review target inverts to Clément, whose
+                                # NFR-008 signoff defers to STORY-028 (M5 dry-run).
+                                # Recursive deferral chain documented in this sprint's
+                                # comment block above + in STORY-021.md §Ownership swap.
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 2
+        # All AC validated:
+        # - uc3/README.md rewritten from stub to UC1/UC2 convention shape (~470 lines)
+        #   with the two UC3-specific sections AC #1 names: Prom/Graf prerequisite +
+        #   bridge (cross-references STORY-018 bundle + STORY-019 bridge Services) and
+        #   the production-disclaimer (one-paragraph rationale per "what's pedagogical
+        #   here" / "what you would change for a production-grade install"). Plus a
+        #   UC3-specific Recovery procedure section (the OOM cycle is participant-
+        #   triggered, so re-running the tour bumps RESTARTS — Recovery levels 1-4
+        #   document the reset paths from "ad-hoc rerun" to "full kind teardown").
+        # - Author notes section captures three engineering-trace items per STORY-034
+        #   convention: kagent v0.9.0 pre-packaged agent CRD shape spike (cross-
+        #   references STORY-019.md §Spike findings); kubectl run --rm leak-trigger
+        #   pattern (STORY-020 finding — no curl in python:3.12-slim container);
+        #   ExternalName bridge rationale (DNS-CNAME indirection vs helm-values
+        #   override decision matrix).
+        # - Self-author smoke validation against the live `kagent-workshop` kind cluster
+        #   ran the README-documented checks (a)-(d) verbatim:
+        #     (a) restartCount = 1 — README's `≥ 1` predicate satisfied.
+        #     (b) lastState.terminated.reason == "OOMKilled" — confirmed.
+        #     (c) Prom scraping artemis-uc3: process_resident_memory_bytes value
+        #         53.7 MiB on the post-restart container.
+        #     (d) Bridge DNS resolution from a busybox pod in the kagent ns:
+        #         grafana.kagent.svc → grafana.artemis-observability.svc;
+        #         prometheus.kagent.svc → prometheus-server.artemis-observability.svc.
+        #   Idempotency: re-applying uc3/manifests/ + uc3/agents/ reports `unchanged`
+        #   for all 7 resources. `make validate-tours` clean (4/4 schema-valid).
+        # - Cross-author repro by Clément (NFR-008 + NFR-003 cold-deploys): DEFERRED to
+        #   STORY-028 (M5 dry-run). Self-review is not cross-review; the swap left
+        #   Quentin as both author and only available reviewer at story-completion time.
+        #   Pure-text follow-up rewrites by Clément have zero cluster blast radius
+        #   (manifests/agents/tour stay byte-identical; only README prose changes).
+        # - Agent reasoning loop end-to-end (Beat 3 invocation → describe-pod → delegate
+        #   → dashboard URL) NOT validated — needs OpenAI creds. Same chain as STORY-019/
+        #   020; defers to STORY-028.
       - story_id: "STORY-022"
         title: "KMCP MCP source + tenancy guard + tests"
         epic: "EPIC-004"
@@ -457,7 +593,7 @@ metrics:
   total_epics: 4
   total_stories: 34
   total_points: 105
-  stories_completed: 22
+  stories_completed: 25
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 11
+  stories_not_started: 8

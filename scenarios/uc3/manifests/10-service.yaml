@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: lunar-rover-telemetry
+  namespace: artemis-uc3
+  labels:
+    app: lunar-rover-telemetry
+    kagent-workshop/uc: uc3
+    # Picked up by infra/observability/'s Prometheus kubernetes_sd via the
+    # `keep` relabel rule on `monitoring=prom` (STORY-018).
+    monitoring: prom
+spec:
+  type: ClusterIP
+  selector:
+    app: lunar-rover-telemetry
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

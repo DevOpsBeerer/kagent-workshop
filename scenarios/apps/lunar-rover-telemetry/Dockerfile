@@ -28,6 +28,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     APP_IDENTITY="lunar-rover-telemetry" \
     PORT=8000
 
+
+RUN apt update && apt install curl -y
+
 # Non-root user
 RUN groupadd --system --gid 10001 app \
  && useradd  --system --uid 10001 --gid 10001 --home-dir /app --shell /sbin/nologin app

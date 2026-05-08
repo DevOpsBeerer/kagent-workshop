@@ -1,0 +1,69 @@
+{
+  "id": "kagent-uc3-oom-killed",
+  "title": "UC3 — Lunar rover telemetry won't keep its uplink up",
+  "description": "Today's mission for the Artemis pad shift: bring the lunar rover online, run a telemetry stream up to base, then hand the diagnosis to artemis-rover-telemetry-debugger through the kagent dashboard chat.",
+  "steps": [
+    {
+      "title": "Mission setup — bring the rover online and stream telemetry",
+      "explanation": "The lunar rover is checking in for the Artemis pad shift. Bring it online on your vCluster and run a short stream of telemetry bursts to it — namespace, service, deployment, then a transient operator station that pushes 30 bursts to the rover's outbound queue.\n\nThe three manifest files are dropped into your workspace by this step (`fileEdits`), then applied with a single `kubectl apply -f`. Once the rover Pod is `Ready`, a one-shot `telemetry-stream` Pod runs the burst loop against the rover's in-cluster Service DNS and self-deletes when the loop completes.\n\nThe operator station's output is the per-burst response from the rover (`{\"size_mb\":N}` — its outbound buffer count). The next step will tell you whether the rover is keeping its uplink up across the stream.",
+      "fileEdits": [
+        {
+          "type": "create",
+          "path": "uc3/manifests/00-namespace.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: artemis-uc3\n  labels:\n    kagent-workshop/uc: uc3\n    kagent-workshop/scenario: oomkilled\n"
+        },
+        {
+          "type": "create",
+          "path": "uc3/manifests/10-service.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: lunar-rover-telemetry\n  namespace: artemis-uc3\n  labels:\n    app: lunar-rover-telemetry\n    kagent-workshop/uc: uc3\n    # Picked up by infra/observability/'s Prometheus kubernetes_sd via the\n    # `keep` relabel rule on `monitoring=prom` (STORY-018).\n    monitoring: prom\nspec:\n  type: ClusterIP\n  selector:\n    app: lunar-rover-telemetry\n  ports:\n    - name: http\n      port: 8000\n      targetPort: http\n      protocol: TCP\n"
+        },
+        {
+          "type": "create",
+          "path": "uc3/manifests/20-deployment.yaml",
+          "overwrite": true,
+          "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: lunar-rover-telemetry\n  namespace: artemis-uc3\n  labels:\n    app: lunar-rover-telemetry\n    kagent-workshop/uc: uc3\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: lunar-rover-telemetry\n  template:\n    metadata:\n      labels:\n        app: lunar-rover-telemetry\n    spec:\n      # Deliberately no readinessProbe / livenessProbe — under memory pressure\n      # a slow probe would race with the OOM cycle and surface as a probe\n      # failure event instead of OOMKilled, masking UC3's friction signal.\n      # NFR-003: the broken state must be manifest-side, no probe-flap.\n      containers:\n        - name: lunar-rover-telemetry\n          # Real published tag — semver-style for this app variant\n          # (UC1's mission-control uses :v1 / :v999; lunar-rover-telemetry\n          # publishes :v1.0.0). The leak symptom is driven by the 64Mi\n          # limit below + participant-triggered POST /leak\n          # (apps/lunar-rover-telemetry/main.py), not by anything image-side.\n          image: rg.fr-par.scw.cloud/apogasa/lunar-rover-telemetry:v1.0.0\n          ports:\n            - name: http\n              containerPort: 8000\n          env:\n            - name: APP_IDENTITY\n              value: lunar-rover-telemetry\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"32Mi\"\n            limits:\n              cpu: \"500m\"\n              # The OOM driver: 64Mi is below the working set ~70 calls to\n              # POST /leak produces (1 MiB per call), so the kernel reaps\n              # the container deterministically (FR-012 AC).\n              memory: \"64Mi\"\n"
+        }
+      ],
+      "commands": [
+        {
+          "label": "Apply the manifests",
+          "command": "kubectl apply -f uc3/manifests/"
+        },
+        {
+          "label": "Wait for the rover to come online",
+          "command": "kubectl wait --for=condition=Ready pod -n artemis-uc3 -l app=lunar-rover-telemetry --timeout=60s"
+        },
+        {
+          "label": "Stream 30 telemetry bursts to the rover",
+          "command": "kubectl run telemetry-stream --rm -i --restart=Never --image=curlimages/curl:8.10.1 --namespace=artemis-uc3 --command -- sh -c 'for i in $(seq 1 30); do curl -sf -X POST http://lunar-rover-telemetry:8000/leak --max-time 2; echo; done; echo stream complete'"
+        }
+      ]
+    },
+    {
+      "title": "Mission status check — is the rover keeping its uplink up?",
+      "explanation": "The telemetry stream just cut out partway through. Check the rover's status to see whether the uplink came back up on its own.\n\nLook at the **`RESTARTS`** column carefully — a healthy rover stays at zero across a single mission window. If the count ticked up, the rover is alive but it didn't survive the stream, and that's the cue to call the agent in.",
+      "commands": [
+        {
+          "label": "List the rover Pod",
+          "command": "kubectl get pods -n artemis-uc3 -l app=lunar-rover-telemetry"
+        }
+      ]
+    },
+    {
+      "title": "Call the agent for help",
+      "explanation": "The rover restarted on us mid-stream and we don't yet know why. Hand the diagnosis to **`artemis-rover-telemetry-debugger`** through the kagent dashboard.\n\nThe command below opens the dashboard (it port-forwards `kagent-ui` and points your browser at it). The command stays running in the terminal — leave it running while you use the chat, then `Ctrl+C` once you have the answer.\n\nIn the dashboard, open the chat for **`artemis-rover-telemetry-debugger`** (namespace `kagent`) and paste the following prompt:\n\n> The lunar-rover-telemetry pod in the artemis-uc3 namespace keeps restarting. Diagnose it, and show me a memory chart from the time of the failure.\n\nThe agent has the same Kubernetes read tools you would have used by hand (`describe pod`, `get events`) **plus** sub-agents that talk to Prometheus and Grafana directly. Read the response in the chat surface — it will name the root cause in one sentence and surface a Grafana dashboard URL you can click through to see the memory curve from the failure window.",
+      "commands": [
+        {
+          "label": "Open the kagent dashboard",
+          "command": "kagent dashboard"
+        }
+      ]
+    },
+    {
+      "title": "What we'd have done by hand",
+      "explanation": "Without the agent, you would have run three `kubectl` commands to localise the failure inside the cluster and then a separate set of Grafana clicks to correlate it with telemetry. Five surfaces, one synthesis to do yourself.\n\nThe `kubectl` half:\n\n```bash\nkubectl get pods -n artemis-uc3 -l app=lunar-rover-telemetry\nkubectl describe pod -n artemis-uc3 -l app=lunar-rover-telemetry\nkubectl get events -n artemis-uc3 --sort-by=.lastTimestamp\n```\n\nThree pieces of state to combine into a verdict: a `Running 1/1` Pod whose previous container terminated with `lastState.terminated.reason: OOMKilled` and `exitCode: 137`, kubelet events naming the OOM, and the Pod's restart count ticking up by one. The cluster says *the rover ran out of room and the kernel reaped it*, but you have to read three commands to hear it.\n\nThe Grafana half — what the agent did on your behalf:\n\n- Connected to the cluster's Prometheus through the kagent observability sub-agent.\n- Generated and executed the PromQL query `process_resident_memory_bytes{kubernetes_namespace=\"artemis-uc3\", kubernetes_service_name=\"lunar-rover-telemetry\"}` over the failure window.\n- Built a Grafana dashboard panel showing the memory curve climbing from idle to the 64 Mi container limit, then dropping to zero on each OOM cycle.\n- Returned the dashboard URL in the chat surface for you to click.\n\nThe agent ran the same three kubectl tools and the same observability tooling and returned a single sentence of root cause: **the rover's container memory limit (64 Mi) is below the working set the telemetry stream produces, so the kernel reaps the container before the stream completes**. You ran one `kubectl get pods` just to see the restart count was off — you didn't have to walk the rest, and you didn't have to switch context to Grafana.\n\nOpen the dashboard URL the agent returned in the chat above to see the memory curve for yourself; it is the same evidence a human on-call would have pieced together by hand, only the agent did the piecing.\n\nMultiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling."
+    }
+  ]
+}

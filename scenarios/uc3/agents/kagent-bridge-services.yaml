@@ -1,0 +1,53 @@
+# kagent ↔ artemis-observability namespace bridge.
+#
+# kagent v0.9.0's pre-packaged tools + the kagent-grafana-mcp RemoteMCPServer
+# resolve Prom/Graf at {prometheus,grafana}.kagent.svc.cluster.local — bound at
+# helm install time. STORY-018 deliberately put the actual pods in
+# artemis-observability (per docs/artemis-naming.md). These two ExternalName
+# Services reconcile the gap with a DNS CNAME indirection that is invisible to
+# kagent's runtime, requires no helm upgrade, and survives kagent reinstalls.
+#
+# Why ExternalName and not a Helm-values override:
+# - Override path requires `helm upgrade` on every kagent install (also fixes
+#   the STORY-018-flagged `make kagent-install` non-idempotency, but in a
+#   different scope). Bridge path is surgical and scoped to UC3 lifecycle.
+# - Bridge Services delete cleanly with `make uc3-down` (kubectl delete -f
+#   uc3/agents/), keeping kagent's own state untouched.
+#
+# When UC4 lands (STORY-024 onwards), it either copies these into
+# uc4/agents/ or we promote the file to infra/observability/ — whichever
+# matches the eventual UC4 wiring. Premature promotion deferred per the
+# project's "don't design for hypothetical future requirements" default.
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: kagent
+  labels:
+    kagent-workshop/uc: uc3
+    kagent-workshop/role: bridge
+spec:
+  type: ExternalName
+  externalName: prometheus-server.artemis-observability.svc.cluster.local
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: kagent
+  labels:
+    kagent-workshop/uc: uc3
+    kagent-workshop/role: bridge
+spec:
+  type: ExternalName
+  externalName: grafana.artemis-observability.svc.cluster.local
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
