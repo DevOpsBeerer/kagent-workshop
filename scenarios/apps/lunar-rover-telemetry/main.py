@@ -24,8 +24,14 @@ APP_IDENTITY = os.environ.get("APP_IDENTITY", "lunar-rover-telemetry")
 
 app = FastAPI(title=f"kagent-workshop · {APP_IDENTITY}", docs_url=None, redoc_url=None)
 
-# Module-global; intentional. Each /leak call appends a fresh 1 MiB block, so
-# the live-object set grows monotonically until the kernel reaps the process.
+# Module-global; intentional. Each /leak call appends a fresh 1 MiB block of
+# random bytes (os.urandom, not zeros) — random data is unique-per-page so
+# the kernel can't fold it into the zero-page or merge it via KSM. The
+# resident set grows by ~1 MiB per call deterministically. The earlier
+# `b"\x00" * (1024*1024)` form was virtually 1 MiB but on some kernels
+# stayed backed by a shared zero page, so RSS stayed flat across hundreds
+# of calls and the cgroup memory limit never tripped — observed on AKS
+# nodes during workshop dry-run.
 LEAK: list[bytes] = []
 
 
@@ -36,7 +42,7 @@ def healthz() -> dict[str, str]:
 
 @app.post("/leak")
 def leak() -> dict[str, int]:
-    LEAK.append(b"\x00" * (1024 * 1024))
+    LEAK.append(os.urandom(1024 * 1024))
     return {"size_mb": len(LEAK)}
 
 
