@@ -109,6 +109,34 @@ for path in "${includes[@]}"; do
     fi
 done
 
+# Populate `.workshop-tour/` inside the distribution — same shape as
+# `scripts/sync-workshop-tour.sh` produces at the repo root for author dev,
+# but here as part of the participant artefact so the workshop-tour VS Code
+# extension finds its tour files at the conventional location.
+tour_dest="${dest}/.workshop-tour"
+mkdir -p "${tour_dest}"
+rm -f "${tour_dest}"/*.json
+
+shopt -s nullglob
+tour_files=("${dest}"/uc*/tour.json)
+shopt -u nullglob
+
+if (( ${#tour_files[@]} == 0 )); then
+    echo "build-workshop-distribution: WARNING — no uc*/tour.json under ${dest}; .workshop-tour/ left empty." >&2
+else
+    IFS=$'\n' tour_files=($(printf '%s\n' "${tour_files[@]}" | sort -V))
+    unset IFS
+    for src in "${tour_files[@]}"; do
+        uc_dir="$(basename "$(dirname "${src}")")"
+        if [[ ! "${uc_dir}" =~ ^uc[0-9]+$ ]]; then
+            echo "build-workshop-distribution: WARNING — skipping unexpected path '${src}'." >&2
+            continue
+        fi
+        cp -f "${src}" "${tour_dest}/${uc_dir}-tour.json"
+        echo "  + .workshop-tour/${uc_dir}-tour.json"
+    done
+fi
+
 # Drop a small marker so workshop-infrastructure can detect "this is a built
 # distribution, not an arbitrary checkout".
 {

@@ -11,24 +11,30 @@ This document is the contract between **this repo** (produces the distribution) 
 ```
 dist/workshop/
   .workshop-distribution-info        # auto-generated marker: commit + tag + branch + build timestamp
+  .workshop-tour/                    # tour files the workshop-tour VS Code extension reads
+    uc0-tour.json                    # mirror of uc0/tour.json, renamed for the extension's conventional location
+    uc1-tour.json
+    uc2-tour.json
+    uc3-tour.json
+    uc4-tour.json
   uc0/
     tour.json                        # kagent install prep tour
   uc1/
     tour.json                        # 4-beat tour
     manifests/                       # namespace + service + Deployment (ImagePullBackOff)
-    agents/                          # artemis-mission-control-debugger Agent + ModelConfig
+    agents/                          # artemis-mission-control-debugger Agent (references default-model-config)
   uc2/
     tour.json                        # 4-beat tour
     manifests/                       # namespace + RBAC + bootstrap-taint Job + service + Deployment (Pending)
-    agents/                          # artemis-launch-pad-debugger Agent + ModelConfig
+    agents/                          # artemis-launch-pad-debugger Agent (references default-model-config)
   uc3/
     tour.json                        # 4-beat tour
     manifests/                       # namespace + service (monitoring=prom) + Deployment (OOMKilled, 64Mi limit)
-    agents/                          # artemis-rover-telemetry-debugger Agent + ModelConfig
+    agents/                          # artemis-rover-telemetry-debugger Agent (references default-model-config)
   uc4/
     tour.json                        # 4-beat tour
     manifests/                       # namespace + RBAC + bootstrap-taint Job + 3 services + 3 Deployments (multi-symptom)
-    agents/                          # artemis-mission-coordinator Agent + ModelConfig
+    agents/                          # artemis-mission-coordinator Agent (references default-model-config)
   infra/
     observability/                   # Prom + Graf bundle + kagent↔observability namespace bridge
       00-namespace.yaml
@@ -38,7 +44,9 @@ dist/workshop/
       grafana/{20-configmap-datasource,30-deployment,40-service}.yaml
 ```
 
-**Size:** ~300 KB, 42 files.
+`.workshop-tour/uc<N>-tour.json` is what the workshop-tour VS Code extension reads at runtime — the build script populates it from each `uc<N>/tour.json` via the same naming convention `scripts/sync-workshop-tour.sh` uses at the repo root for author dev. Per-UC `uc<N>/tour.json` files are kept alongside the manifests/agents so participants who poke at the directory structure see them where they'd expect; the `.workshop-tour/` copies are what the extension consumes.
+
+**Size:** ~360 KB, 43 files.
 
 ### What stays out (author-facing, never shipped)
 
