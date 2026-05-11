@@ -14,33 +14,33 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 dest="${repo_root}/dist/workshop"
 
-# Participant-facing paths to copy verbatim. Each is either a single file or
-# a directory; directories are copied recursively with the global excludes
-# below applied inside them.
+# Participant-facing paths to copy. Strict whitelist — only the 5 UC
+# scenario packages (tour.json + manifests/ + agents/) and the shared
+# observability infra. Every other repo path (apps/, mcp/, Makefile,
+# schemas/, scripts/, docs/, BMAD audit trail) stays author-facing and
+# is NOT shipped to participants.
+#
+# Workshop-infrastructure pre-applies the agent CRDs + the observability
+# bundle + the bulb MCP per-vCluster; participants drive only the
+# tour-side `kubectl apply -f uc<N>/manifests/` commands. Agent CRDs ship
+# in the distribution for participant transparency (they can read the
+# Agent spec to understand what tools their debugger has) but they don't
+# apply them themselves.
 includes=(
-    "README.md"
-    "Makefile"
     "uc0"
     "uc1"
     "uc2"
     "uc3"
     "uc4"
     "infra"
-    "mcp"
-    "apps"
-    "schemas"
-    "scripts/preflight.sh"
-    "scripts/kind-config.yaml"
-    "scripts/sync-workshop-tour.sh"
-    "docs/artemis-naming.md"
-    "docs/tour-content-conventions.md"
-    ".gitignore"
 )
 
-# Patterns excluded from every directory copy (build artefacts, version
-# control, IDE config, secrets, BMAD audit trail). Anything in `includes`
-# that matches an exclude pattern is dropped.
+# Patterns excluded from every directory copy. Includes the standard
+# build-artefact / VCS / IDE / secrets exclusions plus per-UC `README.md`
+# (READMEs are author-facing — the tour itself is the participant-facing
+# narrative).
 excludes=(
+    "README.md"
     ".git"
     ".gitkeep"
     ".github"
