@@ -73,9 +73,9 @@ UC4 references the three sub-Agents by their canonical names above (no per-UC4 r
 
 ### ModelConfig
 
-| Name            | Scope                          | Notes                                                                                 |
-| --------------- | ------------------------------ | ------------------------------------------------------------------------------------- |
-| `artemis-llm`   | cluster (or per-UC if needed)  | Provider URL + credential refs externalised via env injection (NFR-005, NFR-011). One shared config across all UCs unless a UC needs a different model. |
+| Name                    | Scope                                       | Notes                                                                                                                                            |
+| ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `default-model-config`  | `kagent` ns (kagent helm install pre-wires) | The canonical ModelConfig every Artemis agent (UC1/UC2/UC3/UC4) references. Credentials live in the `artemis-llm-credentials` Secret in `kagent`, injected by `workshop-infrastructure` at deploy time (NFR-005, NFR-011). One shared config across every UC. |
 
 ## FR-017 bulb / verdict mapping (UC4)
 

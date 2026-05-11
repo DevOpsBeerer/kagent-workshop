@@ -58,7 +58,6 @@ A single namespace, `artemis-uc4`, hosts three Deployments in three different st
 | Deployment `…-pending`    | `mission-control-pending`     | `artemis-uc4`     | Image `mission-control:v1.0.0` (real). No toleration for the synthetic taint → `Pending` with `FailedScheduling: untolerated taint`. UC2-style symptom. `strategy.type: Recreate` (see Author notes). |
 | Deployment `…-telemetry`  | `lunar-rover-telemetry`       | `artemis-uc4`     | Image `lunar-rover-telemetry:v1.0.0` (real), `resources.limits.memory: 64Mi`. Pod stays `Running 1/1` until the tour's Beat 1 leak loop drives it into OOMKilled. UC3-style symptom. Tolerates the taint. |
 | Agent CRD                 | `artemis-mission-coordinator` | `kagent`          | Declarative type. a2a delegation to the three UC specialist debuggers + RemoteMCPServer references to `kagent-tool-server` (k8s read) + `artemis-bulb-mcp` (bulb writes).                            |
-| ModelConfig               | `artemis-llm`                 | `artemis-uc4`     | Per-UC slot (kept for naming-convention consistency; the coordinator itself uses `default-model-config` per the UC1/UC3 precedent — see STORY-025 Technical Notes).                                  |
 
 The three Deployment symptoms surface on different timelines: `…-imagepull` enters `ImagePullBackOff` within ~30 s of apply (kubelet's first pull retry); `…-pending` enters `Pending` within ~5 s of the bootstrap Job completing (which is within ~10 s of apply); `…-telemetry` stays Running until the tour's Beat 1 leak trigger drives it through one OOM cycle (~10-15 s after the trigger fires). All three are visible simultaneously in `kubectl get pods -n artemis-uc4` ~60 s after `kubectl apply -f uc4/manifests/` + the leak trigger.
 
@@ -150,8 +149,7 @@ uc4/
     50-deployment-pending.yaml           mission-control-pending — UC2-style scheduling symptom (Recreate strategy)
     60-deployment-telemetry.yaml         lunar-rover-telemetry — UC3-style OOM symptom (64Mi limit)
   agents/
-    agent.yaml                           artemis-mission-coordinator (a2a + 2× RemoteMCPServer)
-    modelconfig.yaml                     artemis-llm ModelConfig (slot — coordinator uses default-model-config)
+    agent.yaml                           artemis-mission-coordinator (a2a + 2× RemoteMCPServer; references default-model-config)
 ```
 
 UC4 also depends on, but does not contain:
@@ -336,7 +334,7 @@ UC2's agent shipped in M2 with three drift items relative to the convention that
 
 1. `metadata.namespace: artemis-uc2` (vs `kagent` per `docs/artemis-naming.md` L60).
 2. `tools[].mcpServer.name: kagent-tools-k8s` (vs `kagent-tool-server` — the name kagent v0.9.0 demo profile actually ships).
-3. `declarative.modelConfig: artemis-llm` (vs `default-model-config` — UC1+UC3 both use the kagent-installed default to avoid per-UC credential-Secret duplication).
+3. `declarative.modelConfig: artemis-llm` (vs `default-model-config` — every Artemis agent uses the kagent-installed default to avoid per-UC credential-Secret duplication; the per-UC `artemis-llm` ModelConfig slots that earlier iterations shipped were dropped post-freeze).
 
 STORY-024 also surfaced four manifest-side UC2 drifts: image tags (`:v1` not published, real tag is `:v1.0.0`), bootstrap shell (`/bin/bash` not in busybox-based `apogasa/kubectl:latest`, needs `/bin/sh`), strategy (default RollingUpdate deadlocks the rollout-restart pattern, needs `Recreate`), tolerations (Job has no toleration for the taint it applies, deadlocks on in-place re-apply).
 

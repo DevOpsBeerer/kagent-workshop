@@ -31,7 +31,7 @@ In the tour, **Mission status check** is intentionally minimal — a single `kub
 
 ## Expected agent diagnosis
 
-The diagnostic agent is **`artemis-mission-control-debugger`** (see [`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It is wired through the participant-scoped `artemis-llm` `ModelConfig` ([`agents/modelconfig.yaml`](agents/modelconfig.yaml)) and sources tools from the upstream `kagent-tools-k8s` MCP server (provisioned by `workshop-infrastructure`, not by this repo).
+The diagnostic agent is **`artemis-mission-control-debugger`** (see [`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It lives in the `kagent` namespace, references kagent's installed `default-model-config` ModelConfig (the canonical credentials slot across every Artemis agent — backed by the `artemis-llm-credentials` Secret in `kagent`), and sources tools from the `kagent-tool-server` RemoteMCPServer that ships with kagent's demo profile.
 
 **Tool surface — exactly the three the participant just used manually:**
 
@@ -56,8 +56,7 @@ uc1/
     10-service.yaml        ClusterIP for mission-control
     20-deployment.yaml     1-replica Deployment with the broken :v999 tag
   agents/
-    agent.yaml             artemis-mission-control-debugger (kagent.dev/v1alpha2 Agent)
-    modelconfig.yaml       artemis-llm ModelConfig (provider/credentials externalised)
+    agent.yaml             artemis-mission-control-debugger (kagent.dev/v1alpha2 Agent; references default-model-config)
 ```
 
 The manifest filenames are numbered so `kubectl apply -f uc1/manifests/` applies them in dependency order (namespace before namespaced resources).
@@ -103,7 +102,7 @@ For each cold-deploy iteration:
      --task 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'
    # Expected: the agent names the v999 tag as the root cause within ~10–20 s.
    ```
-   This step is gated on a real `artemis-llm-credentials` Secret being present in the `artemis-uc1` namespace; on a bare local kind without one, the manifest checks (a–c) above are sufficient for NFR-003 sign-off.
+   This step is gated on a real `artemis-llm-credentials` Secret being present in the `kagent` namespace (the agent uses `default-model-config`, which kagent's helm install pre-wires); on a bare local kind without one, the manifest checks (a–c) above are sufficient for NFR-003 sign-off.
 6. **Tear down before the next iteration.**
    ```bash
    make uc1-down

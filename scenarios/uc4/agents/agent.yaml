@@ -24,10 +24,10 @@
 # `artemis-` prefix convention for cluster-scope-discoverable kagent CRDs
 # (docs/artemis-naming.md L60).
 #
-# References the kagent-installed `default-model-config` rather than the
-# per-UC `artemis-uc4/artemis-llm` slot (which is shipped alongside for
-# future-override capability but currently unused) — same precedent as
-# UC1 + UC3, avoids per-UC duplicate credential injection.
+# References the kagent-installed `default-model-config` — the canonical
+# ModelConfig for every Artemis agent. The artemis-llm-credentials Secret
+# in the `kagent` namespace is what `default-model-config` consumes for
+# the actual API key.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:

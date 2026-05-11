@@ -20,7 +20,7 @@ UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no di
 
 ## Prerequisites
 
-- `OPENAI_API_KEY` already set in the env on the participant's VS Code server (provisioned by `workshop-infrastructure`). UC0 does **not** print or read the value — UC1's `artemis-llm` ModelConfig is what consumes it via a Kubernetes Secret.
+- `OPENAI_API_KEY` already set in the env on the participant's VS Code server (provisioned by `workshop-infrastructure`). UC0 does **not** print or read the value — kagent's installed `default-model-config` ModelConfig is what consumes it via the `artemis-llm-credentials` Secret in the `kagent` namespace.
 - `kubectl` and the `kagent` CLI on `PATH` (slice setup).
 - A reachable Kubernetes cluster — the per-participant vCluster slice. UC0's first step verifies this.
 
@@ -28,7 +28,7 @@ UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no di
 
 1. **Check your cluster** — `kubectl config current-context` + `kubectl get nodes`.
 2. **Install kagent via CLI** — `kagent install --profile demo` then `kubectl rollout status deployment/kagent-controller -n kagent`. The `--profile demo` choice is documented in the tour step's explanation; rationale: UC3 reuses the demo profile's pre-packaged Prometheus / Grafana agents (architecture L300).
-3. **Verify the installation** — kagent CRDs registered, controller pod `Running`, ModelConfigs in the `kagent` namespace.
+3. **Verify the installation** — kagent CRDs registered, controller pod `Running`, `default-model-config` ModelConfig in the `kagent` namespace.
 
 ## Why a "prep tour" exception?
 
@@ -48,7 +48,7 @@ The notes below capture engineering rationale and spike outcomes that were tempo
 
 ### `kagent` namespace + ModelConfig timing
 
-The CLI installs into the `kagent` namespace by default. Any per-scenario `ModelConfig` (e.g. `artemis-llm` consumed by UC1+) is provisioned by the scenario that needs it, not by UC0 — UC0's verify step accepts zero or one ModelConfig in the `kagent` namespace as healthy.
+The CLI installs into the `kagent` namespace by default and pre-wires the `default-model-config` ModelConfig there — every Artemis agent (UC1/UC2/UC3/UC4) references that same `default-model-config`. UC0's verify step accepts it as the single canonical ModelConfig.
 
 ## References
 

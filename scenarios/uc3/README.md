@@ -73,7 +73,7 @@ The participant's job in the manual diagnosis is to combine `kubectl describe po
 
 ## Expected agent diagnosis
 
-The diagnostic agent is **`artemis-rover-telemetry-debugger`** ([`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It lives in the `kagent` namespace per `docs/artemis-naming.md` (cluster-scope-discoverable kagent CRDs use the `artemis-` prefix and live in `kagent`). Unlike UC1/UC2's agents, it references the kagent-installed `default-model-config` rather than the per-UC `artemis-uc3/artemis-llm` ModelConfig — see [`../docs/stories/STORY-019.md`](../docs/stories/STORY-019.md) §Why default-model-config for the rationale (avoids per-UC duplicate credential injection).
+The diagnostic agent is **`artemis-rover-telemetry-debugger`** ([`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It lives in the `kagent` namespace per `docs/artemis-naming.md` (cluster-scope-discoverable kagent CRDs use the `artemis-` prefix and live in `kagent`) and references kagent's installed `default-model-config` ModelConfig — the canonical credentials slot across every Artemis agent, backed by the `artemis-llm-credentials` Secret in `kagent`.
 
 **Tool surface — three layers:**
 
@@ -100,8 +100,7 @@ uc3/
     10-service.yaml                  ClusterIP for lunar-rover-telemetry, monitoring=prom label
     20-deployment.yaml               1-replica Deployment, 64Mi limit, no probes
   agents/
-    agent.yaml                       artemis-rover-telemetry-debugger (a2a + k8s read tools)
-    modelconfig.yaml                 artemis-llm ModelConfig (slot — agent uses default-model-config)
+    agent.yaml                       artemis-rover-telemetry-debugger (a2a + k8s read tools; references default-model-config)
 ```
 
 The kagent ↔ artemis-observability bridge (`kagent-bridge-services.yaml`) was shipped under `uc3/agents/` by STORY-019; STORY-025 promoted it to [`../infra/observability/`](../infra/observability/) once UC4 confirmed identical bridge needs.
@@ -183,7 +182,7 @@ For each cold-deploy iteration:
    # the cluster — open it via `kubectl port-forward -n artemis-observability
    # svc/grafana 3000:3000` and substitute `localhost:3000` for the URL host.
    ```
-   This step is gated on a real `artemis-llm-credentials` Secret being present in the `kagent` namespace (the agent uses `default-model-config`, which kagent's helm install pre-wires); on a bare local kind without one, the four manifest checks (a)–(d) above are sufficient for NFR-003 sign-off.
+   This step is gated on a real `artemis-llm-credentials` Secret being present in the `kagent` namespace (the agent uses `default-model-config`, which kagent's helm install pre-wires the Secret reference for); on a bare local kind without one, the four manifest checks (a)–(d) above are sufficient for NFR-003 sign-off.
 
 7. **Tear down before the next iteration.**
    ```bash
@@ -260,13 +259,11 @@ kagent's helm-time URL bindings (`prometheus.kagent.svc:9090`, `grafana.kagent.s
 
 **Decision: bridge Services.** The indirection is a one-time cognitive cost for the author reading `agent.yaml` and the bridge file together; the runtime cost is zero. If UC4 also needs the bridge (likely — it reuses UC3's debugger as a sub-agent under the coordinator), STORY-024 onwards will either copy the bridge file into `uc4/agents/` or promote it to `infra/observability/`. The promotion is deferred until UC4's actual needs are clear; not designing for hypothetical future requirements.
 
-### Why the agent uses `default-model-config` rather than `artemis-llm`
+### Why the agent uses `default-model-config`
 
-The Agent CRD lives in `kagent` namespace per `docs/artemis-naming.md` L63. ModelConfig is namespaced — an Agent in `kagent` can only reference a ModelConfig in `kagent`. Reusing kagent's pre-installed `default-model-config` (already credentialed, already used by every pre-packaged agent including `promql-agent` / `observability-agent`) avoids duplicating the `artemis-llm-credentials` Secret in two namespaces.
+Every Artemis agent (UC1/UC2/UC3/UC4) references the kagent-installed `default-model-config` ModelConfig in the `kagent` namespace. ModelConfig is namespaced — an Agent in `kagent` can only reference a ModelConfig in `kagent` — and `default-model-config` is already credentialed via the `artemis-llm-credentials` Secret kagent's helm install pre-wires. Reusing it avoids duplicating the credentials Secret in any per-UC namespace.
 
-The per-UC `artemis-uc3/artemis-llm` ModelConfig in `agents/modelconfig.yaml` is shipped anyway as a slot for future per-UC LLM overrides (STORY-025 may use it for the UC4 coordinator's per-tenant model selection). Decorative for UC3 itself, kept for naming-convention consistency. UC1's existing `agent.yaml:25` already uses `default-model-config` — STORY-019 just made it explicit.
-
-Sprint-3 retro decision pending: drop the per-UC ModelConfig slot if UC4 doesn't end up needing it.
+The per-UC `artemis-llm` ModelConfig slots that earlier iterations shipped under each `agents/modelconfig.yaml` were dropped post-freeze — they were decorative (no agent ever referenced them at runtime). The canonical credentials slot is `default-model-config`, full stop.
 
 ## Cleanup
 

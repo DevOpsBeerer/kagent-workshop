@@ -3,11 +3,11 @@
 # Tool surface (per FR-008 AC "smallest tool set sufficient"):
 #   - kubectl get pod / kubectl describe pod / kubectl get events
 #
-# kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD does
-# not exist in v0.9.0; cf. STORY-005 finding). The `kagent-tools-k8s` McpServer
-# is provisioned upstream by `workshop-infrastructure` and exposes the kubectl
+# kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD
+# does not exist in v0.9.0; cf. STORY-005 finding). The `kagent-tool-server`
+# RemoteMCPServer ships with kagent's demo profile and exposes the kubectl
 # read tools used here. Tool names below are the kagent-native names —
-# `workshop-infrastructure` confirms availability before workshop runtime.
+# same surface UC2/UC3/UC4 use.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:

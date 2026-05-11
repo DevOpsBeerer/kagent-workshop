@@ -36,7 +36,7 @@ The participant's job in the CLI baseline is to find the taint by switching from
 
 ## Expected agent diagnosis
 
-The diagnostic agent is **`artemis-launch-pad-debugger`** (see [`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It is wired through the participant-scoped `artemis-llm` `ModelConfig` ([`agents/modelconfig.yaml`](agents/modelconfig.yaml)) and sources tools from the upstream `kagent-tools-k8s` MCP server (provisioned by `workshop-infrastructure`, not by this repo).
+The diagnostic agent is **`artemis-launch-pad-debugger`** (see [`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It lives in the `kagent` namespace, references kagent's installed `default-model-config` ModelConfig (the canonical credentials slot across every Artemis agent — backed by the `artemis-llm-credentials` Secret in `kagent`), and sources tools from the `kagent-tool-server` RemoteMCPServer that ships with kagent's demo profile.
 
 **Tool surface — five tools spanning two resource kinds + events (per FR-010 AC "multi-tool reach: pod, node, taint, events"):**
 
@@ -65,8 +65,7 @@ uc2/
     30-service.yaml            ClusterIP for mission-control
     40-deployment.yaml         1-replica Deployment with the real :v1 tag, no toleration
   agents/
-    agent.yaml                 artemis-launch-pad-debugger (kagent.dev/v1alpha2 Agent, 5 tools)
-    modelconfig.yaml           artemis-llm ModelConfig (provider/credentials externalised)
+    agent.yaml                 artemis-launch-pad-debugger (kagent.dev/v1alpha2 Agent, 5 tools; references default-model-config)
 ```
 
 The manifest filenames are numbered so `kubectl apply -f uc2/manifests/` applies them in dependency order: namespace before namespaced resources; RBAC before the Job that needs it; Job before the Deployment so the Job's wait-loop catches the Deployment's creation.
@@ -118,7 +117,7 @@ For each cold-deploy iteration:
      --task 'The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.'
    # Expected: the agent names the artemis.kagent.dev/launch-pad-fault taint as the root cause within ~10–20 s.
    ```
-   This step is gated on a real `artemis-llm-credentials` Secret being present in the `artemis-uc2` namespace; on a bare local kind without one, the manifest checks (a)–(d) above are sufficient for NFR-003 sign-off.
+   This step is gated on a real `artemis-llm-credentials` Secret being present in the `kagent` namespace (the agent uses `default-model-config`, which kagent's helm install pre-wires); on a bare local kind without one, the manifest checks (a)–(d) above are sufficient for NFR-003 sign-off.
 6. **Tear down before the next iteration.**
    ```bash
    make uc2-down
