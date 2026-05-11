@@ -57,11 +57,11 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The replica is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-launch-pad-debugger`** from your terminal — kagent is addressable from the operational CLI you already use, in addition to the dashboard chat surface.\n\nThe command below invokes the agent directly and prints its synthesis to your terminal. The exact prompt the agent receives is also surfaced here so you can copy-paste-modify if you want to re-run with a different question:\n\n> The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.\n\nThe agent has the same Kubernetes read tools you would have run by hand (`get/describe pod`, `get/describe node`, `get events`) — only it correlates them across resource kinds in a single synthesis. The agent runs in the `artemis-uc2` namespace and uses the participant-scoped `artemis-llm` `ModelConfig`.",
+      "explanation": "The replica is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-launch-pad-debugger`** from your terminal — kagent is addressable from the operational CLI you already use, in addition to the dashboard chat surface.\n\nThe command below invokes the agent directly and prints its synthesis to your terminal. The exact prompt the agent receives is also surfaced here so you can copy-paste-modify if you want to re-run with a different question:\n\n> The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.\n\nThe agent has the same Kubernetes read tools you would have run by hand (`get/describe pod`, `get/describe node`, `get events`) — only it correlates them across resource kinds in a single synthesis. The agent runs in the `kagent` namespace (where every Artemis debugger lives) and uses the cluster-wide `default-model-config` `ModelConfig`.",
       "commands": [
         {
           "label": "Ask the agent",
-          "command": "kagent invoke --agent artemis-launch-pad-debugger --namespace artemis-uc2 --task 'The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.'"
+          "command": "kagent invoke --agent artemis-launch-pad-debugger --namespace kagent --task 'The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.'"
         }
       ]
     },

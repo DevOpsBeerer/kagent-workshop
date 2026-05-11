@@ -98,7 +98,7 @@ For each cold-deploy iteration:
    ```bash
    kagent invoke \
      --agent artemis-mission-control-debugger \
-     --namespace artemis-uc1 \
+     --namespace kagent \
      --task 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'
    # Expected: the agent names the v999 tag as the root cause within ~10–20 s.
    ```

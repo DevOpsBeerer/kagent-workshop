@@ -113,7 +113,7 @@ For each cold-deploy iteration:
    ```bash
    kagent invoke \
      --agent artemis-launch-pad-debugger \
-     --namespace artemis-uc2 \
+     --namespace kagent \
      --task 'The mission-control pod in the artemis-uc2 namespace is stuck Pending. Diagnose it.'
    # Expected: the agent names the artemis.kagent.dev/launch-pad-fault taint as the root cause within ~10–20 s.
    ```
