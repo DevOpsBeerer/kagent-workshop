@@ -9,15 +9,19 @@
 #
 # kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD does
 # not exist in v0.9.0; cf. STORY-005 finding, mirrored from UC1). The
-# `kagent-tools-k8s` McpServer is provisioned upstream by `workshop-infrastructure`
-# and exposes the kubectl read tools used here. Tool names below are the
-# kagent-native names — `workshop-infrastructure` confirms availability before
-# workshop runtime.
+# `kagent-tool-server` RemoteMCPServer ships with kagent's demo profile and
+# exposes the kubectl read tools used here. Tool names below are the
+# kagent-native names — same surface UC1 + UC3 already use.
+#
+# Lives in the `kagent` namespace (cluster-scope-discoverable, `artemis-`
+# prefix per docs/artemis-naming.md L60) — same precedent as UC1 + UC3, and
+# a hard prerequisite for UC4's coordinator (STORY-025) which delegates to
+# this Agent via kagent's same-namespace a2a wiring.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:
   name: artemis-launch-pad-debugger
-  namespace: artemis-uc2
+  namespace: kagent
   labels:
     kagent-workshop/uc: uc2
 spec:
@@ -27,7 +31,7 @@ spec:
     the `artemis-uc2` namespace. Specialised in scheduling failures —
     correlates Pod state, node state, taints, and recent events.
   declarative:
-    modelConfig: artemis-llm
+    modelConfig: default-model-config
     systemMessage: |
       You are an Artemis launch-pad on-call SRE. Your job is to diagnose why
       the `mission-control` Deployment in the `artemis-uc2` namespace cannot
@@ -55,7 +59,9 @@ spec:
     tools:
       - type: McpServer
         mcpServer:
-          name: kagent-tools-k8s
+          apiGroup: kagent.dev
+          kind: RemoteMCPServer
+          name: kagent-tool-server
           namespace: kagent
           toolNames:
             - k8s_get_pod

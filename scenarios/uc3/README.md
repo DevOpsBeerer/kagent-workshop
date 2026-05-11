@@ -36,9 +36,9 @@ kagent v0.9.0's `--profile demo` ships pre-packaged agents (`promql-agent`, `obs
 | `prometheus`                       | `prometheus-server.artemis-observability.svc.cluster.local` |
 | `grafana`                          | `grafana.artemis-observability.svc.cluster.local`           |
 
-The CNAME indirection is invisible to kagent's runtime: the pre-packaged tools resolve `grafana.kagent.svc.cluster.local` and get the artemis-observability Pod's IP. Zero kagent helm reinstall, surgical, scoped to UC3 lifecycle (the bridge Services delete with `kubectl delete -f uc3/agents/`). See [`../docs/stories/STORY-019.md`](../docs/stories/STORY-019.md) §Spike findings for the alternatives considered (helm-values override path, namespace migration) and the rationale.
+The CNAME indirection is invisible to kagent's runtime: the pre-packaged tools resolve `grafana.kagent.svc.cluster.local` and get the artemis-observability Pod's IP. Zero kagent helm reinstall, surgical, scoped to the observability bundle's lifecycle (the bridge Services delete with `make observability-down`). See [`../docs/stories/STORY-019.md`](../docs/stories/STORY-019.md) §Spike findings for the alternatives considered (helm-values override path, namespace migration) and the rationale.
 
-The bridge Services live in `uc3/agents/kagent-bridge-services.yaml` — that's a UC3-lifecycle decision; STORY-024 onwards may copy or promote them to `infra/observability/` once UC4's needs are clear.
+The bridge Services live in [`../infra/observability/kagent-bridge-services.yaml`](../infra/observability/kagent-bridge-services.yaml) — promoted from `uc3/agents/` by STORY-025 once UC4 confirmed identical bridge needs. They are applied by `make observability-up` alongside the Prom + Graf kustomize bundle, so both `make uc3-up` and `make uc4-up` inherit them transparently.
 
 ## The bug
 
@@ -102,8 +102,9 @@ uc3/
   agents/
     agent.yaml                       artemis-rover-telemetry-debugger (a2a + k8s read tools)
     modelconfig.yaml                 artemis-llm ModelConfig (slot — agent uses default-model-config)
-    kagent-bridge-services.yaml      ExternalName services bridging kagent ns ↔ artemis-observability ns
 ```
+
+The kagent ↔ artemis-observability bridge (`kagent-bridge-services.yaml`) was shipped under `uc3/agents/` by STORY-019; STORY-025 promoted it to [`../infra/observability/`](../infra/observability/) once UC4 confirmed identical bridge needs.
 
 The manifest filenames are numbered so `kubectl apply -f uc3/manifests/` applies them in dependency order (namespace before namespaced resources).
 

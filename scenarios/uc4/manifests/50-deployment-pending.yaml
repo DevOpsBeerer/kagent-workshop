@@ -1,0 +1,56 @@
+# UC2-style symptom under UC4: Pod Pending due to a synthetic node taint.
+# Reused-shape from uc2/manifests/40-deployment.yaml; image is the real :v1
+# tag (UC2 reuses this), the broken state lives entirely in the
+# scheduling-constraint mismatch the bootstrap Job (20-bootstrap-taint-job)
+# applies.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-control-pending
+  namespace: artemis-uc4
+  labels:
+    app: mission-control-pending
+    kagent-workshop/uc: uc4
+spec:
+  replicas: 1
+  # Recreate strategy: kill old pod first, then create new pod. Required
+  # because the bootstrap Job triggers `kubectl rollout restart` AFTER the
+  # taint lands, but the default RollingUpdate strategy waits for the new
+  # Pod to become Ready before terminating the old one — which never
+  # happens, since the new Pod is Pending forever. Recreate sidesteps the
+  # deadlock; the brief no-Pod window between scale-down and scale-up is
+  # acceptable for this scenario (the participant sees one Pending Pod
+  # after the Job completes, not a stale-Running + Pending pair).
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: mission-control-pending
+  template:
+    metadata:
+      labels:
+        app: mission-control-pending
+    spec:
+      # Deliberately no toleration for artemis.kagent.dev/launch-pad-fault —
+      # the bootstrap Job (20-bootstrap-taint-job.yaml) applies that taint
+      # with NoSchedule effect, leaving the Pod Pending with an "untolerated
+      # taint" event (FR-010 reused for FR-014). The image tag :v1.0.0 is
+      # the apogasa registry's real tag (semver — note `:v1.0.0`, not the
+      # `:v1` the architecture wording suggests); only the scheduling
+      # constraint is unsatisfiable.
+      containers:
+        - name: mission-control
+          image: rg.fr-par.scw.cloud/apogasa/mission-control:v1.0.0
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: mission-control
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

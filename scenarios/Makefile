@@ -89,6 +89,10 @@ lint-manifests:
 	else \
 		echo "lint-manifests: $(OBSERVABILITY_DIR)/kustomization.yaml absent — skipping."; \
 	fi; \
+	if [ -f "$(OBSERVABILITY_DIR)/kagent-bridge-services.yaml" ]; then \
+		echo "lint-manifests: kubectl apply --dry-run=client -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml"; \
+		kubectl apply --dry-run=client -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml || rc=1; \
+	fi; \
 	if compgen -G "$(MCP_DIR)/manifests/*.yaml" >/dev/null; then \
 		echo "lint-manifests: kubectl apply --dry-run=client -f $(MCP_DIR)/manifests/"; \
 		kubectl apply --dry-run=client -f $(MCP_DIR)/manifests/ || rc=1; \
@@ -121,14 +125,21 @@ kagent-install:
 	--wait
 
 # Observability bundle (STORY-018) — auto-installed by uc3-up / uc4-up.
+# The kagent ↔ artemis-observability namespace bridge (kagent-bridge-services.yaml,
+# promoted from uc3/agents/ to infra/observability/ by STORY-025) is applied
+# separately because it lives in the `kagent` namespace and the kustomization's
+# root `namespace: artemis-observability` would override it.
 observability-up: kagent-install
 	@echo "observability-up: kubectl apply -k $(OBSERVABILITY_DIR)/"
 	@kubectl apply -k $(OBSERVABILITY_DIR)/
+	@echo "observability-up: kubectl apply -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml"
+	@kubectl apply -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml
 	@echo "observability-up: waiting for prometheus-server + grafana to become Ready"
 	@kubectl rollout status -n $(OBSERVABILITY_NAMESPACE) deploy/prometheus-server --timeout=120s
 	@kubectl rollout status -n $(OBSERVABILITY_NAMESPACE) deploy/grafana --timeout=120s
 
 observability-down:
+	@kubectl delete -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml --ignore-not-found
 	@kubectl delete -k $(OBSERVABILITY_DIR)/ --ignore-not-found
 
 # MCP packaging (STORY-023) — Dockerfile build + per-vCluster manifest apply.

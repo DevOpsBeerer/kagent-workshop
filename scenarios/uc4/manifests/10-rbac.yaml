@@ -1,0 +1,71 @@
+# RBAC for the bootstrap-uc4-fault Job (20-bootstrap-taint-job.yaml).
+#
+# Same shape as UC2's 10-rbac.yaml, just renamed for UC4: the Job needs two
+# permissions, both least-privilege:
+#   - ClusterRole with patch on nodes — to apply the synthetic taint via
+#     `kubectl taint`.
+#   - Role with patch on deployments in artemis-uc4 — to `kubectl rollout
+#     restart` mission-control-pending after the taint, closing the
+#     cold-deploy race that would otherwise let the Pod bind to the node
+#     before the taint lands (NFR-003).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bootstrap-uc4-fault
+  namespace: artemis-uc4
+  labels:
+    kagent-workshop/uc: uc4
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: artemis-uc4-bootstrap-node-tainter
+  labels:
+    kagent-workshop/uc: uc4
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: artemis-uc4-bootstrap-node-tainter
+  labels:
+    kagent-workshop/uc: uc4
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: artemis-uc4-bootstrap-node-tainter
+subjects:
+  - kind: ServiceAccount
+    name: bootstrap-uc4-fault
+    namespace: artemis-uc4
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: bootstrap-deployment-restarter
+  namespace: artemis-uc4
+  labels:
+    kagent-workshop/uc: uc4
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bootstrap-deployment-restarter
+  namespace: artemis-uc4
+  labels:
+    kagent-workshop/uc: uc4
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: bootstrap-deployment-restarter
+subjects:
+  - kind: ServiceAccount
+    name: bootstrap-uc4-fault
+    namespace: artemis-uc4

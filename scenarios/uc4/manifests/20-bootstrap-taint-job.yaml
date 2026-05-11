@@ -1,0 +1,90 @@
+# bootstrap-uc4-fault — applies the synthetic node taint that blocks the
+# mission-control-pending Deployment from scheduling, then forces a rollout
+# restart so the Pod is re-evaluated against the now-tainted node (closes
+# the cold-deploy race where the scheduler binds the Pod before the taint
+# lands — NFR-003).
+#
+# Same shape as UC2's bootstrap-launch-pad-fault Job (uc2/manifests/
+# 20-bootstrap-taint-job.yaml). Targets only mission-control-pending —
+# mission-control-imagepull and lunar-rover-telemetry are
+# scheduling-independent (their broken states are image-pull-side and
+# participant-triggered respectively).
+#
+# Idempotency:
+#   - `kubectl taint --overwrite` is idempotent on identical key=value:effect.
+#   - `kubectl rollout restart` always succeeds; if no Pod is currently
+#     scheduled it just bumps the Deployment's pod template hash, producing
+#     a new Pending Pod that hits the taint deterministically.
+#   - The Job itself is named, not generateName'd; re-applying the same
+#     manifest is a no-op ("unchanged"). To re-run, delete the Job first.
+#
+# Taint key reused from UC2 (artemis.kagent.dev/launch-pad-fault). UC2 + UC4
+# in the same vCluster don't conflict — the taint is per-node, both UC2 and
+# UC4 Pending pods stay blocked, no resource contention.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bootstrap-uc4-fault
+  namespace: artemis-uc4
+  labels:
+    kagent-workshop/uc: uc4
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 120
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        kagent-workshop/uc: uc4
+        app: bootstrap-uc4-fault
+    spec:
+      serviceAccountName: bootstrap-uc4-fault
+      restartPolicy: OnFailure
+      # Tolerate the taint we apply — required for idempotent re-runs on a
+      # cluster where a previous UC4 (or UC2) cycle has already tainted the
+      # node. Without this, re-applying the manifest deadlocks: the Job pod
+      # itself can't schedule because of the taint, so the taint can't be
+      # refreshed. UC2's bootstrap Job lacks this toleration (latent issue
+      # — UC2 relies on `make kind-down` between cold deploys per its
+      # README; UC4 is more robust to in-place re-applies).
+      tolerations:
+        - key: artemis.kagent.dev/launch-pad-fault
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: tainter
+          image: rg.fr-par.scw.cloud/apogasa/kubectl:latest
+          # /bin/sh — apogasa/kubectl:latest is busybox-based (Alpine), no
+          # /bin/bash. The script is POSIX-compatible (for / if / sleep), and
+          # busybox sh supports `set -o pipefail`.
+          command: ["/bin/sh", "-eu", "-o", "pipefail", "-c"]
+          args:
+            - |
+              echo "[bootstrap] tainting all nodes with artemis.kagent.dev/launch-pad-fault=true:NoSchedule"
+              kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault=true:NoSchedule --overwrite
+
+              echo "[bootstrap] waiting up to 60s for deployment/mission-control-pending to exist in artemis-uc4"
+              for i in $(seq 1 60); do
+                if kubectl get -n artemis-uc4 deploy/mission-control-pending >/dev/null 2>&1; then
+                  echo "[bootstrap] deployment found after ${i}s"
+                  break
+                fi
+                sleep 1
+              done
+
+              if ! kubectl get -n artemis-uc4 deploy/mission-control-pending >/dev/null 2>&1; then
+                echo "[bootstrap] deployment did not appear within 60s — taint applied; exiting"
+                exit 0
+              fi
+
+              echo "[bootstrap] forcing rollout restart of mission-control-pending to surface the untolerated-taint event"
+              kubectl rollout restart -n artemis-uc4 deploy/mission-control-pending
+
+              echo "[bootstrap] done"
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

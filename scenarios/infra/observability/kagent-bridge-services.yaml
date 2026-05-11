@@ -7,24 +7,31 @@
 # Services reconcile the gap with a DNS CNAME indirection that is invisible to
 # kagent's runtime, requires no helm upgrade, and survives kagent reinstalls.
 #
+# Originally shipped under uc3/agents/ by STORY-019. Promoted to
+# infra/observability/ by STORY-025 once UC4 confirmed identical bridge needs
+# (UC4's coordinator delegates to UC3's rover-telemetry-debugger which, via
+# a2a, delegates to kagent's observability-agent — same DNS dependency).
+#
 # Why ExternalName and not a Helm-values override:
 # - Override path requires `helm upgrade` on every kagent install (also fixes
 #   the STORY-018-flagged `make kagent-install` non-idempotency, but in a
-#   different scope). Bridge path is surgical and scoped to UC3 lifecycle.
-# - Bridge Services delete cleanly with `make uc3-down` (kubectl delete -f
-#   uc3/agents/), keeping kagent's own state untouched.
+#   different scope). Bridge path is surgical and scoped to the observability
+#   bundle's lifecycle.
+# - Bridge Services delete cleanly with `make observability-down`, keeping
+#   kagent's own state untouched.
 #
-# When UC4 lands (STORY-024 onwards), it either copies these into
-# uc4/agents/ or we promote the file to infra/observability/ — whichever
-# matches the eventual UC4 wiring. Premature promotion deferred per the
-# project's "don't design for hypothetical future requirements" default.
+# Not inside infra/observability/kustomization.yaml because the kustomization
+# sets `namespace: artemis-observability` at the root level — that would
+# override these Services' `namespace: kagent` and silently break the bridge.
+# Applied as a separate `kubectl apply -f` by the Makefile `observability-up`
+# target instead.
 apiVersion: v1
 kind: Service
 metadata:
   name: prometheus
   namespace: kagent
   labels:
-    kagent-workshop/uc: uc3
+    kagent-workshop/component: observability
     kagent-workshop/role: bridge
 spec:
   type: ExternalName
@@ -41,7 +48,7 @@ metadata:
   name: grafana
   namespace: kagent
   labels:
-    kagent-workshop/uc: uc3
+    kagent-workshop/component: observability
     kagent-workshop/role: bridge
 spec:
   type: ExternalName

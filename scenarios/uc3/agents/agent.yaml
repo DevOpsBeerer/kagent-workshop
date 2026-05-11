@@ -19,8 +19,8 @@
 # kagent's pre-packaged agents and tools resolve Prom/Graf at
 # {prometheus,grafana}.kagent.svc.cluster.local — STORY-018 puts the actual
 # pods in artemis-observability. The bridge Services in
-# uc3/agents/kagent-bridge-services.yaml reconcile the namespace gap via
-# ExternalName CNAME indirection.
+# infra/observability/kagent-bridge-services.yaml (promoted from uc3/agents/
+# by STORY-025) reconcile the namespace gap via ExternalName CNAME indirection.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:

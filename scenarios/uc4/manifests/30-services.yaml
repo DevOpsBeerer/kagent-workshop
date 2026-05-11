@@ -1,0 +1,63 @@
+# UC4's three workload Services, one per Deployment.
+#
+# - mission-control-imagepull — UC1-style ImagePullBackOff; Service exists so
+#   "a working Pod would be reachable" but the Pod never comes up.
+# - mission-control-pending — UC2-style Pending; same story.
+# - lunar-rover-telemetry — UC3-style OOM-prone. Carries `monitoring=prom` so
+#   STORY-018's Prometheus auto-scrapes it the same way it scrapes UC3's.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mission-control-imagepull
+  namespace: artemis-uc4
+  labels:
+    app: mission-control-imagepull
+    kagent-workshop/uc: uc4
+spec:
+  type: ClusterIP
+  selector:
+    app: mission-control-imagepull
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mission-control-pending
+  namespace: artemis-uc4
+  labels:
+    app: mission-control-pending
+    kagent-workshop/uc: uc4
+spec:
+  type: ClusterIP
+  selector:
+    app: mission-control-pending
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lunar-rover-telemetry
+  namespace: artemis-uc4
+  labels:
+    app: lunar-rover-telemetry
+    kagent-workshop/uc: uc4
+    # Picked up by infra/observability/'s Prometheus kubernetes_sd via the
+    # `keep` relabel rule on `monitoring=prom` (STORY-018). Mirrors UC3.
+    monitoring: prom
+spec:
+  type: ClusterIP
+  selector:
+    app: lunar-rover-telemetry
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+      protocol: TCP

@@ -1,0 +1,59 @@
+# UC3-style symptom under UC4: OOMKilled on a 64Mi-limited rover that buffers
+# telemetry bursts to a module-global list (apps/lunar-rover-telemetry/main.py).
+# Reused-shape from uc3/manifests/20-deployment.yaml.
+#
+# Image is the real semver-tagged published image (:v1.0.0, NOT :v1 as the
+# architecture wording suggests — the apogasa convention for this app variant
+# is semver). The OOMKilled symptom is participant-triggered via the same
+# leak-loop pattern UC3's tour ships (kubectl run --rm with curlimages/curl);
+# UC4's tour (STORY-026) drives it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lunar-rover-telemetry
+  namespace: artemis-uc4
+  labels:
+    app: lunar-rover-telemetry
+    kagent-workshop/uc: uc4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lunar-rover-telemetry
+  template:
+    metadata:
+      labels:
+        app: lunar-rover-telemetry
+    spec:
+      # Tolerate the synthetic taint the bootstrap Job applies — UC4's
+      # OOMKilled symptom is participant-triggered after the Pod is Running,
+      # not scheduling-side, so the rover must schedule normally even when
+      # the node carries the `mission-control-pending`-blocking taint.
+      tolerations:
+        - key: artemis.kagent.dev/launch-pad-fault
+          operator: Exists
+          effect: NoSchedule
+      # Deliberately no readinessProbe / livenessProbe — under memory pressure
+      # a slow probe would race with the OOM cycle and surface as a probe
+      # failure event instead of OOMKilled, masking UC4's third friction
+      # signal. NFR-003: the broken state must be manifest-side, no probe-flap.
+      containers:
+        - name: lunar-rover-telemetry
+          image: rg.fr-par.scw.cloud/apogasa/lunar-rover-telemetry:v1.0.0
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: lunar-rover-telemetry
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "500m"
+              # The OOM driver: 64Mi is below the working set ~30 calls to
+              # POST /leak produces (1 MiB per call), so the kernel reaps
+              # the container deterministically (FR-014 reuse of FR-012's
+              # mechanism).
+              memory: "64Mi"

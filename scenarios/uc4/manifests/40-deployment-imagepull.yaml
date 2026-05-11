@@ -1,0 +1,52 @@
+# UC1-style symptom under UC4: ImagePullBackOff via an unpublished tag.
+# Reused-shape from uc1/manifests/20-deployment.yaml; renamed for UC4
+# disambiguation (artemis-uc4 ns hosts three mission-control variants
+# side-by-side, each needing a distinct deploy name).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-control-imagepull
+  namespace: artemis-uc4
+  labels:
+    app: mission-control-imagepull
+    kagent-workshop/uc: uc4
+  annotations:
+    # Same metadata clue as UC1: the last published tag was v1.
+    # UC4's coordinator's UC1-debugger sub-agent reuses this signal.
+    artemis.kagent.dev/last-published-tag: "v1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mission-control-imagepull
+  template:
+    metadata:
+      labels:
+        app: mission-control-imagepull
+    spec:
+      # Tolerate the synthetic taint the bootstrap Job applies — UC4's
+      # ImagePullBackOff symptom is image-pull-side, not scheduling-side, so
+      # this Pod must schedule normally even when the node carries the
+      # `mission-control-pending`-blocking taint.
+      tolerations:
+        - key: artemis.kagent.dev/launch-pad-fault
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: mission-control
+          # Tag deliberately not published — produces ImagePullBackOff on first
+          # pull (FR-008 reused for FR-014). Same v999 tag UC1 uses.
+          image: rg.fr-par.scw.cloud/apogasa/mission-control:v999
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: mission-control
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

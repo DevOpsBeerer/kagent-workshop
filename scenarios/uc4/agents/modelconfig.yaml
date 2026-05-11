@@ -1,0 +1,28 @@
+# ModelConfig slot for UC4 — kept for naming-convention consistency
+# (docs/artemis-naming.md L78) and as a per-UC override point should the
+# coordinator need a larger context window than the UC1/UC2/UC3 specialists
+# (the multi-agent fan-out summary can run long).
+#
+# The UC4 coordinator Agent (uc4/agents/agent.yaml) references kagent's
+# `default-model-config` in the `kagent` namespace because the Agent CRD lives
+# in `kagent` (per docs/artemis-naming.md L60 — cluster-scope-discoverable
+# kagent CRDs use the `artemis-` prefix and live in `kagent`), and ModelConfig
+# is namespaced. Reusing the kagent-installed default ModelConfig avoids
+# per-UC duplication of the artemis-llm-credentials Secret in two namespaces.
+#
+# This file ships a per-UC `artemis-llm` slot in `artemis-uc4` so:
+# - workshop-infrastructure can patch it per-UC if a future override is needed
+#   (e.g. switching the coordinator to a larger model than the specialists).
+# - The slot is in place for any future UC4-only kagent extension.
+apiVersion: kagent.dev/v1alpha2
+kind: ModelConfig
+metadata:
+  name: artemis-llm
+  namespace: artemis-uc4
+  labels:
+    kagent-workshop/uc: uc4
+spec:
+  provider: OpenAI
+  model: gpt-4o-mini
+  apiKeySecret: artemis-llm-credentials
+  apiKeySecretKey: api-key

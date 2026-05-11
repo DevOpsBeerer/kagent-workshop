@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2.5
-last_updated: "2026-05-08T12:00:00Z"
+last_updated: "2026-05-11T12:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -620,38 +620,354 @@ sprints:
     end_date: "2026-05-17"
     capacity_points: 24
     committed_points: 14
-    completed_points: 0
-    status: "not_started"
+    completed_points: 14
+    status: "completed"
+    # STORY-024 (3 pts) implemented out-of-band on 2026-05-08, joint→Quentin
+    # re-attribution (fifth swap of the OOO window). Mechanical lift of UC1+UC2+UC3
+    # patterns into a single namespace; cross-author repro absorbed by STORY-028.
+    # STORY-025 (5 pts) implemented out-of-band on 2026-05-11 (formal Sprint 3
+    # day-1), joint→Quentin re-attribution (sixth swap of the OOO window). UC4
+    # coordinator a2a Agent CRD + UC2 drift inline patch (namespace + MCP server
+    # name + modelConfig fixes) + bridge-Services promotion from uc3/agents/ to
+    # infra/observability/. Cross-author repro absorbed by STORY-028.
+    # STORY-026 (3 pts) implemented out-of-band on 2026-05-11 (same day as
+    # STORY-025), joint→Quentin re-attribution (seventh swap of the OOO window).
+    # UC4 tour.json — 4-beat shape per post-STORY-034 convention; CLI invoke
+    # variant; bulb-colour-as-output folded into Beat 3 explanation per FR-017;
+    # ?user=<login> visibility per FR-015. Leak trigger uses kubectl exec
+    # in-pod-loopback (rover tolerates the taint; transient kubectl run pod
+    # would not, per STORY-024 finding). Beat 1 → Beat 2 cluster-smoke
+    # validated; end-to-end Beat 3 (live kagent invoke + bulb writes) deferred
+    # to STORY-027/028 per the recursive deferral chain.
+    # STORY-027 (3 pts) implemented out-of-band on 2026-05-11 (same day as
+    # STORY-025/026), joint→Quentin re-attribution (eighth swap of the OOO
+    # window — closes EPIC-004 authoring). UC4 README (403 lines) replacing
+    # the 8-line stub: prerequisites + multi-symptom-mess table + coordination
+    # flow walkthrough + FR-017 mapping tables + tenancy guarantee + files
+    # index + 10-step NFR-003 reproduction checklist + Levels 1-4 recovery
+    # + production disclaimer + Author notes consolidating six upstream
+    # stories' engineering-trace items + 8-item Sprint-3 retro queue.
+    # All 22 internal links resolve. Quentin self-author cluster smoke
+    # verified all README claims against live state. Cross-author cold-deploy
+    # by Clément deferred to STORY-028 (M5 dry-run) per the recursive
+    # deferral chain — Clément's M5 plate now consolidated in STORY-027's
+    # Technical Notes.
+    # Sprint formally starts 2026-05-13 (~2 days out); all 14 / 14 committed
+    # pts landed pre-launch — Sprint 4 fully complete.
     stories:
       - story_id: "STORY-024"
         title: "UC4 multi-symptom manifests"
         epic: "EPIC-004"
         frs: ["FR-014"]
+        nfrs: ["NFR-001", "NFR-002", "NFR-003"]
         points: 3
-        owner: "joint"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: joint → Quentin (fifth swap of the
+                                # OOO window). Mechanical lift of UC1+UC2+UC3
+                                # patterns into a single namespace; no narrative
+                                # judgment to defer to Clément. Cross-author repro
+                                # absorbed by STORY-028 (M5 dry-run) per the
+                                # recursive deferral chain.
+        status: "completed"
+        completion_date: "2026-05-08"
+        actual_points: 3
+        # All AC validated end-to-end against the live `kagent-workshop` kind cluster:
+        # - 7 manifests under uc4/manifests/: 00-namespace, 10-rbac (bootstrap Job
+        #   RBAC, mirrors UC2), 20-bootstrap-taint-job (taint + rollout-restart),
+        #   30-services (3 ClusterIP, lunar-rover with monitoring=prom),
+        #   40-deployment-imagepull (:v999), 50-deployment-pending (:v1.0.0,
+        #   strategy.type: Recreate), 60-deployment-telemetry (:v1.0.0, 64Mi limit).
+        # - Three symptoms simultaneously verified:
+        #     mission-control-imagepull: phase=Pending, reason=ImagePullBackOff
+        #     mission-control-pending:   phase=Pending, reason=Pending (untolerated taint)
+        #     lunar-rover-telemetry:     phase=Running, restarts=1, lastState.OOMKilled
+        #   (last symptom requires a participant-triggered leak loop; STORY-026 ships
+        #   the tour-side trigger.)
+        # - Prom scraping artemis-uc4: process_resident_memory_bytes value 54.4 MiB
+        #   on the post-restart container. Bridge to STORY-018 confirmed.
+        # - make lint-manifests clean across uc1/uc2/uc3/uc4/manifests/ +
+        #   infra/observability/ + mcp/manifests/.
+        #
+        # Three findings during validation (worth Sprint-3 retro):
+        # 1. apogasa/mission-control:v1 (UC2 + UC4) and apogasa/kubectl:1.31.0 (UC2 +
+        #    UC4 bootstrap) were NOT published. User mid-flight published
+        #    mission-control:v1.0.0 and kubectl:latest. UC4 manifests now reference
+        #    those tags; UC2 still references :v1 / :1.31.0 → UC2 likely never
+        #    end-to-end validated on this cluster, latent gap.
+        # 2. apogasa/kubectl:latest is busybox-based (Alpine), no /bin/bash. UC4's
+        #    bootstrap Job switched from `["/bin/bash", …]` to `["/bin/sh", …]`
+        #    (POSIX-compatible, busybox supports `set -o pipefail`). UC2's bootstrap
+        #    Job still uses /bin/bash → would also break against the new image.
+        # 3. UC2's bootstrap-taint Job lacks tolerations on its own pod, the imagepull
+        #    Deployment, and the rover Deployment. UC4 added tolerations for all three
+        #    (Job + imagepull + telemetry) so re-applies on a cluster with the
+        #    pre-existing taint don't deadlock. UC2 relies on `make kind-down` between
+        #    cold deploys per its README — UC4 is more robust to in-place re-applies.
+        #    Default RollingUpdate strategy on the Pending Deployment also caused a
+        #    deadlock (old Running pod sticks around because new Pending pod can never
+        #    become Ready); UC4 uses `strategy.type: Recreate`. UC2 has the same latent
+        #    issue.
+        #
+        # Sprint-3-retro candidates from STORY-024 specifically:
+        #   - Update UC2's manifests with: image tags (:v1.0.0 + :latest), /bin/sh
+        #     instead of /bin/bash, tolerations on the bootstrap Job, and Recreate
+        #     strategy on the Pending Deployment. ~10-line patch, identical surgery
+        #     to UC4's. (Out of scope for STORY-024 itself; UC2 is M2 territory.)
+        #
+        # Cross-author repro by Clément deferred to STORY-028 (M5 dry-run) per the
+        # recursive deferral chain established in STORY-018/019/020/021.
       - story_id: "STORY-025"
         title: "UC4 coordinator a2a Agent CRD"
         epic: "EPIC-004"
         frs: ["FR-014", "FR-017"]
+        nfrs: ["NFR-005", "NFR-008", "NFR-012"]
         points: 5
-        owner: "joint"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: joint → Quentin (sixth swap of the
+                                # OOO window). Mechanical reuse of UC3's a2a +
+                                # MCP tool-list shape; the narrative-judgement
+                                # surface is bounded (FR-017 mapping is locked
+                                # in artemis-naming.md L80-92). Cross-author
+                                # repro absorbed by STORY-028 (M5 dry-run) per
+                                # the recursive deferral chain.
+        status: "completed"
+        completion_date: "2026-05-11"
+        actual_points: 5
+        # All AC validated end-to-end against the live `kagent-workshop` kind cluster:
+        # - uc4/agents/agent.yaml: artemis-mission-coordinator Agent CRD in kagent
+        #   ns, 3 a2a sub-agent refs (UC1/UC2/UC3 specialists) + 2 RemoteMCPServer
+        #   refs (kagent-tool-server for k8s_get_pod + k8s_get_resources; artemis-
+        #   bulb-mcp for list_bulbs + update_bulb) + ~110-line system prompt
+        #   encoding FR-017 slot/colour mapping + NFR-012 tenancy contract +
+        #   delegation discipline.
+        # - uc4/agents/modelconfig.yaml: per-UC artemis-llm slot in artemis-uc4 ns
+        #   (matches UC1/UC2/UC3 pattern; coordinator itself uses default-model-config
+        #   per same UC1/UC3 precedent).
+        # - Coordinator reaches Accepted=True + Ready=True after MCP rmcps reconcile
+        #   (same 7-second race STORY-023 documented; annotation poke retriggers).
+        #   discoveredTools on artemis-bulb-mcp rmcps confirms list_bulbs +
+        #   update_bulb both surfaced through to kagent.
+        #
+        # UC2 inline drift patch (prerequisite for a2a delegation, not a UC2
+        # refactor) — three issues fixed in uc2/agents/agent.yaml:
+        #   1. metadata.namespace: artemis-uc2 → kagent (kagent v0.9.0 a2a wiring
+        #      requires same-namespace; same precedent UC1+UC3 follow).
+        #   2. tools[].mcpServer: rewritten to RemoteMCPServer shape with
+        #      apiGroup: kagent.dev + kind: RemoteMCPServer + name: kagent-tool-server
+        #      (the previous name kagent-tools-k8s did not exist on kagent v0.9.0
+        #      and would have failed at runtime — latent bug, third confirmation
+        #      that UC2 was never end-to-end validated).
+        #   3. declarative.modelConfig: artemis-llm → default-model-config (UC2
+        #      was the outlier; UC1+UC3 already use kagent's installed default.
+        #      Discovered during STORY-025 validation when UC2 agent post-namespace-
+        #      move landed Accepted=False with "ModelConfig.kagent.dev artemis-llm
+        #      not found" — the ModelConfig lives in artemis-uc2 ns, the Agent now
+        #      lives in kagent ns, same-namespace lookup fails).
+        # All three are 1-line diffs in a single file. UC2 agent post-patch reaches
+        # Accepted=True + Ready=True.
+        #
+        # Bridge-Services promotion (deferred from STORY-019 / STORY-024):
+        # - uc3/agents/kagent-bridge-services.yaml moved to
+        #   infra/observability/kagent-bridge-services.yaml. Preamble updated to
+        #   reflect shared (observability-bundle) ownership; label
+        #   `kagent-workshop/uc: uc3` swapped for
+        #   `kagent-workshop/component: observability`.
+        # - Makefile observability-up extended with `kubectl apply -f
+        #   $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml` (separate from the
+        #   kustomize apply because the kustomization's root namespace override
+        #   would mangle the bridge's kagent namespace). observability-down extended
+        #   symmetrically. lint-manifests extended with a separate dry-run for the
+        #   bridge file.
+        # - uc3/README.md repath edits (bridge section + file tree).
+        # - uc3/agents/agent.yaml preamble comment repath.
+        # - Both UC3 and UC4 inherit the bridge transparently via `make uc<N>-up`'s
+        #   existing dependency on observability-up.
+        #
+        # Validation:
+        # - make lint-manifests clean across uc1/uc2/uc3/uc4/manifests + infra/observability
+        #   (kustomize + bridge file) + mcp/manifests.
+        # - kubectl apply --dry-run=server -f uc{1,2,3,4}/agents/ clean (artemis-uc{2,4}
+        #   namespaces created for the modelconfig dry-run; benign).
+        # - Live cluster: UC2 + UC4 agents both Accepted=True + Ready=True.
+        # - UC1 agent on cluster is Accepted=False due to pre-existing stale spec
+        #   (references kagent-tools-k8s, not the current uc1/agents/agent.yaml's
+        #   kagent-tool-server). NOT a STORY-025 regression — UC1 is M2 territory.
+        #   Sprint-3 retro candidate: re-apply uc1/agents/ to pick up the corrected
+        #   spec the repo already ships.
+        #
+        # End-to-end agent reasoning loop NOT validated in STORY-025 (requires live
+        # OpenAI creds + the light-manager backend + the three UC clusters simultaneously
+        # in their broken states). Deferred to STORY-027's repro pass / STORY-028
+        # (M5 dry-run) per the recursive deferral chain established in STORY-018/019/
+        # 020/021/024. NFR-008 cross-author sign-off on the system-prompt prose also
+        # deferred to STORY-028 — pure-text follow-up.
+        #
+        # Sprint-3-retro candidates from STORY-025:
+        #   1. UC2 modelConfig was the third UC2 drift item; full UC2 patch (also UC2
+        #      manifest tags + bootstrap shell + RollingUpdate + tolerations from
+        #      STORY-024) is now a ~10-line Sprint-3-retro patch ahead of M5 dry-run.
+        #   2. UC1 stale spec on cluster (Accepted=False) — single re-apply of
+        #      uc1/agents/ fixes it.
+        #   3. kagent v0.9.0 a2a runtime parallelism semantics — system prompt hedges
+        #      ("delegate in parallel where the runtime supports it") because we
+        #      haven't confirmed whether tools[].type: Agent calls are issued in
+        #      parallel by the kagent reasoning loop. STORY-028 timing observations
+        #      will surface this.
       - story_id: "STORY-026"
         title: "UC4 tour.json"
         epic: "EPIC-004"
-        frs: ["FR-015"]
+        frs: ["FR-015", "FR-006", "FR-017"]
+        nfrs: ["NFR-008", "NFR-009", "NFR-010", "NFR-012"]
         points: 3
-        owner: "joint"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: joint → Quentin (seventh swap of
+                                # the OOO window). Narrative-judgement surface
+                                # bounded by post-STORY-034 4-beat convention +
+                                # FR-017 mapping locked in artemis-naming.md
+                                # L80-92. Cross-author tonal sign-off absorbed
+                                # by STORY-028 (M5 dry-run) per the recursive
+                                # deferral chain.
+        status: "completed"
+        completion_date: "2026-05-11"
+        actual_points: 3
+        # All AC validated:
+        # - uc4/tour.json: 4-beat shape per post-STORY-034 convention. id
+        #   kagent-uc4-coordinator; title "UC4 — The Artemis fleet check-in
+        #   won't come together"; mission-framing description naming the
+        #   coordinator's role + the status-bulb panel.
+        # - Beat 1: 7 fileEdits byte-identical to on-disk uc4/manifests/*.yaml
+        #   (including author comments per UC2/UC3 precedent + convention L59),
+        #   3 commands[] (apply + wait Ready + leak trigger). Leak trigger uses
+        #   kubectl exec into the rover Pod's in-pod loopback (rover tolerates
+        #   the taint; transient kubectl run pod would not — per STORY-024's
+        #   "STORY-026 will design the tour-side trigger appropriately"
+        #   finding). 2>/dev/null || true swallows the exit code 137 the
+        #   exec stream emits when the rover OOMs mid-loop.
+        # - Beat 2: 1 commands[] entry (kubectl get pods -n artemis-uc4).
+        #   Single-step legible — three workloads with three different
+        #   STATUS/RESTARTS signals all show in one listing.
+        # - Beat 3: CLI invoke variant per docs/tour-content-conventions.md
+        #   § Beat 3 invocation. kagent invoke against
+        #   artemis-mission-coordinator in kagent ns. Light-manager URL pattern
+        #   with ?user=<your-login> surfaced in the explanation per FR-015 AC;
+        #   bulb-colour-as-output framing per FR-017 (slot 1↔UC1, 2↔UC2,
+        #   3↔UC3; red/green/amber per artemis-naming.md L80-92).
+        # - Beat 4: pure markdown. Three diagnostic chains (~11 kubectl across
+        #   two resource kinds, plus a Grafana panel for the OOM curve) +
+        #   a fourth block with 3 curl PUT calls to light-manager. No
+        #   commands[]/fileEdits. No cross-UC roadmap tail (UC4 is the
+        #   climax — per convention's no-meta-references sub-rule).
+        # - make validate-tours clean across 5/5 tour files (uc0/uc1/uc2/uc3/uc4).
+        # - Custom no-spoiler audit on pre-Beat-4 participant-visible fields:
+        #   0 issues (no banned vocab, no bug-class names, no UC<N> meta-refs,
+        #   no STORY-... refs, no Beat <N> refs in explanations).
+        # - fileEdits byte-identity check: all 7 contents byte-identical to
+        #   on-disk uc4/manifests/*.yaml (verified via diff after first-draft
+        #   accidentally stripped author comments).
+        # - End-to-end Beat 1 → Beat 2 cluster-smoke validated on live
+        #   kagent-workshop kind: apply succeeds, rover Ready after ~5s, leak
+        #   trigger drives rover into OOMKilled (lastState.terminated.reason
+        #   confirmed; exitCode 137); kubectl get pods shows three friction
+        #   signals simultaneously (lunar-rover-telemetry Running 1/1
+        #   RESTARTS: 1; mission-control-imagepull ImagePullBackOff;
+        #   mission-control-pending Pending).
+        #
+        # Implementation findings (Sprint-3 retro candidates):
+        # 1. First draft accidentally comment-stripped fileEdits content;
+        #    re-embedded verbatim. Candidate: extend make validate-tours (or a
+        #    sibling make audit-tours) with a fileEdits-byte-identity check.
+        # 2. kubectl exec exit-code-137 ergonomics: terminal is silent for
+        #    ~15s during the leak loop. Optional: prepend an echo for clearer
+        #    progress reporting.
+        # 3. Light-manager UI URL is participant-environment-supplied (Beat 3
+        #    explanation says "workshop-infrastructure pre-wired the URL into
+        #    your environment"). Confirm actual URL pattern with workshop-
+        #    infrastructure team and tighten the explanation accordingly.
+        #
+        # Deferred AC (per recursive deferral chain):
+        # - NFR-008 cross-author tonal sign-off on UC4 mission framing
+        #   → STORY-028 (M5 dry-run).
+        # - End-to-end Beat 3 execution (live kagent invoke → coordinator
+        #   fans out → 3 bulbs flip in light-manager UI) → STORY-028.
+        #   Requires OpenAI creds + light-manager backend reachable + the
+        #   participant's bulb-panel URL reachable from a browser.
       - story_id: "STORY-027"
         title: "UC4 README + cross-author repro"
         epic: "EPIC-004"
         frs: ["FR-014", "FR-017"]
-        nfrs: ["NFR-003"]
+        nfrs: ["NFR-003", "NFR-008"]
         points: 3
-        owner: "joint"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: joint → Quentin (eighth swap of
+                                # the OOO window — closes EPIC-004 authoring).
+                                # Narrative-judgement surface mostly *organising*
+                                # six upstream stories' spike findings + design
+                                # rationale, plus the UC4-unique FR-017 mapping
+                                # tables. Cross-author cold-deploy by Clément
+                                # absorbed by STORY-028 (M5 dry-run) per the
+                                # recursive deferral chain.
+        status: "completed"
+        completion_date: "2026-05-11"
+        actual_points: 3
+        # All AC validated:
+        # - uc4/README.md: 403-line README replacing the 8-line stub.
+        #   Structure mirrors UC3 (288 lines) + FR-017 mapping tables UC1/2/3
+        #   don't have. 15 sections (locked order):
+        #     1. Header + framing paragraph.
+        #     2. Artemis narrative.
+        #     3. Prerequisites (4 sub-sections — kagent demo profile,
+        #        observability bundle + bridge, sibling specialist Agent CRDs,
+        #        custom bulb MCP).
+        #     4. The multi-symptom mess (table of all 12 resources).
+        #     5. Expected coordinator behaviour (three-layer tool surface +
+        #        six-step Coordination flow walkthrough per sprint plan AC).
+        #     6. Slot ↔ sub-agent mapping (FR-017 table).
+        #     7. Verdict ↔ colour mapping (FR-017 table) + Expected output
+        #        blockquote.
+        #     8. Tenancy guarantee (FR-015 + NFR-012 + per-vCluster vs shared
+        #        MCP trade-off).
+        #     9. Files in this directory (tree + cross-refs to mcp/,
+        #        infra/observability/, sibling uc{1,2,3}/agents/).
+        #    10. Reproduction (NFR-003 — 3/3 cold deploys) — 10-step manual
+        #        checklist with verification commands and expected output,
+        #        ending with explicit Clément-deferral to STORY-028.
+        #    11. Recovery procedure (Levels 1-4).
+        #    12. Production disclaimer (5 trade-offs + production sketch).
+        #    13. Author notes — 6 engineering-trace items + consolidated 8-item
+        #        Sprint-3 retro queue.
+        #    14. Cleanup.
+        #    15. References.
+        # - All 22 internal relative links resolve (Python audit clean).
+        # - English throughout (NFR-009).
+        # - No secrets in committed text (NFR-011): Secret/ConfigMap setup
+        #   names env keys + describes placeholders; no literal credentials.
+        # - Quentin self-author cluster smoke verified all README claims
+        #   against live kagent-workshop kind cluster state:
+        #     - artemis-mission-coordinator: Accepted=True + Ready=True
+        #     - artemis-launch-pad-debugger (UC2 post-patch): Accepted=True
+        #     - artemis-rover-telemetry-debugger: Accepted=True
+        #     - artemis-bulb-mcp discoveredTools: list_bulbs + update_bulb
+        #     - bridge Services in kagent ns (prometheus + grafana
+        #       ExternalName).
+        #     - UC1 artemis-mission-control-debugger still Accepted=False on
+        #       cluster (pre-existing drift the README documents in §Author
+        #       notes Sprint-3-retro item 3 — single `kubectl apply -f
+        #       uc1/agents/` re-applies the repo's corrected spec).
+        # - Beat 1 → Beat 2 cluster-side smoke validated under STORY-026;
+        #   STORY-027 inherits that validation (the README's reproduction
+        #   checklist steps 7 + 8a match STORY-026's transcript).
+        #
+        # No new findings beyond the upstream stories' — the README's §Author
+        # notes consolidates 6 engineering items + the 8-item Sprint-3 retro
+        # queue from STORY-018/023/024/025/026 + this story's authoring.
+        #
+        # Deferred AC (per recursive deferral chain):
+        # - Cross-author cold-deploy by Clément (NFR-003 second leg + NFR-008
+        #   sign-off on the README itself) → STORY-028 (M5 dry-run).
+        # - End-to-end agent reasoning loop validation (live OpenAI creds +
+        #   reachable light-manager + all 3 UC clusters simultaneously)
+        #   → STORY-028.
+        # The consolidated M5-entry plate for Clément is documented in
+        # STORY-027.md §Technical Notes table — covers cross-author cold-deploys
+        # for UC1/UC2/UC3/UC4 + NFR-008 reviews of every tour, README,
+        # manifest, agent, MCP, observability artefact authored under the
+        # OOO swap window.
 
   - sprint_number: 5
     milestone: "M5"
@@ -688,7 +1004,7 @@ metrics:
   total_epics: 4
   total_stories: 34
   total_points: 105
-  stories_completed: 27
+  stories_completed: 31
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 6
+  stories_not_started: 2
