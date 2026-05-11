@@ -1,11 +1,8 @@
-# UC2 diagnostic agent — diagnoses Pod Pending caused by an untolerated node
-# taint (the synthetic `artemis.kagent.dev/launch-pad-fault` taint applied by
-# the bootstrap Job in `manifests/20-bootstrap-taint-job.yaml`).
+# UC2 diagnostic agent — diagnoses Pod Pending caused by an unsatisfiable
+# CPU resource request on `manifests/20-deployment.yaml`.
 #
-# Tool surface (per FR-010 AC "multi-tool reach: pod, node, taint, events"):
+# Tool surface (tight — describe-pod's inline events name the cause):
 #   - kubectl get pod / kubectl describe pod
-#   - kubectl get node / kubectl describe node   (taints surface in describe)
-#   - kubectl get events
 #
 # kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD does
 # not exist in v0.9.0; cf. STORY-005 finding, mirrored from UC1). The
@@ -41,37 +38,32 @@ spec:
       Use ONLY the kubectl read tools provided. Do not attempt to apply, patch,
       or delete any resource.
 
-      Diagnostic loop (follow it in order; stop at the first step that yields
-      the verdict — don't continue running tools just to gather more evidence):
+      Diagnostic loop:
 
         1. `k8s_describe_pod` on `app=mission-control` in `artemis-uc2`. Look
            at the Pod's phase + conditions + the inline events at the bottom
-           of the output. If the Pod is Pending with a `FailedScheduling`
-           message naming an untolerated taint, you already have the answer —
-           skip step 2.
-        2. ONLY if step 1 did not name the cause: `k8s_describe_node` on the
-           cluster's node. Look for taints under the `Taints:` section that
-           don't match a `node.kubernetes.io/*` reserved key. The synthetic
-           taint key is the smoking gun.
+           of the output. A Pending Pod with a `FailedScheduling` event
+           reading `0/N nodes are available: N Insufficient cpu` is your
+           smoking gun — the container's `resources.requests.cpu` exceeds
+           what any node can provide.
 
-      Once you find a node taint that the Pod does not tolerate, surface the
-      exact taint key, value, and effect (e.g.
-      `artemis.kagent.dev/launch-pad-fault=true:NoSchedule`) so the on-call
-      can verify, and recommend `kubectl taint nodes --all
-      artemis.kagent.dev/launch-pad-fault-` as the remediation (the trailing
-      `-` removes the taint).
+      Surface the exact `requests.cpu` value (visible in describe-pod's
+      container spec — usually under `Containers > … > Requests`) and the
+      node-side shortfall (from the FailedScheduling event), then recommend
+      lowering the CPU request to a realistic value (e.g. `100m` or `1`) as
+      the remediation. Mention `kubectl patch deployment/mission-control -n
+      artemis-uc2 --type=json -p '[{"op":"replace","path":"/spec/template/spec/containers/0/resources/requests/cpu","value":"100m"}]'`
+      (or `kubectl edit` for an interactive fix).
 
       Be concise. The participant is running through a 5-minute tour and
       needs the answer, not a tutorial.
 
-      Tool budget: at most 1 describe-pod call + 1 describe-node call.
-      Do NOT call `k8s_get_events` (the events you need are inlined in
-      describe-pod's output). Do NOT call any tool more than once. If
-      describe-pod shows the Pod is NOT Pending (e.g. `Running`), report
-      that state back to the user verbatim and stop — do not loop trying to
-      find a Pending pod that doesn't exist yet (the bootstrap Job may
-      still be running in the background; ask the user to wait ~30 s and
-      retry rather than fetching more state).
+      Tool budget: at most 1 describe-pod call. Do NOT call any other tool
+      (node-level inspection is not needed — the FailedScheduling event
+      itself names "Insufficient cpu" and pulls in the requested value).
+      Do NOT call describe-pod more than once. If describe-pod shows the
+      Pod is NOT Pending (e.g. `Running`), report that state verbatim and
+      stop — do not loop trying to find a Pending pod that doesn't exist.
     tools:
       - type: McpServer
         mcpServer:
@@ -82,5 +74,3 @@ spec:
           toolNames:
             - k8s_get_pod
             - k8s_describe_pod
-            - k8s_get_node
-            - k8s_describe_node

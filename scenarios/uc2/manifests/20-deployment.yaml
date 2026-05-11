@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mission-control
+  namespace: artemis-uc2
+  labels:
+    app: mission-control
+    kagent-workshop/uc: uc2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mission-control
+  template:
+    metadata:
+      labels:
+        app: mission-control
+    spec:
+      containers:
+        - name: mission-control
+          image: rg.fr-par.scw.cloud/apogasa/mission-control:v1.0.0
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: APP_IDENTITY
+              value: mission-control
+          # The friction: `requests.cpu: "1000"` — 1000 cores. No AKS node
+          # SKU comes close (the largest M-series caps around 200 cores), so
+          # the kube-scheduler can't satisfy it and the Pod stays Pending
+          # with `FailedScheduling: 0/N nodes are available: N Insufficient
+          # cpu`. The launch-pad-debugger agent diagnoses this in one
+          # describe-pod call (the FailedScheduling event surfaces the
+          # mismatch).
+          #
+          # Switched from the prior taint-based mechanism (UC2 originally
+          # used a synthetic node taint applied by a bootstrap Job) because
+          # vCluster pod-sync topology doesn't propagate node taints to the
+          # host scheduler — the host scheduler binds pods against the AKS
+          # nodes that don't carry the taint, so the Pod scheduled and ran.
+          # Resource requests work at any cluster scale because they sync up
+          # to the host alongside the Pod, and the host scheduler evaluates
+          # them against actual node capacities.
+          resources:
+            requests:
+              cpu: "1000"
+              memory: "64Mi"
+            limits:
+              cpu: "1000"
+              memory: "128Mi"
