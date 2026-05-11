@@ -5,8 +5,68 @@
   "steps": [
     {
       "title": "Mission setup — bring the rover online and stream telemetry",
-      "explanation": "The lunar rover is checking in for the Artemis pad shift. Bring it online on your vCluster and run a short stream of telemetry bursts to it — namespace, service, deployment, the on-call debugger agent, then a transient operator station that pushes 30 bursts to the rover's outbound queue.\n\nFour files are dropped into your workspace by this step (`fileEdits`): three manifests under `uc3/manifests/` and one Agent CRD under `uc3/agents/`. The two `kubectl apply -f` commands below send them to the cluster in order. Once the rover Pod is `Ready`, a one-shot `telemetry-stream` Pod runs the burst loop against the rover's in-cluster Service DNS and self-deletes when the loop completes.\n\nThe operator station's output is the per-burst response from the rover (`{\"size_mb\":N}` — its outbound buffer count). The next step will tell you whether the rover is keeping its uplink up across the stream.",
+      "explanation": "The lunar rover is checking in for the Artemis pad shift. Bring it online on your vCluster and run a short stream of telemetry bursts to it — the observability bundle that watches the rover's vitals (Prometheus + Grafana, plus a kagent ↔ observability namespace bridge), then the rover's namespace + service + deployment, the on-call debugger agent, and finally a transient operator station that pushes 30 bursts to the rover's outbound queue.\n\nFourteen files are dropped into your workspace by this step (`fileEdits`): ten under `infra/observability/`, three under `uc3/manifests/`, and one under `uc3/agents/`. The commands below send them to the cluster in order — observability first, then UC3 on top of it. Once the rover Pod is `Ready`, a one-shot `telemetry-stream` Pod runs the burst loop against the rover's in-cluster Service DNS and self-deletes when the loop completes.\n\nThe operator station's output is the per-burst response from the rover (`{\"size_mb\":N}` — its outbound buffer count). The next step will tell you whether the rover is keeping its uplink up across the stream.",
       "fileEdits": [
+        {
+          "type": "create",
+          "path": "infra/observability/00-namespace.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: artemis-observability\n  labels:\n    kagent-workshop/component: observability\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/kustomization.yaml",
+          "overwrite": true,
+          "content": "# infra/observability/ — vanilla Prometheus + Grafana single-replica install\n# shared by UC3 (FR-012) and UC4. No operator (NFR-006); emptyDir storage\n# (the workshop is ephemeral); anonymous-admin Grafana (per-participant\n# vCluster contains the exposure). See STORY-018 + docs/architecture-…md §C5.\napiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\n\nnamespace: artemis-observability\n\nresources:\n  - 00-namespace.yaml\n  - prometheus/10-rbac.yaml\n  - prometheus/20-configmap-scrape.yaml\n  - prometheus/30-deployment.yaml\n  - prometheus/40-service.yaml\n  - grafana/20-configmap-datasource.yaml\n  - grafana/30-deployment.yaml\n  - grafana/40-service.yaml\n\nlabels:\n  - includeSelectors: false\n    pairs:\n      kagent-workshop/component: observability\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/prometheus/10-rbac.yaml",
+          "overwrite": true,
+          "content": "# RBAC for Prometheus' kubernetes_sd_configs (role: endpoints).\n#\n# Prom needs cluster-scoped read on services / endpoints / pods / nodes to\n# resolve the targets the scrape config selects via the `monitoring=prom`\n# Service label. This is the minimum verb set documented for the `endpoints`\n# SD role; trimming further breaks discovery silently.\napiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: prometheus-server\n  namespace: artemis-observability\n  labels:\n    app: prometheus-server\n    kagent-workshop/component: observability\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nmetadata:\n  name: artemis-observability-prometheus\n  labels:\n    kagent-workshop/component: observability\nrules:\n  - apiGroups: [\"\"]\n    resources: [\"services\", \"endpoints\", \"pods\", \"nodes\", \"nodes/metrics\"]\n    verbs: [\"get\", \"list\", \"watch\"]\n  - nonResourceURLs: [\"/metrics\"]\n    verbs: [\"get\"]\n---\napiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRoleBinding\nmetadata:\n  name: artemis-observability-prometheus\n  labels:\n    kagent-workshop/component: observability\nroleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: ClusterRole\n  name: artemis-observability-prometheus\nsubjects:\n  - kind: ServiceAccount\n    name: prometheus-server\n    namespace: artemis-observability\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/prometheus/20-configmap-scrape.yaml",
+          "overwrite": true,
+          "content": "# Prometheus scrape config.\n#\n# Two jobs:\n#   1. `prometheus`         — self-scrape on localhost:9090 so the Prom UI shows\n#                             at least one healthy target before any UC ships.\n#   2. `kubernetes-services` — `kubernetes_sd_configs: role: endpoints` filtered\n#                             to Services labelled `monitoring=prom`. This is\n#                             how UC3 / UC4 opt into being scraped without any\n#                             per-UC scrape-config edits (architecture §C5).\n#\n# Workshop-fast intervals (15s) — the UC3 leak curve needs to surface within\n# seconds of the participant starting the loop, not on the operator-style 60s\n# default.\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: prometheus-server\n  namespace: artemis-observability\n  labels:\n    app: prometheus-server\n    kagent-workshop/component: observability\ndata:\n  prometheus.yml: |\n    global:\n      scrape_interval: 15s\n      evaluation_interval: 15s\n\n    scrape_configs:\n      - job_name: prometheus\n        static_configs:\n          - targets: ['localhost:9090']\n\n      - job_name: kubernetes-services\n        kubernetes_sd_configs:\n          - role: endpoints\n        relabel_configs:\n          # Keep only endpoints whose backing Service carries monitoring=prom.\n          - source_labels: [__meta_kubernetes_service_label_monitoring]\n            action: keep\n            regex: prom\n          # If the Service annotates a custom metrics path, honour it.\n          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]\n            action: replace\n            target_label: __metrics_path__\n            regex: (.+)\n          # Surface namespace + service name as labels on every series so the\n          # UC3 agent can query `process_resident_memory_bytes{kubernetes_service_name=\"...\"}`.\n          - source_labels: [__meta_kubernetes_namespace]\n            action: replace\n            target_label: kubernetes_namespace\n          - source_labels: [__meta_kubernetes_service_name]\n            action: replace\n            target_label: kubernetes_service_name\n          - source_labels: [__meta_kubernetes_endpoint_port_name]\n            action: replace\n            target_label: kubernetes_port_name\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/prometheus/30-deployment.yaml",
+          "overwrite": true,
+          "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: prometheus-server\n  namespace: artemis-observability\n  labels:\n    app: prometheus-server\n    kagent-workshop/component: observability\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: prometheus-server\n  template:\n    metadata:\n      labels:\n        app: prometheus-server\n        kagent-workshop/component: observability\n    spec:\n      serviceAccountName: prometheus-server\n      containers:\n        - name: prometheus\n          image: prom/prometheus:v2.55.1\n          args:\n            - --config.file=/etc/prometheus/prometheus.yml\n            - --storage.tsdb.path=/prometheus\n            - --storage.tsdb.retention.time=2h\n            - --web.enable-lifecycle\n          ports:\n            - name: http\n              containerPort: 9090\n          readinessProbe:\n            httpGet:\n              path: /-/ready\n              port: http\n            periodSeconds: 5\n            initialDelaySeconds: 5\n          livenessProbe:\n            httpGet:\n              path: /-/healthy\n              port: http\n            periodSeconds: 30\n            initialDelaySeconds: 30\n          resources:\n            requests:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n            limits:\n              cpu: \"500m\"\n              memory: \"256Mi\"\n          volumeMounts:\n            - name: config\n              mountPath: /etc/prometheus\n            - name: tsdb\n              mountPath: /prometheus\n      volumes:\n        - name: config\n          configMap:\n            name: prometheus-server\n        - name: tsdb\n          emptyDir: {}\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/prometheus/40-service.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: prometheus-server\n  namespace: artemis-observability\n  labels:\n    app: prometheus-server\n    kagent-workshop/component: observability\nspec:\n  type: ClusterIP\n  selector:\n    app: prometheus-server\n  ports:\n    - name: http\n      port: 9090\n      targetPort: http\n      protocol: TCP\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/grafana/20-configmap-datasource.yaml",
+          "overwrite": true,
+          "content": "# Grafana provisioned datasource.\n#\n# Mounted at /etc/grafana/provisioning/datasources/ — Grafana picks it up at\n# boot via its filesystem provisioning mechanism (apiVersion: 1). The kagent\n# pre-packaged Grafana sub-agent (FR-012 AC, wired by STORY-019) doesn't have\n# to name the datasource by ID because isDefault: true is set.\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: grafana-datasources\n  namespace: artemis-observability\n  labels:\n    app: grafana\n    kagent-workshop/component: observability\ndata:\n  datasources.yaml: |\n    apiVersion: 1\n    datasources:\n      - name: Prometheus\n        type: prometheus\n        access: proxy\n        url: http://prometheus-server.artemis-observability.svc.cluster.local:9090\n        isDefault: true\n        editable: false\n        jsonData:\n          timeInterval: 15s\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/grafana/30-deployment.yaml",
+          "overwrite": true,
+          "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: grafana\n  namespace: artemis-observability\n  labels:\n    app: grafana\n    kagent-workshop/component: observability\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: grafana\n  template:\n    metadata:\n      labels:\n        app: grafana\n        kagent-workshop/component: observability\n    spec:\n      containers:\n        - name: grafana\n          image: grafana/grafana-oss:11.3.0\n          # Anonymous-admin: workshop runs in per-participant vClusters; the\n          # Service is ClusterIP-only and reached via kubectl port-forward, so\n          # no cross-tenant exposure path exists. The \"this is not how you'd\n          # run Grafana in production\" disclaimer lives in uc3/README.md\n          # (STORY-021).\n          env:\n            - name: GF_AUTH_ANONYMOUS_ENABLED\n              value: \"true\"\n            - name: GF_AUTH_ANONYMOUS_ORG_ROLE\n              value: Admin\n            - name: GF_AUTH_DISABLE_LOGIN_FORM\n              value: \"true\"\n            - name: GF_AUTH_BASIC_ENABLED\n              value: \"false\"\n          ports:\n            - name: http\n              containerPort: 3000\n          readinessProbe:\n            httpGet:\n              path: /api/health\n              port: http\n            periodSeconds: 5\n            initialDelaySeconds: 5\n          livenessProbe:\n            httpGet:\n              path: /api/health\n              port: http\n            periodSeconds: 30\n            initialDelaySeconds: 30\n          resources:\n            requests:\n              cpu: \"50m\"\n              memory: \"64Mi\"\n            limits:\n              cpu: \"500m\"\n              memory: \"256Mi\"\n          volumeMounts:\n            - name: datasources\n              mountPath: /etc/grafana/provisioning/datasources\n            - name: storage\n              mountPath: /var/lib/grafana\n      volumes:\n        - name: datasources\n          configMap:\n            name: grafana-datasources\n        - name: storage\n          emptyDir: {}\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/grafana/40-service.yaml",
+          "overwrite": true,
+          "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: grafana\n  namespace: artemis-observability\n  labels:\n    app: grafana\n    kagent-workshop/component: observability\nspec:\n  type: ClusterIP\n  selector:\n    app: grafana\n  ports:\n    - name: http\n      port: 3000\n      targetPort: http\n      protocol: TCP\n"
+        },
+        {
+          "type": "create",
+          "path": "infra/observability/kagent-bridge-services.yaml",
+          "overwrite": true,
+          "content": "# kagent ↔ artemis-observability namespace bridge.\n#\n# kagent v0.9.0's pre-packaged tools + the kagent-grafana-mcp RemoteMCPServer\n# resolve Prom/Graf at {prometheus,grafana}.kagent.svc.cluster.local — bound at\n# helm install time. STORY-018 deliberately put the actual pods in\n# artemis-observability (per docs/artemis-naming.md). These two ExternalName\n# Services reconcile the gap with a DNS CNAME indirection that is invisible to\n# kagent's runtime, requires no helm upgrade, and survives kagent reinstalls.\n#\n# Originally shipped under uc3/agents/ by STORY-019. Promoted to\n# infra/observability/ by STORY-025 once UC4 confirmed identical bridge needs\n# (UC4's coordinator delegates to UC3's rover-telemetry-debugger which, via\n# a2a, delegates to kagent's observability-agent — same DNS dependency).\n#\n# Why ExternalName and not a Helm-values override:\n# - Override path requires `helm upgrade` on every kagent install (also fixes\n#   the STORY-018-flagged `make kagent-install` non-idempotency, but in a\n#   different scope). Bridge path is surgical and scoped to the observability\n#   bundle's lifecycle.\n# - Bridge Services delete cleanly with `make observability-down`, keeping\n#   kagent's own state untouched.\n#\n# Not inside infra/observability/kustomization.yaml because the kustomization\n# sets `namespace: artemis-observability` at the root level — that would\n# override these Services' `namespace: kagent` and silently break the bridge.\n# Applied as a separate `kubectl apply -f` by the Makefile `observability-up`\n# target instead.\napiVersion: v1\nkind: Service\nmetadata:\n  name: prometheus\n  namespace: kagent\n  labels:\n    kagent-workshop/component: observability\n    kagent-workshop/role: bridge\nspec:\n  type: ExternalName\n  externalName: prometheus-server.artemis-observability.svc.cluster.local\n  ports:\n    - name: http\n      port: 9090\n      targetPort: 9090\n      protocol: TCP\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: grafana\n  namespace: kagent\n  labels:\n    kagent-workshop/component: observability\n    kagent-workshop/role: bridge\nspec:\n  type: ExternalName\n  externalName: grafana.artemis-observability.svc.cluster.local\n  ports:\n    - name: http\n      port: 3000\n      targetPort: 3000\n      protocol: TCP\n"
+        },
         {
           "type": "create",
           "path": "uc3/manifests/00-namespace.yaml",
@@ -33,6 +93,14 @@
         }
       ],
       "commands": [
+        {
+          "label": "Apply the observability bundle (Prom + Grafana)",
+          "command": "kubectl apply -k infra/observability/"
+        },
+        {
+          "label": "Apply the kagent ↔ observability bridge",
+          "command": "kubectl apply -f infra/observability/kagent-bridge-services.yaml"
+        },
         {
           "label": "Apply the manifests",
           "command": "kubectl apply -f uc3/manifests/"
