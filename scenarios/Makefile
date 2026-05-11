@@ -117,9 +117,14 @@ kind-up:
 kind-down:
 	@kind delete cluster --name $(KIND_CLUSTER)
 
+# `helm upgrade --install` rather than plain `helm install` so the target is
+# idempotent — re-running on a cluster that already has kagent is a no-op
+# instead of failing with "cannot re-use a name that is still in use".
+# Sprint-3 retro candidate flagged by STORY-018 + every cold-deploy iteration
+# of UC3/UC4; patched here by STORY-029.
 kagent-install:
 	@echo "kagent-install: ensuring helm repo '$(KAGENT_REPO_NAME)' → $(KAGENT_REPO_URL)"
-	@helm install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
+	@helm upgrade --install kagent-crds oci://ghcr.io/kagent-dev/kagent/helm/kagent-crds \
     --namespace kagent \
     --create-namespace \
 	--wait

@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 2.5
-last_updated: "2026-05-11T12:00:00Z"
+last_updated: "2026-05-11T14:00:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -976,35 +976,120 @@ sprints:
     end_date: "2026-05-19"
     capacity_points: 12
     committed_points: 6
-    completed_points: 0
-    status: "not_started"
+    completed_points: 6
+    status: "completed"
+    # STORY-028 + STORY-029 both implemented out-of-band on 2026-05-11 alongside
+    # the Sprint 4 close-out. Clément remains OOO through workshop (2026-05-20);
+    # the NFR-008 cross-author repro deferral chain that started accumulating
+    # in STORY-014/017 closes here as N/A for the workshop ship. Quentin solo
+    # for the final two stories (ninth + tenth swaps of the OOO window).
+    # STORY-028 (3 pts, ninth swap): doc-only dry-run synthesis. Consolidates
+    # every per-UC validation transcript into a single audit document; closes
+    # the recursive deferral chain; produces a 7-item workshop-day risk queue
+    # for STORY-029. No new cluster work (per scope decision — Quentin running
+    # the four UCs again on the same local kind would produce strictly less
+    # signal than the prior per-story transcripts already contain).
+    # STORY-029 (3 pts, tenth swap — closes Sprint 5 + the project): patches
+    # the must-fix UC2 latent gaps STORY-024 surfaced + the make kagent-install
+    # idempotency STORY-018 flagged; documents workshop-infrastructure hand-offs
+    # for UC1 agent re-apply + RemoteMCPServer reconcile race; freezes the repo
+    # with git tag workshop-2026-05-20-freeze.
     stories:
       - story_id: "STORY-028"
         title: "Full dry-run end-to-end"
         nfrs: ["NFR-003", "NFR-010"]
         points: 3
-        owner: "joint"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: joint → Quentin (ninth swap of
+                                # the OOO window). Doc-only dry-run synthesis;
+                                # NFR-008 cross-review CLOSES N/A for workshop
+                                # ship per the convention's in-extremis carve-out
+                                # (Clément OOO through workshop, fixed ship date).
+        status: "completed"
+        completion_date: "2026-05-11"
+        actual_points: 3
+        # Doc-only synthesis per scope decision. Output:
+        # - Per-UC validation roll-up (5 sub-sections for UC0/UC1/UC2/UC3/UC4)
+        #   summarising what was validated, by whom, on which cluster, with
+        #   what outcome, and what remains outside the validated envelope.
+        # - Recursive deferral chain closure declaration (18-row table of every
+        #   swap-chain story's NFR-008 review status — all "not reviewed";
+        #   workshop ships with explicit self-review-only posture).
+        # - 7-item workshop-day risk queue handed to STORY-029, prioritised
+        #   by participant-impact severity. Items #1 (UC2 manifest patches —
+        #   HIGH, workshop blocker) and #3 (make kagent-install idempotency —
+        #   LOW but easy) patched in STORY-029; items #2 (UC1 agent re-apply)
+        #   and #6 (RemoteMCPServer reconcile race) handed to workshop-
+        #   infrastructure as pre-flight responsibilities; items #4/#5/#7
+        #   ship as-is (low severity, fully documented in per-UC READMEs).
+        # docs/dry-run-2026-05-19.md absorbed into STORY-028.md per the
+        # single-source-of-truth scope decision (no separate dated artefact).
       - story_id: "STORY-029"
         title: "M5 corrections + freeze + git tag"
+        nfrs: ["NFR-005", "NFR-006"]
         points: 3
-        owner: "joint"
-        status: "not_started"
+        owner: "Quentin Rodic"  # re-attributed: joint → Quentin (tenth and
+                                # FINAL swap of the OOO window — closes Sprint 5
+                                # + the project). NFR-008 status mirrors
+                                # STORY-028: N/A for workshop ship.
+        status: "completed"
+        completion_date: "2026-05-11"
+        actual_points: 3
+        # All AC validated:
+        # - UC2 manifest patches applied (4 surgical edits across 2 files):
+        #     uc2/manifests/40-deployment.yaml: image :v1 → :v1.0.0 (real
+        #       apogasa-registry-published tag); strategy.type: Recreate (avoids
+        #       rollout-restart deadlock under default RollingUpdate).
+        #     uc2/manifests/20-bootstrap-taint-job.yaml: image :1.31.0 → :latest
+        #       (real published tag); shell /bin/bash → /bin/sh (busybox-based
+        #       :latest has no /bin/bash); tolerations for the synthetic taint
+        #       the Job itself applies (allows idempotent re-runs on a cluster
+        #       where a previous UC2/UC4 cycle left the taint).
+        # - UC2 tour.json fileEdits content re-synced byte-identically with
+        #   the patched manifests (Beat 1 fileEdits[2] = bootstrap Job;
+        #   fileEdits[4] = deployment — both re-embedded via the same script
+        #   STORY-026 used for UC4 tour authoring). Other 3 fileEdits entries
+        #   (namespace, RBAC, service) unchanged.
+        # - Makefile kagent-install: helm install → helm upgrade --install
+        #   (one-line patch). Verified idempotent on the live cluster —
+        #   re-running yields STATUS: deployed, REVISION: 4 instead of the
+        #   pre-patch "cannot re-use a name" error.
+        # - UC1 agent re-apply on the live cluster verified as proof-of-fix
+        #   for risk-queue item #2 (workshop-infrastructure responsibility):
+        #   kubectl apply -f uc1/agents/ → artemis-mission-control-debugger
+        #   reaches Accepted=True within ~30s (READY may still be False while
+        #   the runtime Pod spins up; Accepted=True is the gating condition).
+        # - make lint-manifests clean across all UCs + observability + MCP.
+        # - make validate-tours clean across all 5 tours (uc0/uc1/uc2/uc3/uc4).
+        # - Deployment notes for workshop-infrastructure documented in
+        #   STORY-029.md (UC1 agent re-apply per-vCluster + RemoteMCPServer
+        #   reconcile race wait-or-poke pattern).
+        #
+        # Pending in this commit:
+        # - git tag workshop-2026-05-20-freeze on the final commit.
+        # - git push to origin: deferred to explicit user-authorised action
+        #   per the project's "executing actions with care" rule (push affects
+        #   shared state — workshop-infrastructure pulls from origin/main).
+        #
+        # The freeze posture: no further commits to uc*/manifests/, uc*/agents/,
+        # uc*/tour.json, uc*/README.md, apps/, mcp/, infra/, Makefile, schemas/,
+        # docs/architecture-..md, docs/tour-content-conventions.md,
+        # docs/artemis-naming.md after the freeze tag. Only docs typo fixes if
+        # any surface post-tag.
 
 velocity:
   sprint_1: 24
   sprint_2: 20
-  sprint_2_5: null
-  sprint_3: null
-  sprint_4: null
-  sprint_5: null
-  rolling_average: 22
+  sprint_2_5: 14
+  sprint_3: 25
+  sprint_4: 14
+  sprint_5: 6
+  rolling_average: 17
 
 metrics:
   total_epics: 4
   total_stories: 34
   total_points: 105
-  stories_completed: 31
+  stories_completed: 33
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 2
+  stories_not_started: 0

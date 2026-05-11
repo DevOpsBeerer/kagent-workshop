@@ -29,10 +29,27 @@ spec:
     spec:
       serviceAccountName: bootstrap-launch-pad-fault
       restartPolicy: OnFailure
+      # Tolerate the taint we apply — required for idempotent re-runs on a
+      # cluster where a previous UC2 (or UC4) cycle has already tainted the
+      # node. Without this, re-applying the manifest deadlocks: the Job pod
+      # itself can't schedule because of the taint, so the taint can't be
+      # refreshed. Mirrored from UC4's bootstrap Job (STORY-024 finding,
+      # STORY-029 retrofit).
+      tolerations:
+        - key: artemis.kagent.dev/launch-pad-fault
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: tainter
-          image: rg.fr-par.scw.cloud/apogasa/kubectl:1.31.0
-          command: ["/bin/bash", "-eu", "-o", "pipefail", "-c"]
+          # `apogasa/kubectl:latest` is busybox-based (Alpine) — STORY-015 originally
+          # referenced :1.31.0 but that tag was never published. STORY-029 retrofitted
+          # to the actually-published :latest to match UC4's bootstrap Job.
+          image: rg.fr-par.scw.cloud/apogasa/kubectl:latest
+          # /bin/sh — the busybox-based image has no /bin/bash. The script is
+          # POSIX-compatible (for / if / sleep), and busybox sh supports
+          # `set -o pipefail`. Mirrored from UC4's bootstrap Job (STORY-024
+          # finding, STORY-029 retrofit).
+          command: ["/bin/sh", "-eu", "-o", "pipefail", "-c"]
           args:
             - |
               echo "[bootstrap] tainting all nodes with artemis.kagent.dev/launch-pad-fault=true:NoSchedule"
