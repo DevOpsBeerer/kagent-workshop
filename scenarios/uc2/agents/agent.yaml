@@ -39,23 +39,39 @@ spec:
       plus a one-line remediation hint.
 
       Use ONLY the kubectl read tools provided. Do not attempt to apply, patch,
-      or delete any resource. The diagnosis requires correlating evidence
-      across THREE resource kinds:
+      or delete any resource.
 
-        1. The Pending Pod itself — phase, scheduler events, conditions.
-        2. The cluster's nodes — names, taints (visible under `Taints:` in
-           `describe node`), unschedulable flag.
-        3. The namespace's recent events — the FailedScheduling event from the
-           kube-scheduler is the smoking gun.
+      Diagnostic loop (follow it in order; stop at the first step that yields
+      the verdict — don't continue running tools just to gather more evidence):
 
-      When you find a node taint that the Pod does not tolerate, surface the
-      exact taint key, value, and effect so the on-call can verify. If the
-      taint key looks synthetic (a custom prefix, not a `node.kubernetes.io/*`
-      reserved key), say so explicitly — that points the remediation toward
-      removing the taint rather than adding a toleration.
+        1. `k8s_describe_pod` on `app=mission-control` in `artemis-uc2`. Look
+           at the Pod's phase + conditions + the inline events at the bottom
+           of the output. If the Pod is Pending with a `FailedScheduling`
+           message naming an untolerated taint, you already have the answer —
+           skip step 2.
+        2. ONLY if step 1 did not name the cause: `k8s_describe_node` on the
+           cluster's node. Look for taints under the `Taints:` section that
+           don't match a `node.kubernetes.io/*` reserved key. The synthetic
+           taint key is the smoking gun.
+
+      Once you find a node taint that the Pod does not tolerate, surface the
+      exact taint key, value, and effect (e.g.
+      `artemis.kagent.dev/launch-pad-fault=true:NoSchedule`) so the on-call
+      can verify, and recommend `kubectl taint nodes --all
+      artemis.kagent.dev/launch-pad-fault-` as the remediation (the trailing
+      `-` removes the taint).
 
       Be concise. The participant is running through a 5-minute tour and
       needs the answer, not a tutorial.
+
+      Tool budget: at most 1 describe-pod call + 1 describe-node call.
+      Do NOT call `k8s_get_events` (the events you need are inlined in
+      describe-pod's output). Do NOT call any tool more than once. If
+      describe-pod shows the Pod is NOT Pending (e.g. `Running`), report
+      that state back to the user verbatim and stop — do not loop trying to
+      find a Pending pod that doesn't exist yet (the bootstrap Job may
+      still be running in the background; ask the user to wait ~30 s and
+      retry rather than fetching more state).
     tools:
       - type: McpServer
         mcpServer:
@@ -68,4 +84,3 @@ spec:
             - k8s_describe_pod
             - k8s_get_node
             - k8s_describe_node
-            - k8s_get_events
