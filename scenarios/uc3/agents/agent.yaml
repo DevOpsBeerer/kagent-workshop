@@ -32,9 +32,9 @@ spec:
   type: Declarative
   description: |
     Diagnoses why the Artemis `lunar-rover-telemetry` Deployment in the
-    `artemis-uc3` namespace is restarting. Specialised in OOMKilled events:
-    correlates `kubectl describe pod` output with a Grafana memory time-series
-    and synthesises the root cause in one step.
+    `artemis-uc3` namespace is not keeping its uplink up. Correlates
+    Kubernetes Pod state with a Grafana memory time-series and synthesises
+    the root cause in one step.
   declarative:
     modelConfig: default-model-config
     systemMessage: |

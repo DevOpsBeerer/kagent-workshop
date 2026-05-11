@@ -18,8 +18,8 @@ metadata:
 spec:
   type: Declarative
   description: |
-    Diagnoses why the Artemis `mission-control` deployment is not coming up in
-    the `artemis-uc1` namespace. Specialised in image-pull failures.
+    Diagnoses why the Artemis `mission-control` deployment is not coming up
+    in the `artemis-uc1` namespace.
   declarative:
     modelConfig: default-model-config
     systemMessage: |

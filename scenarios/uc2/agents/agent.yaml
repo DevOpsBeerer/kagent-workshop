@@ -27,9 +27,9 @@ metadata:
 spec:
   type: Declarative
   description: |
-    Diagnoses why the Artemis `mission-control` Deployment is stuck Pending in
-    the `artemis-uc2` namespace. Specialised in scheduling failures —
-    correlates Pod state, node state, taints, and recent events.
+    Diagnoses why the Artemis `mission-control` Deployment is not landing
+    on the cluster in the `artemis-uc2` namespace. Correlates evidence
+    across Pod state, node state, and recent events.
   declarative:
     modelConfig: default-model-config
     systemMessage: |
