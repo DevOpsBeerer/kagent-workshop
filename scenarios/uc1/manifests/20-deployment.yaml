@@ -6,11 +6,6 @@ metadata:
   labels:
     app: mission-control
     kagent-workshop/uc: uc1
-  annotations:
-    # Clue for the diagnostic agent: the last image tag we published for
-    # mission-control was v1. Surfacing it here lets a metadata-aware agent
-    # recover the corrected reference instead of guessing.
-    artemis.kagent.dev/last-published-tag: "v1"
 spec:
   replicas: 1
   selector:
