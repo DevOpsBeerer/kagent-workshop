@@ -5,7 +5,7 @@
   "steps": [
     {
       "title": "Mission setup — bring today's roster online",
-      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the manifests below to deploy `mission-control` to your vCluster — namespace, service, deployment. Once the apply completes, the roster should be reachable on the cluster.\n\nThe three files are dropped into your workspace by this step (`fileEdits`), then applied with a single `kubectl apply -f`.",
+      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the bundle below to your vCluster — namespace, service, deployment, and the on-call debugger agent that'll be ready in the kagent dashboard when you need it. Once the applies complete, the roster should be reachable on the cluster.\n\nFour files are dropped into your workspace by this step (`fileEdits`): three manifests under `uc1/manifests/` and one Agent CRD under `uc1/agents/`. The two `kubectl apply -f` commands below send them to the cluster in order.",
       "fileEdits": [
         {
           "type": "create",
@@ -24,12 +24,22 @@
           "path": "uc1/manifests/20-deployment.yaml",
           "overwrite": true,
           "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: mission-control\n  namespace: artemis-uc1\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc1\n  annotations:\n    # Clue for the diagnostic agent: the last image tag we published for\n    # mission-control was v1. Surfacing it here lets a metadata-aware agent\n    # recover the corrected reference instead of guessing.\n    artemis.kagent.dev/last-published-tag: \"v1\"\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: mission-control\n  template:\n    metadata:\n      labels:\n        app: mission-control\n    spec:\n      containers:\n        - name: mission-control\n          # Tag deliberately not published — produces ImagePullBackOff on first pull (FR-008).\n          image: rg.fr-par.scw.cloud/apogasa/mission-control:v999\n          ports:\n            - name: http\n              containerPort: 8000\n          env:\n            - name: APP_IDENTITY\n              value: mission-control\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"64Mi\"\n            limits:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n"
+        },
+        {
+          "type": "create",
+          "path": "uc1/agents/agent.yaml",
+          "overwrite": true,
+          "content": "# UC1 diagnostic agent — diagnoses ImagePullBackOff on the mission-control deployment.\n#\n# Tool surface (per FR-008 AC \"smallest tool set sufficient\"):\n#   - kubectl get pod / kubectl describe pod / kubectl get events\n#\n# kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD\n# does not exist in v0.9.0; cf. STORY-005 finding). The `kagent-tool-server`\n# RemoteMCPServer ships with kagent's demo profile and exposes the kubectl\n# read tools used here. Tool names below are the kagent-native names —\n# same surface UC2/UC3/UC4 use.\napiVersion: kagent.dev/v1alpha2\nkind: Agent\nmetadata:\n  name: artemis-mission-control-debugger\n  namespace: kagent\n  labels:\n    kagent-workshop/uc: uc1\nspec:\n  type: Declarative\n  description: |\n    Diagnoses why the Artemis `mission-control` deployment is not coming up in\n    the `artemis-uc1` namespace. Specialised in image-pull failures.\n  declarative:\n    modelConfig: default-model-config\n    systemMessage: |\n      You are an Artemis mission-control on-call SRE. Your job is to diagnose\n      why the `mission-control` Deployment in the `artemis-uc1` namespace is\n      not coming up, and report a single sentence of root cause plus a one-line\n      remediation hint.\n\n      Use ONLY the kubectl read tools provided. Do not attempt to apply, patch,\n      or delete any resource. If you find an `ImagePullBackOff` or `ErrImagePull`\n      on the pod, surface the exact image reference (registry + repo + tag) so\n      the on-call can verify whether the tag was ever published.\n\n      Be concise. The participant is running through a 5-minute tour and\n      needs the answer, not a tutorial.\n    tools:\n      - type: McpServer\n        mcpServer:\n          apiGroup: kagent.dev\n          kind: RemoteMCPServer\n          name: kagent-tool-server\n          namespace: kagent\n          toolNames:\n            - k8s_get_pod\n            - k8s_describe_pod\n            - k8s_get_events\n"
         }
       ],
       "commands": [
         {
           "label": "Apply the manifests",
           "command": "kubectl apply -f uc1/manifests/"
+        },
+        {
+          "label": "Apply the on-call debugger agent",
+          "command": "kubectl apply -f uc1/agents/"
         }
       ]
     },
