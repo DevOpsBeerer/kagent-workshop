@@ -93,6 +93,10 @@ lint-manifests:
 		echo "lint-manifests: kubectl apply --dry-run=client -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml"; \
 		kubectl apply --dry-run=client -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml || rc=1; \
 	fi; \
+	if [ -f "$(OBSERVABILITY_DIR)/kagent-grafana-mcp-setup.yaml" ]; then \
+		echo "lint-manifests: kubectl apply --dry-run=client -f $(OBSERVABILITY_DIR)/kagent-grafana-mcp-setup.yaml"; \
+		kubectl apply --dry-run=client -f $(OBSERVABILITY_DIR)/kagent-grafana-mcp-setup.yaml || rc=1; \
+	fi; \
 	if compgen -G "$(MCP_DIR)/manifests/*.yaml" >/dev/null; then \
 		echo "lint-manifests: kubectl apply --dry-run=client -f $(MCP_DIR)/manifests/"; \
 		kubectl apply --dry-run=client -f $(MCP_DIR)/manifests/ || rc=1; \
@@ -142,8 +146,13 @@ observability-up: kagent-install
 	@echo "observability-up: waiting for prometheus-server + grafana to become Ready"
 	@kubectl rollout status -n $(OBSERVABILITY_NAMESPACE) deploy/prometheus-server --timeout=120s
 	@kubectl rollout status -n $(OBSERVABILITY_NAMESPACE) deploy/grafana --timeout=120s
+	@echo "observability-up: kubectl apply -f $(OBSERVABILITY_DIR)/kagent-grafana-mcp-setup.yaml"
+	@kubectl delete job kagent-grafana-mcp-setup -n kagent --ignore-not-found
+	@kubectl apply -f $(OBSERVABILITY_DIR)/kagent-grafana-mcp-setup.yaml
+	@kubectl wait --for=condition=Complete job/kagent-grafana-mcp-setup -n kagent --timeout=180s
 
 observability-down:
+	@kubectl delete -f $(OBSERVABILITY_DIR)/kagent-grafana-mcp-setup.yaml --ignore-not-found
 	@kubectl delete -f $(OBSERVABILITY_DIR)/kagent-bridge-services.yaml --ignore-not-found
 	@kubectl delete -k $(OBSERVABILITY_DIR)/ --ignore-not-found
 

@@ -1,0 +1,159 @@
+# Configures kagent-grafana-mcp's Secret + ConfigMap (which kagent's helm install
+# creates empty) with a real Grafana service-account token and the in-cluster
+# Grafana URL, then rollout-restarts the kagent-grafana-mcp Deployment so its
+# pod picks up the new envFrom values.
+#
+# Anonymous-admin Grafana (see infra/observability/grafana/30-deployment.yaml —
+# GF_AUTH_ANONYMOUS_ENABLED + GF_AUTH_ANONYMOUS_ORG_ROLE=Admin) lets us create
+# the service account + token without baking a Grafana admin password into a
+# Secret. The per-vCluster network is the trust boundary.
+#
+# Applied as a standalone YAML (NOT via the kustomization) because the
+# kustomization's root namespace override (artemis-observability) would mangle
+# every resource here — they all live in `kagent` ns. Same pattern as
+# kagent-bridge-services.yaml.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kagent-grafana-mcp-setup
+  namespace: kagent
+  labels:
+    kagent-workshop/component: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kagent-grafana-mcp-setup
+  namespace: kagent
+  labels:
+    kagent-workshop/component: observability
+rules:
+  # Patch the existing kagent-installed Secret + ConfigMap in place.
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "patch"]
+  # Trigger a rollout restart on the kagent-grafana-mcp Deployment so it
+  # re-reads its envFrom after the patch.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kagent-grafana-mcp-setup
+  namespace: kagent
+  labels:
+    kagent-workshop/component: observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kagent-grafana-mcp-setup
+subjects:
+  - kind: ServiceAccount
+    name: kagent-grafana-mcp-setup
+    namespace: kagent
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kagent-grafana-mcp-setup
+  namespace: kagent
+  labels:
+    kagent-workshop/component: observability
+spec:
+  backoffLimit: 4
+  activeDeadlineSeconds: 180
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        kagent-workshop/component: observability
+        app: kagent-grafana-mcp-setup
+    spec:
+      serviceAccountName: kagent-grafana-mcp-setup
+      restartPolicy: OnFailure
+      containers:
+        - name: setup
+          image: rg.fr-par.scw.cloud/apogasa/kubectl:latest
+          command: ["/bin/sh", "-eu", "-o", "pipefail", "-c"]
+          args:
+            - |
+              # apogasa/kubectl:latest is busybox-based — it has wget + kubectl
+              # but not curl. wget syntax below uses busybox-supported flags.
+
+              GRAFANA_URL="http://grafana.kagent.svc.cluster.local:3000"
+              SA_NAME="kagent-mcp"
+              TOKEN_NAME="mcp-token-$(date +%s)"
+
+              echo "[grafana-mcp-setup] waiting for Grafana to be ready at ${GRAFANA_URL}..."
+              for i in $(seq 1 60); do
+                if wget -q -O /dev/null "${GRAFANA_URL}/api/health" 2>/dev/null; then
+                  echo "[grafana-mcp-setup] grafana ready after ${i}s"
+                  break
+                fi
+                sleep 2
+              done
+
+              # Anonymous admin permits SA + token creation without explicit
+              # credentials. Find existing SA first (idempotent re-run); create
+              # if not found.
+              echo "[grafana-mcp-setup] looking up service account '${SA_NAME}'..."
+              SA_LIST=$(wget -q -O - \
+                "${GRAFANA_URL}/api/serviceaccounts/search?query=${SA_NAME}" \
+                2>/dev/null || echo '{"serviceAccounts":[]}')
+              SA_ID=$(echo "${SA_LIST}" | sed -nE 's/.*"id":([0-9]+)[^}]*"name":"'"${SA_NAME}"'".*/\1/p' | head -1)
+
+              if [ -z "${SA_ID}" ]; then
+                echo "[grafana-mcp-setup] creating service account '${SA_NAME}'..."
+                SA_RESP=$(wget -q -O - \
+                  --post-data="{\"name\":\"${SA_NAME}\",\"role\":\"Admin\",\"isDisabled\":false}" \
+                  --header='Content-Type: application/json' \
+                  "${GRAFANA_URL}/api/serviceaccounts" 2>&1)
+                SA_ID=$(echo "${SA_RESP}" | sed -nE 's/.*"id":([0-9]+).*/\1/p' | head -1)
+                if [ -z "${SA_ID}" ]; then
+                  echo "[grafana-mcp-setup] FATAL: cannot create SA. Response: ${SA_RESP}"
+                  exit 1
+                fi
+                echo "[grafana-mcp-setup] SA created with id=${SA_ID}"
+              else
+                echo "[grafana-mcp-setup] reusing existing SA id=${SA_ID}"
+              fi
+
+              echo "[grafana-mcp-setup] creating new token..."
+              TOKEN_RESP=$(wget -q -O - \
+                --post-data="{\"name\":\"${TOKEN_NAME}\"}" \
+                --header='Content-Type: application/json' \
+                "${GRAFANA_URL}/api/serviceaccounts/${SA_ID}/tokens" 2>&1)
+              TOKEN=$(echo "${TOKEN_RESP}" | sed -nE 's/.*"key":"([^"]+)".*/\1/p' | head -1)
+              if [ -z "${TOKEN}" ]; then
+                echo "[grafana-mcp-setup] FATAL: cannot create token. Response: ${TOKEN_RESP}"
+                exit 1
+              fi
+              echo "[grafana-mcp-setup] token created (${#TOKEN} bytes)"
+
+              # base64 the token for stringData → data conversion via strategic
+              # merge patch on Secret.
+              TOKEN_B64=$(printf '%s' "${TOKEN}" | base64 -w0 2>/dev/null || printf '%s' "${TOKEN}" | base64)
+
+              echo "[grafana-mcp-setup] patching Secret kagent/kagent-grafana-mcp..."
+              kubectl patch secret kagent-grafana-mcp -n kagent \
+                --type=merge \
+                -p "{\"data\":{\"GRAFANA_SERVICE_ACCOUNT_TOKEN\":\"${TOKEN_B64}\"}}"
+
+              echo "[grafana-mcp-setup] patching ConfigMap kagent/kagent-grafana-mcp..."
+              kubectl patch configmap kagent-grafana-mcp -n kagent \
+                --type=merge \
+                -p "{\"data\":{\"GRAFANA_URL\":\"${GRAFANA_URL}\"}}"
+
+              echo "[grafana-mcp-setup] rollout-restart kagent-grafana-mcp..."
+              kubectl rollout restart deployment kagent-grafana-mcp -n kagent
+
+              echo "[grafana-mcp-setup] done"
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
