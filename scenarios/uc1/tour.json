@@ -45,13 +45,7 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard.\n\nThe command below opens the dashboard (it port-forwards `kagent-ui` and points your browser at it). The command stays running in the terminal — leave it running while you use the chat, then `Ctrl+C` once you have the answer.\n\nIn the dashboard, open the chat for **`artemis-mission-control-debugger`** (namespace `artemis-uc1`) and paste the following prompt:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you ran by hand (`get pod`, `describe pod`, `get events`) — only it correlates them in one synthesis. Read the response directly in the chat surface.",
-      "commands": [
-        {
-          "label": "Open the kagent dashboard",
-          "command": "kagent dashboard"
-        }
-      ]
+      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`artemis-mission-control-debugger`** (namespace `kagent`) and paste the following prompt:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you ran by hand (`get pod`, `describe pod`, `get events`) — only it correlates them in one synthesis. Read the response directly in the chat surface."
     },
     {
       "title": "What we'd have done by hand",

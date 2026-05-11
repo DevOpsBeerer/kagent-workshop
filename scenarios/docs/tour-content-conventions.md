@@ -106,13 +106,13 @@ Beat 3 has exactly one step. The UC declares **one** invocation mode:
 
 ### UI/chat variant (UC1)
 
-The Beat 3 step contains exactly one `commands[]` entry that opens the kagent dashboard, and the step's `explanation` includes a fenced markdown block with the exact prompt to paste. The tour story (STORY-031) freezes the exact form: a kagent CLI dashboard helper if v0.9.0 ships one that backgrounds cleanly, otherwise a `kubectl port-forward -n kagent svc/kagent-ui … &` chained with `open http://localhost:…` to honour NFR-010 *self-contained step*. Whichever wins, document the choice in a one-line comment in the step's `explanation` so future authors know.
+The Beat 3 step has **no `commands[]` entries**. The workshop-tour VS Code extension exposes a built-in **dashboard** button that opens the kagent web dashboard directly; the step's `explanation` tells the participant to tap that button and surfaces the exact prompt to paste into the chat as a markdown blockquote. The participant reads the agent's response in the chat surface.
+
+Earlier iterations (pre-button) shipped a `kagent dashboard` `commands[]` entry (frozen by STORY-031); that form is still available for authors testing locally without the extension but is no longer in the tour. Per-UC READMEs `Author notes` document the migration for posterity.
 
 Example prompt block:
 
 > The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.
-
-The participant reads the agent's response in the chat surface. The step does not capture stdout.
 
 ### CLI invoke variant (UC2, UC4)
 
@@ -187,15 +187,12 @@ The fragments below are the four beats as they will appear in `uc1/tour.json` af
 
 A single command. The participant sees the pod is stuck — that's the friction. The deeper diagnosis (`describe pod`, `get events`) is what they would have run *without* the agent, and that lives in Beat 4.
 
-### Beat 3 — Call the agent for help (UI/chat, exactly 1 step)
+### Beat 3 — Call the agent for help (UI/chat, exactly 1 step, no commands)
 
 ```json
 {
   "title": "Call the agent for help",
-  "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** in the kagent dashboard. Run the command below to open the dashboard, then paste the prompt into the chat surface:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you used above (`get pod`, `describe pod`, `get events`) — the difference is that it correlates them in one synthesis. Read the agent's response directly in the chat.",
-  "commands": [
-    { "label": "Open the kagent dashboard", "command": "<frozen by STORY-031 spike — see Beat 3 invocation section>" }
-  ]
+  "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** in the kagent dashboard. Use the **dashboard** button in this workshop-tour extension to open the kagent web dashboard, then paste the prompt into the chat surface:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you used above (`get pod`, `describe pod`, `get events`) — the difference is that it correlates them in one synthesis. Read the agent's response directly in the chat."
 }
 ```
 
@@ -239,7 +236,7 @@ When implementing STORY-013 / 016 / 020 / 026 / 031 / 032 (or any future tour):
 - [ ] **Prep-tour exception:** if this is UC0 or another `Prep tours` per `§Prep tours`, skip the four checklist items below — N free-form steps allowed; everything else still applies.
 - [ ] **Beat 1 — `Mission setup — …`** is exactly one step. The explanation contains none of the banned words (`broken`, `deliberately`, `intentionally`, `synthetic`, `fault`, `bug`, `wrong`, `error`, `fail`, `unsafe`, `blocked`, `taint`) and no concrete bug specifics (image tags, taint keys, etc.). The deployment is framed as a mission objective.
 - [ ] **Beat 2 — `Mission status check — …`** is **one step** in the typical case (single `kubectl get pods …` that surfaces the friction). A second step only if the friction needs multi-resource observation to be visible. **Do not** put `describe pod` / `get events` / node-side commands here — they belong in Beat 4.
-- [ ] **Beat 3 — `Call the agent for help`** is exactly one step. The UC's invocation variant (UI/chat vs CLI invoke vs hybrid) is declared in the step explanation, and the exact prompt to paste/run is surfaced as a markdown block.
+- [ ] **Beat 3 — `Call the agent for help`** is exactly one step. The UC's invocation variant (UI/chat vs CLI invoke vs hybrid) is declared in the step explanation, and the exact prompt to paste/run is surfaced as a markdown block. UI/chat variant has **no** `commands[]` entries (the extension's *dashboard* button replaces the legacy `kagent dashboard` CLI step); CLI invoke has exactly one (`kagent invoke …`).
 - [ ] **Beat 4 — `What we'd have done by hand`** is exactly one step. No `commands[]`, no `fileEdits`. The recap names the manual `kubectl` commands as friction the participant skipped. **No cross-UC roadmap tail** ("UC<N+1> will scale this …") per §`The no-spoiler rule` *No meta-references in prose*.
 - [ ] **No meta-references in prose.** Participant-visible fields (`description`, step `title`/`explanation`) contain no `UC<N>` mentions, no `STORY-…` or `Beat <N>` author citations, no "later"/"earlier"/"the UCs that follow" cross-tour pointers (per §`The no-spoiler rule` sub-rule). Audit notes live in `uc<N>/README.md` under *Author notes*.
 - [ ] Every `commands[].command` runs as-is in the VS Code server terminal (NFR-010).

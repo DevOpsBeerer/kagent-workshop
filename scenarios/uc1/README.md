@@ -115,9 +115,11 @@ For each cold-deploy iteration:
 
 The note below captures the spike outcome that was temporarily inlined in `tour.json`'s participant text and has since been relocated here per the convention's *No meta-references in prose* rule (`../docs/tour-content-conventions.md`). Participants never read this section; authors come here to find the *why* behind the Beat 3 invocation form.
 
-### Beat 3 invocation — frozen form (STORY-031)
+### Beat 3 invocation — dashboard button (post-freeze update)
 
-`kagent dashboard` is the frozen Beat 3 invocation form. The kagent v0.9.0 CLI ships a `dashboard` sub-command that foregrounds the `kubectl port-forward -n kagent svc/kagent-ui` and auto-opens the participant's browser at the resulting URL. The command stays alive in the terminal until `Ctrl+C` — that holds the port-forward open while the participant uses the chat surface, then releases it cleanly. This honours NFR-010 *self-contained step*: no separate `kubectl port-forward … &` + `open` chain to maintain, no environment-variable preconditions, no orphaned background processes.
+The workshop-tour VS Code extension exposes a **dashboard** button that opens the kagent web dashboard directly. UC1's Beat 3 step relies on that button rather than shipping a `commands[]` entry (it has none) — the participant taps the button, the dashboard opens, they paste the prompt into the chat for `artemis-mission-control-debugger`.
+
+Earlier iterations (pre-button) shipped `kagent dashboard` as a `commands[]` entry; the CLI subcommand foregrounded a `kubectl port-forward -n kagent svc/kagent-ui` and stayed alive until `Ctrl+C`. That form is still available for authors testing locally without the extension (see [`../TESTING.md`](../TESTING.md) §Testing the agents), but the tour no longer requires it.
 
 ## Cleanup
 

@@ -53,13 +53,7 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The rover restarted on us mid-stream and we don't yet know why. Hand the diagnosis to **`artemis-rover-telemetry-debugger`** through the kagent dashboard.\n\nThe command below opens the dashboard (it port-forwards `kagent-ui` and points your browser at it). The command stays running in the terminal — leave it running while you use the chat, then `Ctrl+C` once you have the answer.\n\nIn the dashboard, open the chat for **`artemis-rover-telemetry-debugger`** (namespace `kagent`) and paste the following prompt:\n\n> The lunar-rover-telemetry pod in the artemis-uc3 namespace keeps restarting. Diagnose it, and show me a memory chart from the time of the failure.\n\nThe agent has the same Kubernetes read tools you would have used by hand (`describe pod`, `get events`) **plus** sub-agents that talk to Prometheus and Grafana directly. Read the response in the chat surface — it will name the root cause in one sentence and surface a Grafana dashboard URL you can click through to see the memory curve from the failure window.",
-      "commands": [
-        {
-          "label": "Open the kagent dashboard",
-          "command": "kagent dashboard"
-        }
-      ]
+      "explanation": "The rover restarted on us mid-stream and we don't yet know why. Hand the diagnosis to **`artemis-rover-telemetry-debugger`** through the kagent dashboard.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`artemis-rover-telemetry-debugger`** (namespace `kagent`) and paste the following prompt:\n\n> The lunar-rover-telemetry pod in the artemis-uc3 namespace keeps restarting. Diagnose it, and show me a memory chart from the time of the failure.\n\nThe agent has the same Kubernetes read tools you would have used by hand (`describe pod`, `get events`) **plus** sub-agents that talk to Prometheus and Grafana directly. Read the response in the chat surface — it will name the root cause in one sentence and surface a Grafana dashboard URL you can click through to see the memory curve from the failure window."
     },
     {
       "title": "What we'd have done by hand",
