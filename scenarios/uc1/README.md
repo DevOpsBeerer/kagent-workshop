@@ -35,8 +35,8 @@ The diagnostic agent is **`artemis-mission-control-debugger`** (see [`agents/age
 
 **Tool surface — exactly the three the participant just used manually:**
 
-- `k8s_get_pod`
-- `k8s_describe_pod`
+- `k8s_get_resources` (list pods in `artemis-uc1`)
+- `k8s_describe_resource` (describe the mission-control pod)
 - `k8s_get_events`
 
 **Expected agent output** (one or two sentences, deterministic across runs to within phrasing):

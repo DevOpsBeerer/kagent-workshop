@@ -3,7 +3,7 @@
 # participant's status bulbs via the custom bulb MCP (FR-017).
 #
 # Tool surface — three layers:
-#   - K8s read tools (light): k8s_get_pod, k8s_get_resources
+#   - K8s read tools (light): k8s_get_resources
 #       Used for the coordinator's own pre-fan-out sanity check on
 #       artemis-uc4 (verify the three Deployments exist before delegating).
 #       Sourced from kagent-tool-server RemoteMCPServer (kagent v0.9.0 demo
@@ -170,7 +170,6 @@ spec:
           name: kagent-tool-server
           namespace: kagent
           toolNames:
-            - k8s_get_pod
             - k8s_get_resources
       - type: McpServer
         mcpServer:

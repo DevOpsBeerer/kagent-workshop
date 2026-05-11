@@ -3,7 +3,7 @@
 # (a2a delegation) with K8s read tools from kagent-tool-server.
 #
 # Tool surface (per FR-008-style "smallest set sufficient", scaled for FR-012):
-#   - kubectl read tools:        k8s_get_pod, k8s_describe_pod, k8s_get_events
+#   - kubectl read tools:        k8s_get_resources, k8s_describe_resource, k8s_get_events
 #                                (sourced from kagent-tool-server RemoteMCPServer)
 #   - PromQL generation (a2a):   promql-agent (kagent v0.9.0 demo profile)
 #   - Grafana + Prom execution
@@ -44,18 +44,20 @@ spec:
       of root cause plus a one-line remediation hint.
 
       Diagnostic loop:
-        1. Use `k8s_describe_pod` (or `k8s_get_pod`) to inspect the most
-           recent Pod in `artemis-uc3`. Look at
+        1. `k8s_get_resources` with kind=Pod and namespace=artemis-uc3 — list
+           the pods in the namespace. Pick the `lunar-rover-telemetry-…` pod.
+        2. `k8s_describe_resource` with kind=Pod, namespace=artemis-uc3, and
+           the pod name from step 1. Look at
            `lastState.terminated.reason` — if it says `OOMKilled`, you have
            the symptom. Note the container's `resources.limits.memory`.
-        2. Delegate to the `observability-agent` to build a Grafana
+        3. Delegate to the `observability-agent` to build a Grafana
            dashboard panel showing
            `process_resident_memory_bytes{kubernetes_namespace="artemis-uc3",
            kubernetes_service_name="lunar-rover-telemetry"}` over the last
            10 minutes. Capture the dashboard URL the sub-agent returns.
-        3. Surface that URL to the user — the participant clicks through to
+        4. Surface that URL to the user — the participant clicks through to
            see the monotone leak curve.
-        4. Finish with one root-cause sentence (e.g. "the container's
+        5. Finish with one root-cause sentence (e.g. "the container's
            memory limit (64 Mi) is below the working set the leak loop
            produces, so the kernel OOM-kills it before the loop completes")
            and one remediation hint ("raise `resources.limits.memory` or
@@ -65,10 +67,10 @@ spec:
       and needs the answer, not a tutorial. Do NOT explain Kubernetes
       basics or PromQL syntax unless the user explicitly asks.
 
-      Tool budget: at most 1 describe-pod call, 1 delegation to
-      observability-agent, 0 other tool calls. If a single iteration is
-      insufficient, prefer asking the user a clarifying question over
-      running more tools.
+      Tool budget: at most 1 `k8s_get_resources` + 1 `k8s_describe_resource`
+      call, 1 delegation to observability-agent, 0 other tool calls. If a
+      single iteration is insufficient, prefer asking the user a clarifying
+      question over running more tools.
     tools:
       - type: McpServer
         mcpServer:
@@ -77,10 +79,9 @@ spec:
           name: kagent-tool-server
           namespace: kagent
           toolNames:
-            - k8s_get_pod
-            - k8s_describe_pod
-            - k8s_get_events
             - k8s_get_resources
+            - k8s_describe_resource
+            - k8s_get_events
       - type: Agent
         agent:
           name: promql-agent

@@ -69,7 +69,7 @@ The coordinator is **`artemis-mission-coordinator`** ([`agents/agent.yaml`](agen
 
 | Layer            | Source                                       | Tools available to the coordinator                          |
 | ---------------- | -------------------------------------------- | ----------------------------------------------------------- |
-| K8s read (light) | `kagent-tool-server` (RemoteMCPServer, kagent ns) | `k8s_get_pod`, `k8s_get_resources`                          |
+| K8s read (light) | `kagent-tool-server` (RemoteMCPServer, kagent ns) | `k8s_get_resources`                                         |
 | Bulb writes      | `artemis-bulb-mcp` (RemoteMCPServer, kagent ns)   | `list_bulbs`, `update_bulb`                                 |
 | A2a sub-agents   | three sibling Agent CRDs in `kagent` ns       | `artemis-mission-control-debugger`, `artemis-launch-pad-debugger`, `artemis-rover-telemetry-debugger` |
 

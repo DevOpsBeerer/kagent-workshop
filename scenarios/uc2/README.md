@@ -40,10 +40,8 @@ The diagnostic agent is **`artemis-launch-pad-debugger`** (see [`agents/agent.ya
 
 **Tool surface — five tools spanning two resource kinds + events (per FR-010 AC "multi-tool reach: pod, node, taint, events"):**
 
-- `k8s_get_pod`
-- `k8s_describe_pod`
-- `k8s_get_node`
-- `k8s_describe_node`
+- `k8s_get_resources` (list pods in `artemis-uc2`)
+- `k8s_describe_resource` (describe the mission-control pod — the FailedScheduling event surfaces inline)
 - `k8s_get_events`
 
 **Expected agent output** (one or two sentences, deterministic across runs to within phrasing):

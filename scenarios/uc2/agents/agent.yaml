@@ -40,12 +40,14 @@ spec:
 
       Diagnostic loop:
 
-        1. `k8s_describe_pod` on `app=mission-control` in `artemis-uc2`. Look
-           at the Pod's phase + conditions + the inline events at the bottom
-           of the output. A Pending Pod with a `FailedScheduling` event
-           reading `0/N nodes are available: N Insufficient cpu` is your
-           smoking gun — the container's `resources.requests.cpu` exceeds
-           what any node can provide.
+        1. `k8s_get_resources` with kind=Pod and namespace=artemis-uc2 — list
+           the pods in the namespace. Pick the `mission-control-…` pod.
+        2. `k8s_describe_resource` with kind=Pod, namespace=artemis-uc2, and
+           the pod name from step 1. Read the phase + conditions + the inline
+           events at the bottom. A Pending Pod with a `FailedScheduling`
+           event reading `0/N nodes are available: N Insufficient cpu` is
+           your smoking gun — the container's `resources.requests.cpu`
+           exceeds what any node can provide.
 
       Surface the exact `requests.cpu` value (visible in describe-pod's
       container spec — usually under `Containers > … > Requests`) and the
@@ -58,12 +60,13 @@ spec:
       Be concise. The participant is running through a 5-minute tour and
       needs the answer, not a tutorial.
 
-      Tool budget: at most 1 describe-pod call. Do NOT call any other tool
-      (node-level inspection is not needed — the FailedScheduling event
-      itself names "Insufficient cpu" and pulls in the requested value).
-      Do NOT call describe-pod more than once. If describe-pod shows the
-      Pod is NOT Pending (e.g. `Running`), report that state verbatim and
-      stop — do not loop trying to find a Pending pod that doesn't exist.
+      Tool budget: at most 1 `k8s_get_resources` + 1 `k8s_describe_resource`
+      call. Do NOT call any other tool (node-level inspection is not needed —
+      the FailedScheduling event itself names "Insufficient cpu" and pulls
+      in the requested value). Do NOT call describe-resource more than once.
+      If describe-resource shows the Pod is NOT Pending (e.g. `Running`),
+      report that state verbatim and stop — do not loop trying to find a
+      Pending pod that doesn't exist.
     tools:
       - type: McpServer
         mcpServer:
@@ -72,5 +75,5 @@ spec:
           name: kagent-tool-server
           namespace: kagent
           toolNames:
-            - k8s_get_pod
-            - k8s_describe_pod
+            - k8s_get_resources
+            - k8s_describe_resource

@@ -77,7 +77,7 @@ The diagnostic agent is **`artemis-rover-telemetry-debugger`** ([`agents/agent.y
 
 **Tool surface — three layers:**
 
-- **Direct K8s read tools** from `kagent-tool-server` (RemoteMCPServer): `k8s_get_pod`, `k8s_describe_pod`, `k8s_get_events`, `k8s_get_resources`.
+- **Direct K8s read tools** from `kagent-tool-server` (RemoteMCPServer): `k8s_get_resources` (list pods in `artemis-uc3`), `k8s_describe_resource` (describe the rover pod), `k8s_get_events`.
 - **A2a sub-agent: `promql-agent`** — kagent's pre-packaged PromQL generator (text-in / text-out: translates a natural-language ask into a PromQL query, no execution).
 - **A2a sub-agent: `observability-agent`** — kagent's pre-packaged Grafana / Prom executor. Internally delegates to `promql-agent` for query generation, executes the query via the bridged `prometheus.kagent.svc:9090`, creates a Grafana panel via the `kagent-grafana-mcp` RemoteMCPServer (which talks to the bridged `grafana.kagent.svc:3000`), and returns the panel URL.
 
