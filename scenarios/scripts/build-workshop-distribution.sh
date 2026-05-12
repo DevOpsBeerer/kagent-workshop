@@ -33,6 +33,10 @@ includes=(
     "uc3"
     "uc4"
     "infra"
+    # UC4's Beat 1 runs `kmcp build --push` against this directory to build
+    # the bulb MCP image and publish it to the workshop registry, then
+    # `kmcp deploy` to bring it up on the participant's vCluster.
+    "mcp"
 )
 
 # Patterns excluded from every directory copy. Includes the standard
