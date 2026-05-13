@@ -27,7 +27,7 @@ UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no di
 ## The three steps
 
 1. **Check your cluster** — `kubectl config current-context` + `kubectl get nodes`.
-2. **Install kagent via CLI** — `kagent install --profile demo` then `kubectl rollout status deployment/kagent-controller -n kagent`. The `--profile demo` choice is documented in the tour step's explanation; rationale: UC3 reuses the demo profile's pre-packaged Prometheus / Grafana agents (architecture L300).
+2. **Install kagent via CLI** — `kagent install --profile demo --timeout 15m` then `kubectl rollout status deployment/kagent-controller -n kagent`. The `--profile demo` choice is documented in the tour step's explanation; rationale: UC3 reuses the demo profile's pre-packaged Prometheus / Grafana agents (architecture L300). The `--timeout 15m` is critical on first-install setups (notably kind / Mac) — see *Install-timeout rationale* below.
 3. **Verify the installation** — kagent CRDs registered, controller pod `Running`, `default-model-config` ModelConfig in the `kagent` namespace.
 
 ## Why a "prep tour" exception?
@@ -49,6 +49,14 @@ The notes below capture engineering rationale and spike outcomes that were tempo
 ### `kagent` namespace + ModelConfig timing
 
 The CLI installs into the `kagent` namespace by default and pre-wires the `default-model-config` ModelConfig there — every Artemis agent (UC1/UC2/UC3/UC4) references that same `default-model-config`. UC0's verify step accepts it as the single canonical ModelConfig.
+
+### Install-timeout rationale (`--timeout 15m`)
+
+The CLI's default `--timeout` is **5 min** — enough on warm clusters with pre-pulled images, *not* enough on a cold first install (notably kind / Mac). On a fresh cluster the controller waits for `kagent-postgresql` to become Ready and restarts a handful of times in the meantime; on kind that whole dance crosses the 5 min mark, and Helm's `--wait` aborts with a misleading `Error: context deadline exceeded` even though every resource is in fact converging.
+
+Reproduced live on kind on 2026-05-13: with default 5 min the install reports `context deadline exceeded`; the Helm release ends up `failed` even though `helm status` shows the success notes and every pod stabilises a few minutes later. With `--timeout 15m` the wait phase outlasts the postgres-restart cascade and the install finishes cleanly with the release marked `deployed`.
+
+`15m` is conservative — measured wall-clock on kind / M-series Mac sat around 7–9 min — but covers slower laptops and network conditions without forcing the participant to interpret a scary error.
 
 ## References
 
