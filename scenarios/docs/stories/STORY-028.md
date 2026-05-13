@@ -250,4 +250,22 @@ STORY-029 implements items #1 + #3. Items #2 + #6 are workshop-infrastructure re
 
 ---
 
+## Addendum: 2026-05-05 dry-run (supplementary author walk-through)
+
+After STORY-028's 2026-05-11 close-out, a supplementary participant-flow dry-run was performed by Clément on local kind on 2026-05-05 (back-dated UTC; the workshop deadline pressure pulled the second-author walk-through forward). Captured in [`../dry-run-journal-2026-05-05.md`](../dry-run-journal-2026-05-05.md).
+
+This walk-through is **not** an NFR-008 cross-review of STORY-028 (the NFR-008 gate closed N/A above and cannot be re-opened). It is a fresh-eyes dry-run by the other author, treated as supplementary evidence and as a generator of post-freeze patch stories.
+
+### Findings handed to Sprint 6 / M6 (post-dry-run patch sprint)
+
+| Severity | Count | Stories | Sprint |
+|----------|-------|---------|--------|
+| blocker  | 2 | `STORY-041` (UC3 dashboard data pipeline), `STORY-043` (UC4 `WORKSHOP_PARTICIPANT_LOGIN` prereq) | 6 |
+| issue    | 6 | `STORY-036` (UC0 bridge), `STORY-037` (UC1 framing), `STORY-038` (UC1 Beat 3 expansion), `STORY-039` (UC2 CLI output), `STORY-040` (UC3 Grafana URL), `STORY-042` (density convention + pass) | 6 |
+| nit      | 1 | none (operator preference `feedback_em_dash` saved to memory; applied going forward) | n/a |
+
+The two blockers gate the rest of the UC3 / UC4 dry-run. Workshop ship posture (per STORY-028's N/A NFR-008 closure) is unchanged; Sprint 6 patches land as a new freeze candidate before the workshop date.
+
+---
+
 **This story was created using BMAD Method v6 - Phase 4 (Implementation Planning).**

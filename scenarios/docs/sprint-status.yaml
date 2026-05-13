@@ -5,8 +5,8 @@
 project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
-current_sprint: 2.5
-last_updated: "2026-05-11T14:00:00Z"
+current_sprint: 6
+last_updated: "2026-05-05T17:10:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -1076,6 +1076,89 @@ sprints:
         # docs/artemis-naming.md after the freeze tag. Only docs typo fixes if
         # any surface post-tag.
 
+  - sprint_number: 6
+    milestone: "M6"
+    goal: "Post-dry-run patch: clear the 2 blockers (UC3 dashboard data, UC4 env var prereq) and apply the 6 issues found in the 2026-05-05 walk-through (see docs/dry-run-journal-2026-05-05.md). Re-freeze artefacts for the 2026-05-20 workshop."
+    start_date: "2026-05-06"
+    end_date: "2026-05-15"
+    capacity_points: 30
+    committed_points: 26
+    completed_points: 0
+    status: "not_started"
+    stories:
+      - story_id: "STORY-036"
+        title: "UC0 dashboard bridge step"
+        epic: "EPIC-001"
+        frs: ["FR-006"]
+        nfrs: ["NFR-010"]
+        points: 2
+        owner: "Clément Raussin"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:30, severity issue.
+      - story_id: "STORY-037"
+        title: "UC1 framing: name the user-visible symptom alongside the lore"
+        epic: "EPIC-002"
+        frs: ["FR-009"]
+        nfrs: ["NFR-009"]
+        points: 2
+        owner: "Clément Raussin"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:31, severity issue.
+      - story_id: "STORY-038"
+        title: "UC1 Beat 3 expansion: UI explore, kubectl parity, chat, verify, optional self-fix spike"
+        epic: "EPIC-002"
+        frs: ["FR-009"]
+        nfrs: ["NFR-008"]
+        points: 5
+        owner: "Clément Raussin"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:32, severity issue. Multi-step Beat 3 + spike on agent write capability.
+      - story_id: "STORY-039"
+        title: "UC2 Beat 3 CLI output: pipe to jq or refit"
+        epic: "EPIC-002"
+        frs: ["FR-011"]
+        nfrs: ["NFR-010"]
+        points: 2
+        owner: "Quentin Rodic"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:38, severity issue.
+      - story_id: "STORY-040"
+        title: "UC3 Grafana dashboard URL fix or port-forward step"
+        epic: "EPIC-003"
+        frs: ["FR-013"]
+        nfrs: ["NFR-010"]
+        points: 3
+        owner: "Clément Raussin"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:39, severity issue.
+      - story_id: "STORY-041"
+        title: "UC3 dashboard data pipeline (BLOCKER)"
+        epic: "EPIC-003"
+        frs: ["FR-012", "FR-013"]
+        nfrs: ["NFR-003"]
+        points: 5
+        owner: "Clément Raussin"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:40, severity BLOCKER. No data in Grafana panels; UC3 demo has no payoff.
+      - story_id: "STORY-042"
+        title: "Tour explanation density: convention rule + pass across all UCs"
+        epic: "EPIC-001"
+        frs: ["FR-006"]
+        nfrs: ["NFR-009"]
+        points: 5
+        owner: "joint"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:42 + 16:46, severity issue. Cross-cutting density pass.
+      - story_id: "STORY-043"
+        title: "UC4 WORKSHOP_PARTICIPANT_LOGIN prereq hardening (BLOCKER)"
+        epic: "EPIC-004"
+        frs: ["FR-016"]
+        nfrs: ["NFR-010"]
+        points: 2
+        owner: "Quentin Rodic"
+        status: "not_started"
+        # Dry-run finding 2026-05-05 16:45, severity BLOCKER. `kmcp build` fails on first command without env var.
+
 velocity:
   sprint_1: 24
   sprint_2: 20
@@ -1083,13 +1166,14 @@ velocity:
   sprint_3: 25
   sprint_4: 14
   sprint_5: 6
+  sprint_6: null
   rolling_average: 17
 
 metrics:
   total_epics: 4
-  total_stories: 34
-  total_points: 105
+  total_stories: 42
+  total_points: 131
   stories_completed: 33
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 0
+  stories_not_started: 8
