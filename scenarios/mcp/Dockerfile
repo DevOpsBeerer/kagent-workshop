@@ -17,8 +17,17 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files first for layer caching
-COPY pyproject.toml .python-version ./
+# Copy dependency files first for layer caching.
+# Deliberately do NOT copy `.python-version`: the kmcp scaffolding gitignores
+# it, so a fresh clone (and therefore the workshop bundle assembled by
+# `scripts/build-workshop-distribution.sh` from a fresh clone in the
+# workshop-infrastructure init container) doesn't contain the file. The
+# legacy Docker builder treats a `COPY .python-versio[n] ./` glob with no
+# match as an error, so the conditional-glob shape `uv.loc[k]` uses doesn't
+# work for an always-absent file. `pyproject.toml`'s `requires-python =
+# ">=3.12"` is uv's canonical hint anyway; `.python-version` is redundant
+# given the `python:3.12-slim` base.
+COPY pyproject.toml ./
 COPY README.md ./
 
 # Copy lockfile if it exists, otherwise generate it
