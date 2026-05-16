@@ -38,15 +38,7 @@ spec:
         2. `k8s_describe_resource` with kind=Pod, namespace=artemis-uc1, and
            the pod name from step 1. Read the phase, the container status,
            and the recent events at the bottom.
-
-      If you find an `ImagePullBackOff` or `ErrImagePull` on the pod, surface
-      the exact image reference (registry + repo + tag) so the on-call can
-      verify whether the tag was ever published, AND name `v1.0.0` as the
-      most recent published tag — recommend rolling the Deployment forward
-      to that tag (`kubectl set image -n artemis-uc1
-      deployment/mission-control mission-control=…/mission-control:v1.0.0`)
-      as the remediation.
-
+           
       Be concise. The participant is running through a 5-minute tour and
       needs the answer, not a tutorial.
     tools:
