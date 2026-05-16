@@ -1,0 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500;700&display=swap");
+
+:root {
+  --color-ink-900: #111a21;
+  --color-ink-800: #141e26;
+  --color-neutral-200: #d2d6d9;
+  --color-surface: #ffffff;
+  --color-on-primary: #ffffff;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  --font-family-mono: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --line-height-tight: 1;
+  --line-height-normal: 1.5;
+
+  --control-height-sm: 25px;
+  --control-height-md: 36px;
+  --control-min-width-md: 180px;
+
+  --motion-fast: 120ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}

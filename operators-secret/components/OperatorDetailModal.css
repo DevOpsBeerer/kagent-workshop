@@ -1,0 +1,47 @@
+@import "./tokens.css";
+
+.ds-operator-detail__header {
+  margin-bottom: var(--space-6);
+}
+
+.ds-operator-detail__title {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-900);
+}
+
+.ds-operator-detail__subtitle {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-ink-900);
+}
+
+.ds-operator-detail__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+
+.ds-operator-detail__label {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-base);
+  color: var(--color-ink-900);
+}
+
+.ds-operator-detail__secret {
+  width: 360px;
+  text-align: center;
+}
+
+.ds-operator-detail__access {
+  margin-top: var(--space-4);
+  min-width: 360px;
+}

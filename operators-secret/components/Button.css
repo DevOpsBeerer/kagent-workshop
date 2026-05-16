@@ -1,0 +1,49 @@
+@import "./tokens.css";
+
+.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: var(--control-min-width-md);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-none);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  font-variation-settings: "wdth" 100;
+  line-height: var(--line-height-tight);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.ds-button--md {
+  height: var(--control-height-md);
+}
+
+.ds-button--sm {
+  height: var(--control-height-sm);
+}
+
+.ds-button:focus-visible {
+  outline: 2px solid var(--color-ink-900);
+  outline-offset: 2px;
+}
+
+.ds-button--primary {
+  background-color: var(--color-ink-900);
+  color: var(--color-on-primary);
+}
+
+.ds-button--primary:hover:not(:disabled),
+.ds-button--primary.is-hovered:not(:disabled) {
+  background-color: var(--color-ink-800);
+}
+
+.ds-button--primary:disabled {
+  background-color: var(--color-neutral-200);
+  color: var(--color-on-primary);
+  cursor: not-allowed;
+}

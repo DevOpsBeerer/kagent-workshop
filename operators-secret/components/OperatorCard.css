@@ -1,0 +1,92 @@
+@import "./tokens.css";
+
+.ds-operator-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  width: 264px;
+  padding: 0;
+  background: var(--color-surface);
+  font-family: var(--font-family-mono);
+  color: var(--color-ink-900);
+}
+
+.ds-operator-card__frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  margin-bottom: var(--space-4);
+  border: 8px dashed var(--color-ink-900);
+}
+
+.ds-operator-card__frame::before,
+.ds-operator-card__frame::after,
+.ds-operator-card__corners::before,
+.ds-operator-card__corners::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: var(--color-surface);
+  border: 8px solid var(--color-ink-900);
+}
+
+.ds-operator-card__frame::before {
+  top: -8px;
+  left: -8px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.ds-operator-card__frame::after {
+  top: -8px;
+  right: -8px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.ds-operator-card__corners::before {
+  bottom: -8px;
+  left: -8px;
+  border-right: 0;
+  border-top: 0;
+}
+
+.ds-operator-card__corners::after {
+  bottom: -8px;
+  right: -8px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.ds-operator-card__icon {
+  width: 168px;
+  height: 168px;
+  color: var(--color-ink-900);
+}
+
+.ds-operator-card__title {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-ink-900);
+}
+
+.ds-operator-card__link {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-neutral-200);
+  text-decoration: none;
+  word-break: break-all;
+  margin-bottom: var(--space-2);
+}
+
+.ds-operator-card__link:hover,
+.ds-operator-card__link:focus-visible {
+  text-decoration: underline;
+  color: var(--color-ink-900);
+}

@@ -1,0 +1,56 @@
+@import "../../components/tokens.css";
+
+.dashboard {
+  min-height: 100vh;
+  padding: 40px 48px;
+  background-color: var(--color-surface);
+  font-family: var(--font-family-mono);
+  color: var(--color-ink-900);
+}
+
+.dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-6);
+  margin-bottom: 64px;
+}
+
+.dashboard__brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dashboard__logo {
+  display: block;
+  height: 31px;
+  width: auto;
+}
+
+.dashboard__tagline {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-ink-900);
+}
+
+.dashboard__search {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.dashboard__search-input {
+  width: 360px;
+  border-right: 0;
+}
+
+.dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 264px);
+  justify-content: space-between;
+  column-gap: 32px;
+  row-gap: 32px;
+}

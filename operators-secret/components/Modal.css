@@ -1,0 +1,23 @@
+@import "./tokens.css";
+
+.ds-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background-color: rgba(17, 26, 33, 0.5);
+  z-index: 1000;
+}
+
+.ds-modal__content {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  padding: var(--space-6);
+  background-color: var(--color-surface);
+  border: 8px solid var(--color-ink-900);
+  font-family: var(--font-family-mono);
+  color: var(--color-ink-900);
+}
