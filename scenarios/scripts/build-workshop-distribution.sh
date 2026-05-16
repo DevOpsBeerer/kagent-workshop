@@ -44,7 +44,7 @@ includes=(
 # (READMEs are author-facing — the tour itself is the participant-facing
 # narrative).
 excludes=(
-    "README.md"
+    "_README.md"
     ".git"
     ".gitkeep"
     ".github"
