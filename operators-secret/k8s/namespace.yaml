@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: operators-control-center
+  labels:
+    app.kubernetes.io/name: operators-control-center
+    app.kubernetes.io/part-of: operators-control-center
