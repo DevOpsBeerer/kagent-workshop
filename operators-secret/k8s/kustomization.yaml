@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: operators-control-center
 
 resources:
+  - namespace.yaml
   - serviceaccount.yaml
   - rbac.yaml
   - service.yaml
