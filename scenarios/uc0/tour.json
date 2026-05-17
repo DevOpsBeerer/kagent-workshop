@@ -20,13 +20,29 @@
       ]
     },
     {
-      "title": "Verify the installation",
-      "explanation": "Confirm the kagent CRDs are registered, the controller is `Running`, and any default ModelConfig that ships with the demo profile is visible.\n\nAny per-scenario `ModelConfig` is provisioned by the mission that needs it; an empty list at this point is fine.",
+      "title": "List the kagent CRDs",
+      "explanation": "kagent extends Kubernetes with its own custom resource kinds (CRDs). The API server now knows how to handle an `Agent` the same way it handles a `Deployment`, which is what lets every Artemis tour describe its agent in YAML and `kubectl apply` it.\n\nRun the command below to confirm the new kinds are registered. You should see at least:\n\n- `agents.kagent.dev`: the agent itself (model, tools, prompt).\n- `modelconfigs.kagent.dev`: the LLM binding.\n- `toolservers.kagent.dev` and `remotemcpservers.kagent.dev`: the tool surface.\n\nThese kinds are what every UC tour will create.",
       "commands": [
-        { "label": "List kagent CRDs", "command": "kubectl get crds | grep kagent" },
-        { "label": "Check controller pod", "command": "kubectl get pods -n kagent" },
-        { "label": "Check ModelConfigs", "command": "kubectl get modelconfig -n kagent" }
+        { "label": "List kagent CRDs", "command": "kubectl get crds | grep kagent" }
       ]
+    },
+    {
+      "title": "Find the controller pod",
+      "explanation": "The kagent **controller** is the workhorse that watches your CRDs and turns them into running things. When you create an `Agent` resource, the controller wires up its tools, binds the model, and stands up the request surface so the agent can actually answer questions.\n\nThe command below lists every pod in the `kagent` namespace. You want a `kagent-controller-...` pod in `Running` state, alongside a few helpers (UI, tool servers, postgres, etc.).",
+      "commands": [
+        { "label": "List pods in the kagent namespace", "command": "kubectl get pods -n kagent" }
+      ]
+    },
+    {
+      "title": "See the default ModelConfig",
+      "explanation": "A `ModelConfig` is how an agent declares which LLM to use: provider, model name, and a reference to the credentials. Every agent points at a ModelConfig by name.\n\nThe demo profile pre-creates `default-model-config` so every Artemis agent (UC1 through UC4) can reuse the same one without each scenario wiring up its own credentials. The command below should show exactly that single ModelConfig in the `kagent` namespace.",
+      "commands": [
+        { "label": "List ModelConfigs", "command": "kubectl get modelconfig -n kagent" }
+      ]
+    },
+    {
+      "title": "Take a look at the dashboard",
+      "explanation": "kagent is up and the resources you just inspected (CRDs, controller, ModelConfig) are all reachable from a single web UI. Open it now so it is not a surprise when UC1 asks you to chat with an agent in it.\n\nUse the **dashboard** button in this workshop-tour extension (top of the tour pane) to open the kagent web dashboard in your browser. You should see the kagent UI load with the empty agents list (per-UC agents land later, on each scenario's apply).\n\nClose the browser tab when done or leave it open for UC1. UC0 is complete."
     }
   ]
 }

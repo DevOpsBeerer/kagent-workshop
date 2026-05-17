@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 6
-last_updated: "2026-05-05T17:10:00Z"
+last_updated: "2026-05-17T15:30:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -1083,8 +1083,8 @@ sprints:
     end_date: "2026-05-15"
     capacity_points: 30
     committed_points: 26
-    completed_points: 0
-    status: "not_started"
+    completed_points: 2
+    status: "in_progress"
     stories:
       - story_id: "STORY-036"
         title: "UC0 dashboard bridge step"
@@ -1093,8 +1093,20 @@ sprints:
         nfrs: ["NFR-010"]
         points: 2
         owner: "Clément Raussin"
-        status: "not_started"
-        # Dry-run finding 2026-05-05 16:30, severity issue.
+        status: "completed"
+        completion_date: "2026-05-17"
+        actual_points: 2
+        # Dry-run finding 2026-05-05 16:30, severity issue. Two changes in
+        # the same /dev-story session: (a) the original AC's dashboard
+        # bridge step (no commands[], prose only, points participant at the
+        # workshop-tour extension's dashboard button per UC1 Beat 3 pattern
+        # post-commit 58d200f), AND (b) an in-flight operator-requested
+        # split of the previous *Verify the installation* step into three
+        # atomic steps (List the kagent CRDs, Find the controller pod, See
+        # the default ModelConfig), each with a short pedagogical lead so
+        # the participant builds a mental model of what kagent just
+        # installed. UC0 now has 6 steps total. Scope grew but stayed
+        # 2 pts (commands unchanged, new prose is short).
       - story_id: "STORY-037"
         title: "UC1 framing: name the user-visible symptom alongside the lore"
         epic: "EPIC-002"
@@ -1173,7 +1185,7 @@ metrics:
   total_epics: 4
   total_stories: 42
   total_points: 131
-  stories_completed: 33
+  stories_completed: 34
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 8
+  stories_not_started: 7

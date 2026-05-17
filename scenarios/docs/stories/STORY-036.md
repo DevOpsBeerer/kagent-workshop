@@ -3,7 +3,7 @@
 **Epic:** EPIC-001 (foundational conventions / prep tour)
 **Priority:** Should Have
 **Story Points:** 2
-**Status:** Not Started
+**Status:** Completed (2026-05-17)
 **Assigned To:** Clément Raussin
 **Created:** 2026-05-05
 **Sprint:** 6 (M6 post-dry-run patch, 2026-05-06 → 2026-05-15)
@@ -90,5 +90,32 @@ The current UC0 ends on three `kubectl` verification commands (CRDs, controller 
 
 **Status History:**
 - 2026-05-05: Created (Scrum Master, /create-story, post dry-run).
+- 2026-05-17: Implemented (Developer, /dev-story).
 
-**Actual Effort:** TBD.
+**Actual Effort:** 2 points (matched estimate).
+
+### Implementation Notes (2026-05-17)
+
+The original AC said "Step 4 has exactly one `commands[]` entry that opens the dashboard, identical mechanism to UC1 Beat 3 (`kagent dashboard`)". Between this story's creation and its implementation, commit `58d200f` (2026-05-11) refactored UC1 Beat 3 to drop the `kagent dashboard` CLI step and use the workshop-tour extension's built-in **dashboard** button instead. STORY-036 followed that updated pattern: step 4 has **no** `commands[]`, only an `explanation` that tells the participant to click the extension's dashboard button.
+
+Changes:
+
+- `uc0/tour.json`: split the previous *Verify the installation* step into three atomic steps (one resource per step, with a tight pedagogical lead so the participant understands what they are looking at): **List the kagent CRDs**, **Find the controller pod**, **See the default ModelConfig**. Each new step has exactly one `kubectl` command and a short explanation that names the resource and why it matters. Then a new step *Take a look at the dashboard* (prose only, no CLI command) tells the participant to use the workshop-tour extension's dashboard button. UC0 now has **6 steps** total.
+- `uc0/_README.md`: bumped *four steps* to *six steps*; rewrote the *The six steps* section with one bullet per atomic step (3 verify-split steps + dashboard step); refreshed the *Files in this directory* block ("4-step" → "6-step"); added STORY-036 to References.
+- Root `README.md`: UC0 row description updated ("flat 4 steps" → "flat 6 steps") and the suggested-ordering paragraph rewritten to mention the resource walk-through alongside the dashboard landing; UC0 path link updated to the renamed `_README.md` filename (the underscore was introduced by an earlier rename, separate from this story).
+
+The verify split was added in-flight at the operator's request during /dev-story: the original AC asked for one extra step (dashboard bridge); the participant pedagogy is significantly better with one step per resource (CRDs / controller / ModelConfig) so the participant builds a mental model of what kagent just installed, instead of running three commands in a row without context. The story scope grew from +1 step to +4 steps, still 2 pts of work because the new explanations are short and the underlying commands are unchanged.
+
+`make validate-tours` green over all 5 tours.
+
+### AC sign-off
+
+- [x] `uc0/tour.json` has 6 steps in order (was specced for 4; verify-split added in-flight, see Implementation Notes).
+- [x] Step *Take a look at the dashboard* follows the same mechanism as UC1 Beat 3 (extension button, no CLI command) per commit `58d200f`.
+- [x] Dashboard step explanation tells the participant to click the dashboard button and observe the UI loading.
+- [x] Verify-split steps each have a tight lead explaining the resource (CRDs / controller / ModelConfig) plus one `kubectl` command.
+- [x] `uc0/_README.md` updated: step count, files block, step list, References.
+- [x] Root `README.md` UC0 row updated: "flat 6 steps".
+- [x] `make validate-tours` green on all 5 tours.
+- [x] No em dashes in any new prose (operator preference).
+- [ ] PR cross-review by Quentin (NFR-008) — lands when the diff is opened as a PR.

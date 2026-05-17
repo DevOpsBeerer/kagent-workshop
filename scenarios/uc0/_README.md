@@ -6,17 +6,17 @@
 **Type:** Prep tour (run-this-first — see `docs/tour-content-conventions.md` §`Prep tours`)
 **FR / NFR:** FR-006 (tour content convention), NFR-009 / NFR-010 / NFR-011
 
-UC0 is the workshop's run-this-first prep tour. It installs kagent on the participant's vCluster slice so UC1–UC4 can run with a working agent runtime.
+UC0 is the workshop's run-this-first prep tour. It installs kagent on the participant's vCluster slice and lands them in the kagent web dashboard so UC1–UC4 can run with a working agent runtime and a UI they have already seen once.
 
 ## Files in this directory
 
 ```
 uc0/
-  README.md          this file
-  tour.json          3-step prep tour
+  _README.md         this file
+  tour.json          6-step prep tour
 ```
 
-UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no diagnostic agent CRD to ship. The three tour steps drive `kagent install --profile demo` directly against the participant's slice.
+UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no diagnostic agent CRD to ship. The six tour steps drive `kagent install --profile demo --timeout 15m` against the participant's slice, walk them through the three resources kagent just landed on the cluster (CRDs, controller pod, default ModelConfig), then point them at the kagent web dashboard via the workshop-tour extension's dashboard button.
 
 ## Prerequisites
 
@@ -24,11 +24,14 @@ UC0 has **no** `manifests/` or `agents/` — there is no scenario app, and no di
 - `kubectl` and the `kagent` CLI on `PATH` (slice setup).
 - A reachable Kubernetes cluster — the per-participant vCluster slice. UC0's first step verifies this.
 
-## The three steps
+## The six steps
 
 1. **Check your cluster** — `kubectl config current-context` + `kubectl get nodes`.
 2. **Install kagent via CLI** — `kagent install --profile demo --timeout 15m` then `kubectl rollout status deployment/kagent-controller -n kagent`. The `--profile demo` choice is documented in the tour step's explanation; rationale: UC3 reuses the demo profile's pre-packaged Prometheus / Grafana agents (architecture L300). The `--timeout 15m` is critical on first-install setups (notably kind / Mac) — see *Install-timeout rationale* below.
-3. **Verify the installation** — kagent CRDs registered, controller pod `Running`, `default-model-config` ModelConfig in the `kagent` namespace.
+3. **List the kagent CRDs** — `kubectl get crds | grep kagent`. One step per resource family kagent just registered (`agents.kagent.dev`, `modelconfigs.kagent.dev`, `toolservers.kagent.dev`, `remotemcpservers.kagent.dev`). Lets the participant see that kagent is API-server-native rather than running on the side.
+4. **Find the controller pod** — `kubectl get pods -n kagent`. Surfaces the `kagent-controller-*` pod and the support pods (UI, tool servers, postgres). Step explanation names the controller as the workhorse that reconciles CRDs into running things.
+5. **See the default ModelConfig** — `kubectl get modelconfig -n kagent`. Surfaces the `default-model-config` resource the demo profile pre-creates. Step explanation names the ModelConfig as the per-agent LLM binding and notes that every Artemis UC reuses this single one.
+6. **Take a look at the dashboard** — no command; the participant clicks the workshop-tour extension's **dashboard** button to open the kagent web UI in their browser. This bridges UC0 to UC1: by the time UC1 asks the participant to chat with `artemis-mission-control-debugger` in the dashboard, they have already seen the UI load once. Steps 3 / 4 / 5 / 6 added by STORY-036 (verify split + dashboard bridge, post 2026-05-05 dry-run).
 
 ## Why a "prep tour" exception?
 
@@ -61,6 +64,6 @@ Reproduced live on kind on 2026-05-13: with default 5 min the install reports `c
 ## References
 
 - **Convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) §`Prep tours`, §`The 4 beats`, and §`The no-spoiler rule` (sub-rule *No meta-references in prose*).
-- **Stories:** [`../docs/stories/STORY-033.md`](../docs/stories/STORY-033.md) (UC0 install + tour); [`../docs/stories/STORY-034.md`](../docs/stories/STORY-034.md) (relocation of audit notes from `tour.json` to this README).
+- **Stories:** [`../docs/stories/STORY-033.md`](../docs/stories/STORY-033.md) (UC0 install + tour); [`../docs/stories/STORY-034.md`](../docs/stories/STORY-034.md) (relocation of audit notes from `tour.json` to this README); [`../docs/stories/STORY-036.md`](../docs/stories/STORY-036.md) (dashboard bridge step 4, post dry-run).
 - **kagent v0.9.0 release:** root [`README.md`](../README.md) "Install kagent" section.
 - **Naming vocabulary:** [`../docs/artemis-naming.md`](../docs/artemis-naming.md).

@@ -50,13 +50,13 @@ Authors running the local dev loop (see below) should pin the same version.
 
 | UC  | Scenario                                       | Path                       | Tour ID                          |
 | --- | ---------------------------------------------- | -------------------------- | -------------------------------- |
-| UC0 | Install kagent (run-this-first prep tour)      | [`uc0/`](uc0/README.md)    | `kagent-uc0-install`             |
+| UC0 | Install kagent (run-this-first prep tour)      | [`uc0/`](uc0/_README.md)   | `kagent-uc0-install`             |
 | UC1 | ImagePullBackOff                               | [`uc1/`](uc1/README.md)    | `kagent-uc1-imagepullbackoff`    |
 | UC2 | Pod Pending (taint mismatch)                   | [`uc2/`](uc2/README.md)    | `kagent-uc2-pod-pending`         |
 | UC3 | OOMKilled + on-the-fly Grafana dashboard       | [`uc3/`](uc3/README.md)    | `kagent-uc3-oom-killed`          |
 | UC4 | Multi-agent coordinator (a2a) + custom MCP     | [`uc4/`](uc4/README.md)    | `kagent-uc4-coordinator`         |
 
-**Suggested ordering:** UC0 → UC1 → UC2 → UC3 → UC4. UC0 installs kagent on the participant's slice; UC1 establishes the single-agent / single-source pattern; UC2 adds multi-tool correlation; UC3 brings external observability; UC4 is the multi-agent climax with the custom MCP and the visible bulb-colour payoff. UC0 is a [prep tour](docs/tour-content-conventions.md#prep-tours-uc0-exception) — flat 3 steps, no diagnostic agent — while UC1–UC4 follow the [4-beat mission framing](docs/tour-content-conventions.md#the-4-beats).
+**Suggested ordering:** UC0 → UC1 → UC2 → UC3 → UC4. UC0 installs kagent on the participant's slice, walks them through the three resources kagent just landed (CRDs, controller, ModelConfig), and lands them in the kagent web dashboard; UC1 establishes the single-agent / single-source pattern; UC2 adds multi-tool correlation; UC3 brings external observability; UC4 is the multi-agent climax with the custom MCP and the visible bulb-colour payoff. UC0 is a [prep tour](docs/tour-content-conventions.md#prep-tours-uc0-exception) — flat 6 steps, no diagnostic agent — while UC1–UC4 follow the [4-beat mission framing](docs/tour-content-conventions.md#the-4-beats).
 
 ## Artemis lore index
 
