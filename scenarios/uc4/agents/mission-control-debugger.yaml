@@ -1,13 +1,21 @@
-# UC1 diagnostic agent — diagnoses ImagePullBackOff on the mission-control deployment.
+# Artemis mission-control debugger agent. Read-only diagnoser for the
+# `mission-control` Deployment in the `artemis-uc1` namespace.
 #
-# Tool surface (per FR-008 AC "smallest tool set sufficient"):
+# Why this lives under `uc4/agents/` (STORY-045, post-pivot):
+#   - UC1's tour no longer deploys a custom agent. It uses kagent's
+#     built-in `k8s-agent` (KubeAssist) via the dashboard chat surface,
+#     with a 2-prompt flow (diagnose then propose remediation command).
+#   - UC4's coordinator (`uc4/agents/agent.yaml`) still delegates to
+#     this debugger by name as one of its three a2a specialists, so
+#     the CRD has to be applied as part of UC4's bundle.
+#
+# Tool surface (read-only):
 #   - kubectl get pod / kubectl describe pod / kubectl get events
 #
 # kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD
 # does not exist in v0.9.0; cf. STORY-005 finding). The `kagent-tool-server`
 # RemoteMCPServer ships with kagent's demo profile and exposes the kubectl
-# read tools used here. Tool names below are the kagent-native names —
-# same surface UC2/UC3/UC4 use.
+# read tools used here.
 apiVersion: kagent.dev/v1alpha2
 kind: Agent
 metadata:

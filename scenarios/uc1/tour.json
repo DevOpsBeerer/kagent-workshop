@@ -5,7 +5,7 @@
   "steps": [
     {
       "title": "Mission setup — bring today's roster online",
-      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the bundle below to your vCluster — namespace, service, deployment, and the on-call debugger agent that'll be ready in the kagent dashboard when you need it. Once the applies complete, the roster should be reachable on the cluster.\n\nFour files are dropped into your workspace by this step (`fileEdits`): three manifests under `uc1/manifests/` and one Agent CRD under `uc1/agents/`. The two `kubectl apply -f` commands below send them to the cluster in order.",
+      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the bundle below to your vCluster: namespace, service, and deployment. Once the apply completes, the roster should be reachable on the cluster.\n\nThree files are dropped into your workspace by this step (`fileEdits`), all under `uc1/manifests/`. The `kubectl apply -f` command below sends them to the cluster. The diagnostic agent you will talk to later in this tour is `k8s-agent`, kagent's built-in generic Kubernetes troubleshooter; it is already running in the cluster as part of kagent's demo profile, no extra deploy needed.",
       "fileEdits": [
         {
           "type": "create",
@@ -24,22 +24,12 @@
           "path": "uc1/manifests/20-deployment.yaml",
           "overwrite": true,
           "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: mission-control\n  namespace: artemis-uc1\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc1\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: mission-control\n  template:\n    metadata:\n      labels:\n        app: mission-control\n    spec:\n      containers:\n        - name: mission-control\n          # Tag deliberately not published — produces ImagePullBackOff on first pull (FR-008).\n          image: rg.fr-par.scw.cloud/apogasa/mission-control:v999\n          ports:\n            - name: http\n              containerPort: 8000\n          env:\n            - name: APP_IDENTITY\n              value: mission-control\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"64Mi\"\n            limits:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n"
-        },
-        {
-          "type": "create",
-          "path": "uc1/agents/agent.yaml",
-          "overwrite": true,
-          "content": "# UC1 diagnostic agent — diagnoses ImagePullBackOff on the mission-control deployment.\n#\n# Tool surface (per FR-008 AC \"smallest tool set sufficient\"):\n#   - kubectl get pod / kubectl describe pod / kubectl get events\n#\n# kagent v0.9.0 sources tools from MCP servers, not a `Tool` CRD (the CRD\n# does not exist in v0.9.0; cf. STORY-005 finding). The `kagent-tool-server`\n# RemoteMCPServer ships with kagent's demo profile and exposes the kubectl\n# read tools used here. Tool names below are the kagent-native names —\n# same surface UC2/UC3/UC4 use.\napiVersion: kagent.dev/v1alpha2\nkind: Agent\nmetadata:\n  name: artemis-mission-control-debugger\n  namespace: kagent\n  labels:\n    kagent-workshop/uc: uc1\nspec:\n  type: Declarative\n  description: |\n    Diagnoses why the Artemis `mission-control` deployment is not coming up\n    in the `artemis-uc1` namespace.\n  declarative:\n    modelConfig: default-model-config\n    systemMessage: |\n      You are an Artemis mission-control on-call SRE. Your job is to diagnose\n      why the `mission-control` Deployment in the `artemis-uc1` namespace is\n      not coming up, and report a single sentence of root cause plus a one-line\n      remediation hint.\n\n      Use ONLY the kubectl read tools provided. Do not attempt to apply, patch,\n      or delete any resource.\n\n      Diagnostic loop:\n\n        1. `k8s_get_resources` with kind=Pod and namespace=artemis-uc1 — list\n           the pods in the namespace. Pick the `mission-control-…` pod.\n        2. `k8s_describe_resource` with kind=Pod, namespace=artemis-uc1, and\n           the pod name from step 1. Read the phase, the container status,\n           and the recent events at the bottom.\n\n Be concise. The participant is running through a 5-minute tour and\n      needs the answer, not a tutorial.\n    tools:\n      - type: McpServer\n        mcpServer:\n          apiGroup: kagent.dev\n          kind: RemoteMCPServer\n          name: kagent-tool-server\n          namespace: kagent\n          toolNames:\n            - k8s_get_resources\n            - k8s_describe_resource\n            - k8s_get_events\n"
         }
       ],
       "commands": [
         {
           "label": "Apply the manifests",
           "command": "kubectl apply -f uc1/manifests/"
-        },
-        {
-          "label": "Apply the on-call debugger agent",
-          "command": "kubectl apply -f uc1/agents/"
         }
       ]
     },
@@ -55,21 +45,17 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`artemis-mission-control-debugger`** (namespace `kagent`) and paste the following prompt:\n\n> The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.\n\nThe agent has the same Kubernetes read tools you ran by hand (`get pod`, `describe pod`, `get events`) — only it correlates them in one synthesis. Read the response directly in the chat surface."
+      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`k8s-agent`** through the kagent dashboard. `k8s-agent` is the generic Kubernetes troubleshooting agent that ships with kagent's demo profile, already running in the `kagent` namespace.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`k8s-agent`** (namespace `kagent`) and walk through the two prompts below in order.\n\n**Prompt 1: diagnose.** Paste this and read the agent's synthesis:\n\n> In the `artemis-uc1` namespace, what is failing?\n\nYou should see something like:\n\n> The `mission-control` pod in `artemis-uc1` is stuck in `ImagePullBackOff`. The kubelet cannot pull the container image `rg.fr-par.scw.cloud/apogasa/mission-control:v999` because that tag is not published in the registry.\n\n**Prompt 2: ask for the remediation command.** Once you have the root cause, ask the agent for the exact kubectl fix. Paste:\n\n> Propose the kubectl command to roll the `mission-control` deployment forward to image tag `v1.0.0`.\n\nYou should see something like:\n\n> ```\n> kubectl set image deployment/mission-control mission-control=rg.fr-par.scw.cloud/apogasa/mission-control:v1.0.0 -n artemis-uc1\n> ```\n\nCopy that command. You will run it yourself in the next step."
     },
     {
       "title": "Mission recovery — roll the roster forward to the published tag",
-      "explanation": "The agent named the bad tag and pointed at the right one. Apply the recommended fix below to update the Deployment in place — `kubectl set image` rolls `mission-control` forward to its most recent published tag, `v1.0.0`. The kubelet will pull the new image and bring the roster online within ~30 s.\n\nWhen the command completes, re-run `kubectl get pods -n artemis-uc1` if you want to watch the Pod transition out of the stuck state into `Running`.",
+      "explanation": "The agent in Beat 3 named the bad tag and proposed the exact `kubectl set image` command. Run it now to update the Deployment in place: it rolls `mission-control` forward to its most recent published tag, `v1.0.0`. The kubelet will pull the new image and bring the roster online within ~30 s.\n\nWhen the command completes, re-run `kubectl get pods -n artemis-uc1` if you want to watch the Pod transition out of the stuck state into `Running`.",
       "commands": [
         {
           "label": "Roll the Deployment forward to v1.0.0",
           "command": "kubectl set image -n artemis-uc1 deployment/mission-control mission-control=rg.fr-par.scw.cloud/apogasa/mission-control:v1.0.0"
         }
       ]
-    },
-    {
-      "title": "What we'd have done by hand",
-      "explanation": "Without the agent, you would have run three `kubectl` commands and joined the evidence yourself:\n\n```bash\nkubectl get pods -n artemis-uc1\nkubectl describe pod -n artemis-uc1 -l app=mission-control\nkubectl get events -n artemis-uc1 --sort-by=.lastTimestamp\n```\n\nThree pieces of state to combine into a verdict: the pod's `Waiting` phase, the container's `ImagePullBackOff` reason, and the kubelet's repeated pull-failed events. The agent ran the same three tools and returned a single sentence of root cause: **the deploy targets `mission-control:v999`, which was never published**.\n\nYou ran one command (`kubectl get pods`) just to see something was off — you didn't have to walk the rest. Multiplied across the dozen incidents an on-call rotation handles in a week, that's the value the workshop is selling."
     }
   ]
 }

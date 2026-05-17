@@ -1082,8 +1082,8 @@ sprints:
     start_date: "2026-05-06"
     end_date: "2026-05-15"
     capacity_points: 30
-    committed_points: 26
-    completed_points: 4
+    committed_points: 28
+    completed_points: 6
     status: "in_progress"
     stories:
       - story_id: "STORY-036"
@@ -1135,6 +1135,13 @@ sprints:
         owner: "Clément Raussin"
         status: "not_started"
         # Dry-run finding 2026-05-05 16:32, severity issue. Multi-step Beat 3 + spike on agent write capability.
+        # Sub-step (e) verify prompt and (f) self-fix spike re-shaped by
+        # STORY-045: UC1 pivoted to kagent's built-in `k8s-agent` with a
+        # 2-prompt flow (diagnose + ask for the kubectl command). The
+        # participant runs the command manually, so Beat 4 itself is the
+        # verify step and no separate verify prompt is needed. Re-scope
+        # STORY-038 to UI explore + kubectl parity + hello + diagnostic
+        # prompt only before pulling it.
       - story_id: "STORY-039"
         title: "UC2 Beat 3 CLI output: pipe to jq or refit"
         epic: "EPIC-002"
@@ -1180,6 +1187,26 @@ sprints:
         owner: "Quentin Rodic"
         status: "not_started"
         # Dry-run finding 2026-05-05 16:45, severity BLOCKER. `kmcp build` fails on first command without env var.
+      - story_id: "STORY-045"
+        title: "UC1 pivot to built-in k8s-agent (2-prompt flow, drop custom debugger CRD from UC1)"
+        epic: "EPIC-002"
+        frs: ["FR-009"]
+        nfrs: ["NFR-008"]
+        points: 2
+        owner: "Clément Raussin"
+        status: "completed"
+        completion_date: "2026-05-17"
+        actual_points: 2
+        # Operator pivot 2026-05-17, post live-test finding on UC1's hint-only
+        # agent response. Replaces the in-session STORY-044 sketch (collaborative
+        # self-fix via k8s_patch_resource), which was created but never committed.
+        # New shape: UC1 drops its custom Agent CRD, talks to kagent's built-in
+        # k8s-agent (KubeAssist, demo profile) through the dashboard chat, in two
+        # prompts (Prompt 1 diagnoses globally; Prompt 2 asks for the kubectl
+        # remediation command). Beat 4 stays manual (participant applies the
+        # returned `kubectl set image`). Mission-control-debugger Agent CRD
+        # moved to uc4/agents/mission-control-debugger.yaml so UC4's coordinator
+        # a2a delegation keeps resolving; uc1/agents/ folder deleted.
 
 velocity:
   sprint_1: 24
@@ -1193,9 +1220,9 @@ velocity:
 
 metrics:
   total_epics: 4
-  total_stories: 42
-  total_points: 131
-  stories_completed: 35
+  total_stories: 43
+  total_points: 133
+  stories_completed: 36
   stories_in_progress: 0
   stories_skipped: 1
   stories_not_started: 6
