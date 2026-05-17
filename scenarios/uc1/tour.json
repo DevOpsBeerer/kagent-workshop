@@ -45,7 +45,7 @@
     },
     {
       "title": "Mission status check — is the roster live?",
-      "explanation": "Mission control should be online by now. Check that the roster pod has come up. Give the kubelet ~30 s to settle before running the command — if the pod is not Running, you'll see it here, and that's our cue to call in help.",
+      "explanation": "Mission control should be online by now. Today's pad-shift roster depends on it: every crew member opening their dashboard at shift start hits the `mission-control` deployment to pull their schedule.\n\nGive the kubelet ~30 s to settle, then run the command below to check the roster pod's state. The pod should be `Running` and `Ready` if the deployment is healthy.",
       "commands": [
         {
           "label": "List pods",

@@ -45,7 +45,7 @@
     },
     {
       "title": "Mission status check — is the replacement live?",
-      "explanation": "The replacement should be online by now. Check that the replica pod has come up. Give the kubelet ~30 s to settle before running the command — if the pod is not Running, you'll see it here, and that's our cue to call in help.",
+      "explanation": "The replacement should be online by now. We added a second `mission-control` replica because the heavier pad-shift load is about to start and one replica won't keep up: every crew member opening their dashboard at shift start hits this deployment.\n\nGive the kubelet ~30 s to settle, then run the command below to check the new replica's state. It should be `Running` and `Ready` alongside the existing one.",
       "commands": [
         {
           "label": "List pods",

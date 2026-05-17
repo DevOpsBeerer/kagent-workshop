@@ -6,7 +6,7 @@ project_name: "kagent-workshop-scenarios"
 project_level: 2
 sprint_plan_path: "docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md"
 current_sprint: 6
-last_updated: "2026-05-17T15:30:00Z"
+last_updated: "2026-05-17T16:15:00Z"
 
 # Sprint windows are milestone-aligned (M1 → M5 from PRD/brief).
 # Capacity model: 2 senior devs, 6 productive h/day, 2 h per story point.
@@ -1083,7 +1083,7 @@ sprints:
     end_date: "2026-05-15"
     capacity_points: 30
     committed_points: 26
-    completed_points: 2
+    completed_points: 4
     status: "in_progress"
     stories:
       - story_id: "STORY-036"
@@ -1114,8 +1114,18 @@ sprints:
         nfrs: ["NFR-009"]
         points: 2
         owner: "Clément Raussin"
-        status: "not_started"
-        # Dry-run finding 2026-05-05 16:31, severity issue.
+        status: "completed"
+        completion_date: "2026-05-17"
+        actual_points: 2
+        # Dry-run finding 2026-05-05 16:31, severity issue. Rewrote UC1 + UC2
+        # Beat 2 explanations around a three-part structure: short lore intro
+        # naming the application's purpose, tutorial objective stating the
+        # healthy state to look for (Running + Ready), and NO failure
+        # announcement (the agent in Beat 3 stays the canonical reveal).
+        # First iteration accidentally spoiled the failure ("crew member
+        # would get nothing back"); operator caught it and the revised
+        # framing keeps the prose discovery-friendly. Convention §The 4 beats
+        # Beat 2 row + Quick checklist rewritten to codify the structure.
       - story_id: "STORY-038"
         title: "UC1 Beat 3 expansion: UI explore, kubectl parity, chat, verify, optional self-fix spike"
         epic: "EPIC-002"
@@ -1185,7 +1195,7 @@ metrics:
   total_epics: 4
   total_stories: 42
   total_points: 131
-  stories_completed: 34
+  stories_completed: 35
   stories_in_progress: 0
   stories_skipped: 1
-  stories_not_started: 7
+  stories_not_started: 6

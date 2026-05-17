@@ -4,7 +4,7 @@
 **Priority:** Should Have
 **Story Points:** 2
 **Assigned To:** Clément Raussin (UC1 owner)
-**Status:** Not Started
+**Status:** Completed (2026-05-17)
 **Created:** 2026-05-05
 **Sprint:** 6 (M6 post-dry-run patch, 2026-05-06 → 2026-05-15)
 **Source:** Dry-run journal 2026-05-05 16:31, severity `issue`.
@@ -88,5 +88,35 @@ The current UC1 Beat 2 (Mission status check) frames the friction inside the Art
 
 **Status History:**
 - 2026-05-05: Created (Scrum Master, /create-story, post dry-run).
+- 2026-05-17: Implemented (Developer, /dev-story).
 
-**Actual Effort:** TBD.
+**Actual Effort:** 2 points (matched estimate).
+
+### Implementation Notes (2026-05-17)
+
+Pure prose tweak, no command / manifest / agent change. Beat 2 explanations of UC1 and UC2 were re-framed around a clear three-part structure: (1) short lore intro naming the application's purpose in the mission, (2) tutorial objective stating the healthy state the participant should see, (3) **no failure announcement**. The participant observes the raw pod state; the agent in Beat 3 stays the canonical reveal of what's actually wrong.
+
+The first iteration of this story appended a "what a crew member would see" failure-side sentence to each Beat 2 explanation. The operator caught that this implicitly spoiled the workshop's discovery moment ("if the pod is not Running, that's our cue to call in help" + "a crew member would get nothing back: the user-visible failure"). The revised framing keeps the lore intro but drops the failure announcement; the participant's path to the agent is no longer conditioned on "I saw the pod is broken", it is simply the next tour step.
+
+Per-file:
+
+- `uc1/tour.json` Beat 2 `explanation`: rewritten with the new three-part structure. Lore intro: every crew member opening their dashboard at shift start hits `mission-control`. Objective: pod should be `Running` and `Ready`. No mention of failure modes.
+- `uc2/tour.json` Beat 2 `explanation`: same shape. Lore intro: heavier pad-shift load motivates a second replica. Objective: new replica should be `Running` and `Ready` alongside the existing one.
+- `docs/tour-content-conventions.md` §`The 4 beats` Beat 2 row: rewritten to codify the three-part structure (lore intro + tutorial objective, no pre-announced failure, agent in Beat 3 is the canonical reveal).
+- `docs/tour-content-conventions.md` §`Quick checklist` Beat 2 entry: matching item.
+
+A wider banned-word scan than the convention's base list (adding `pending`, `crashloop`, `imagepullbackoff`, `oomkilled`, `our cue to call`, `user-visible failure`) confirms both UC1 and UC2 Beat 2 are spoiler-free.
+
+`make validate-tours` green over all 5 tours. No em dashes in any new prose.
+
+### AC sign-off
+
+- [x] UC1 Beat 2 explanation has a short lore intro naming the application's purpose in tutorial register.
+- [x] Same pattern applied to UC2 Beat 2.
+- [x] **Stronger than original AC:** explanation does **not** announce the failure. The agent in Beat 3 stays the canonical reveal of what's wrong (per operator clarification during /dev-story).
+- [x] No-spoiler rule holds (no bug-class names, no banned words, no failure-side language).
+- [x] `docs/tour-content-conventions.md` §`The 4 beats` Beat 2 row rewritten around the three-part structure.
+- [x] §`Quick checklist` Beat 2 matching item.
+- [x] `make validate-tours` green over all 5 tours.
+- [x] No em dashes in any new prose.
+- [ ] PR cross-reviewed by Quentin (NFR-008) — lands when the diff is opened as a PR.
