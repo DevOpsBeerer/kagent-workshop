@@ -149,13 +149,21 @@ data:
             action: replace
             target_label: __metrics_path__
             regex: (.+)
-          # Surface namespace + service name as labels on every series.
+          # Surface namespace + service name + pod name as labels on every
+          # series. `__meta_kubernetes_pod_name` is populated by endpoints SD
+          # when the endpoint is backed by a Pod — UC3's rover Service is, so
+          # series carry `kubernetes_pod_name=lunar-rover-telemetry-...` and
+          # agents querying by pod name (the natural filter for a per-pod
+          # memory curve) get non-empty results.
           - source_labels: [__meta_kubernetes_namespace]
             action: replace
             target_label: kubernetes_namespace
           - source_labels: [__meta_kubernetes_service_name]
             action: replace
             target_label: kubernetes_service_name
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             action: replace
             target_label: kubernetes_port_name

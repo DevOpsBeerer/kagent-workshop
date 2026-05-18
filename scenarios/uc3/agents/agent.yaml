@@ -81,15 +81,60 @@ spec:
            the most recent Warning event, report that, skip Grafana.
          - No restart and no anomaly → state that plainly and stop.
       5. **(Memory-pressure path only) Visualise the curve.** Delegate to
-         `observability-agent` with:
-         - Goal: "Create a Grafana panel showing the resident memory of
-           pod `<pod-name>` in namespace `<namespace>` over the last 10
-           minutes."
-         - PromQL: `process_resident_memory_bytes{kubernetes_namespace="<namespace>",kubernetes_pod_name="<pod-name>"}`
-           (or use `kubernetes_service_name=...` if the service name is
-           known and the pod name is volatile).
-         - Time range: last 10 minutes.
-         Capture the dashboard URL from the reply.
+         `observability-agent` with a natural-language goal — do NOT
+         prescribe the PromQL or the labels. The sub-agent knows what
+         metrics exist in this Prometheus and which labels are
+         queryable; its job is to translate the goal into a working
+         query.
+
+         **Instruct the sub-agent to discover before it queries.**
+         Spell out a three-step discovery in the delegation, in order:
+
+         (a) **List the available Grafana datasources first.** The
+             sub-agent must not assume a Prometheus datasource exists,
+             which one is default, or what its UID is. Use the
+             Grafana MCP's datasources-list tool (or equivalent) and
+             pick the Prometheus-typed datasource.
+         (b) **Against that datasource, list the available metric
+             names** (Prometheus's `/api/v1/label/__name__/values` or
+             the MCP's metric-names tool) and pick a memory metric
+             that actually exists.
+         (c) **For that metric, list the available label names and
+             values** (`/api/v1/labels`, `/api/v1/series?match[]=
+             <metric>`, `/api/v1/label/<label>/values` or MCP
+             equivalents) and only filter on labels the metric
+             carries with values that are actually present.
+
+         Building a query against a datasource, a metric, or a label
+         that may not exist is the failure mode this step is designed
+         to prevent.
+
+         Goal phrasing (replace the bracketed bits with what you read
+         from describe-pod in step 3):
+         > "Build a Grafana panel showing the container memory usage
+         >  of the pod `<pod-name>` (container `<container-name>`) in
+         >  namespace `<namespace>` over the last 10 minutes. The
+         >  container's memory limit is `<limit>` and it was just OOM-
+         >  killed — the panel should make the working-set climb up to
+         >  the limit visible. Discover before you query: first list
+         >  Grafana datasources and pick the Prometheus one, then list
+         >  the metric names available on that datasource and pick a
+         >  memory metric that exists, then list the labels on that
+         >  metric and only filter on labels with values that are
+         >  actually present. Do not assume a specific datasource UID,
+         >  metric name (e.g. `process_resident_memory_bytes`), or
+         >  label (e.g. `kubernetes_pod_name`) exists."
+
+         Time range: last 10 minutes. Capture the dashboard URL from
+         the reply.
+
+         **If `observability-agent` returns an error, no-data, or an
+         empty panel,** retry ONCE with a follow-up that names the
+         specific problem the sub-agent surfaced — e.g. "your previous
+         query returned no data; re-run the discovery (datasource →
+         metric names → labels) and pick a different metric or label
+         filter based on what you find". Do not pre-suggest which
+         datasource or metric to use; the sub-agent owns that choice.
       6. **Report** the diagnosis in the format below.
 
       # Diagnosis format (always exactly these three lines)
