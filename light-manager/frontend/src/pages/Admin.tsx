@@ -117,7 +117,7 @@ function AdminPanel() {
                   type="text"
                   value={newLogin}
                   onChange={(e) => setNewLogin(e.target.value)}
-                  placeholder="operator-41"
+                  placeholder="p41"
                   autoComplete="off"
                   spellCheck={false}
                   className="input-fld"

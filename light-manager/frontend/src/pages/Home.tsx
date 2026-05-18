@@ -46,7 +46,7 @@ export default function Home() {
                   type="text"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
-                  placeholder="operator-01"
+                  placeholder="p01"
                   autoFocus
                   autoComplete="off"
                   spellCheck={false}
