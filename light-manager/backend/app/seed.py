@@ -9,7 +9,7 @@ BULBS_PER_USER = 3
 
 
 def _participant_login(index: int) -> str:
-    return f"operator-{index:02d}"
+    return f"p{index:02d}"
 
 
 def create_user_with_bulbs(session: Session, login: str) -> User:
@@ -27,7 +27,7 @@ def create_user_with_bulbs(session: Session, login: str) -> User:
 def seed_participants() -> int:
     """Idempotent seeding: only runs when the users table is empty.
 
-    Seeds the 40 ARTEMIS operator consoles (operator-01..operator-40), each with
+    Seeds the 40 ARTEMIS operator consoles (p01..p40), each with
     three mission-status beacons defaulted to RGB(0,0,0). Returns the number of
     operators created (0 if already seeded).
     """

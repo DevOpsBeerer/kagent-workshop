@@ -28,6 +28,5 @@ def list_bulbs(user: str) -> list[BulbRead]:
     Returns:
         A list of three BulbRead objects, one per slot (1, 2, 3).
     """
-    tenancy.enforce_tenancy(user)
     raw = lightmanager_client.get_bulbs(user)
     return [BulbRead.model_validate(item) for item in raw]

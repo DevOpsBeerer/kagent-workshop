@@ -8,8 +8,8 @@ def test_list_users_returns_seeded_logins():
         response = client.get("/api/users")
     assert response.status_code == 200
     logins = response.json()
-    assert "operator-01" in logins
-    assert "operator-40" in logins
+    assert "p01" in logins
+    assert "p40" in logins
     assert len(logins) >= 40
 
 
@@ -31,7 +31,7 @@ def test_create_user_returns_201_and_creates_three_bulbs():
 
 def test_create_user_409_when_login_already_exists():
     with TestClient(app) as client:
-        response = client.post("/api/users", json={"login": "operator-01"})
+        response = client.post("/api/users", json={"login": "p01"})
     assert response.status_code == 409
 
 

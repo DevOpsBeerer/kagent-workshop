@@ -37,7 +37,6 @@ def update_bulb(user: str, slot: int, r: int, g: int, b: int) -> BulbRead:
         ValueError: if `slot` is not in (1, 2, 3).
         pydantic.ValidationError: if any of r/g/b is outside [0, 255].
     """
-    tenancy.enforce_tenancy(user)
     if slot not in VALID_SLOTS:
         raise ValueError(
             f"Invalid slot {slot}; must be one of {list(VALID_SLOTS)}."

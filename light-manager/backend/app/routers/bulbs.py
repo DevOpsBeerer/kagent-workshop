@@ -43,7 +43,7 @@ def _ensure_slot_valid(slot: int) -> None:
         )
 
 
-UserParam = Annotated[str, Query(min_length=1, description="ARTEMIS operator login (e.g. operator-01)")]
+UserParam = Annotated[str, Query(min_length=1, description="ARTEMIS operator login (e.g. p01)")]
 
 
 @router.get("", response_model=list[BulbRead], summary="Read the 3 mission beacons of an operator")
