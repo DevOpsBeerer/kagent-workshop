@@ -9,7 +9,7 @@ UC4 is the workshop's climax. The participant has just seen UC1 (single-agent, s
 
 ## Artemis narrative
 
-The mission coordinator is on shift today. Three Artemis subsystems are checking in at once — mission control's incoming roster, a replacement replica on the launch pad, and the lunar rover's telemetry uplink — and all three are showing signs of friction simultaneously. The participant plays the on-call: applies the full fleet as a routine deployment, pushes a short telemetry stream from inside the rover, discovers in one `kubectl get pods` that three subsystems are in three different states of trouble at once, and hands the cross-subsystem assessment to **`artemis-mission-coordinator`** from the operational CLI. The coordinator fans out to its three on-call specialists in parallel, collects each verdict, paints the participant's three status bulbs accordingly, and replies with a structured summary in the terminal. See [`../docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc, and [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) for the 4-beat structure (mission setup → status check → call the agent → manual recap).
+The mission coordinator is on shift today. Three Artemis subsystems are checking in at once — mission control's incoming roster, a replacement replica on the launch pad, and the lunar rover's telemetry uplink — and all three are showing signs of friction simultaneously. The participant plays the on-call: applies the full fleet as a routine deployment, pushes a short telemetry stream from inside the rover, discovers in one `kubectl get pods` that three subsystems are in three different states of trouble at once, and hands the cross-subsystem assessment to **`artemis-mission-coordinator`** from the operational CLI. The coordinator fans out to two on-call specialists in parallel (one of them — kagent's built-in `k8s-agent` — covers slots 1 and 2 with separate sub-tasks; `artemis-rover-telemetry-debugger` covers slot 3), collects each verdict, paints the participant's three status bulbs accordingly, and replies with a structured summary. The participant then asks the coordinator to **remediate** what it found, and the coordinator delegates fix-tasks to the same specialists; bulbs flip green as each patch lands. See [`../docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc, and [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) for the canonical 4-beat structure UC4 extends to **5 beats** to cover the fix flow (mission setup → status check → diagnose → fix → verify+recap).
 
 ## Prerequisites
 
@@ -25,18 +25,16 @@ UC4 inherits UC3's observability dependency — the lunar rover's `monitoring=pr
 
 `make uc4-up` declares `uc4-up: observability-up` so the bundle + bridge come up transparently with UC4. See [`../uc3/README.md`](../uc3/README.md#prerequisite--observability-bundle--kagent-bridge) for the bundle's full design rationale.
 
-### 3. Sibling specialist Agent CRDs in `kagent` namespace
+### 3. A2A specialists in `kagent` namespace
 
-The coordinator's `tools[].type: Agent` references resolve same-namespace only in kagent v0.9.0 (no `namespace` field on the agent ref — STORY-019 §Spike findings; re-confirmed by STORY-025 validation). All four diagnostic agents therefore live in the `kagent` namespace:
+The coordinator's `tools[].type: Agent` references resolve same-namespace only in kagent v0.9.0 (no `namespace` field on the agent ref — STORY-019 §Spike findings). After the UC1–UC4 redesign, the coordinator delegates to two specialists, not three:
 
-| Agent CRD                                  | Lives in `kagent` ns because of                                        |
-| ------------------------------------------ | ---------------------------------------------------------------------- |
-| `artemis-mission-control-debugger` (UC1)   | [`../uc1/agents/agent.yaml`](../uc1/agents/agent.yaml) — original placement |
-| `artemis-launch-pad-debugger` (UC2)        | [`../uc2/agents/agent.yaml`](../uc2/agents/agent.yaml) — STORY-025 inline patch moved it from `artemis-uc2` to `kagent` for a2a delegation reachability |
-| `artemis-rover-telemetry-debugger` (UC3)   | [`../uc3/agents/agent.yaml`](../uc3/agents/agent.yaml) — STORY-019 placement |
-| `artemis-mission-coordinator` (UC4)        | [`agents/agent.yaml`](agents/agent.yaml) — STORY-025                   |
+| Specialist                          | Source                                                        | Used for                                                                                |
+| ----------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `k8s-agent`                         | kagent built-in (installed by `make kagent-install`, demo profile) — already in `kagent` ns | Slots 1 and 2 — general K8s diagnose + remediate (image-pull and scheduling sub-tasks). Replaces the older read-only `artemis-mission-control-debugger` and `artemis-launch-pad-debugger`, which were biased toward their UC's specific symptom and lacked mutate tools. |
+| `artemis-rover-telemetry-debugger`  | [`../uc3/agents/agent.yaml`](../uc3/agents/agent.yaml) — UC3 ships it, UC4 reuses it via A2A | Slot 3 — combines K8s read+mutate with A2A delegation to kagent's `observability-agent` for the Grafana memory panel; remediates by patching the rover Deployment's memory limit. |
 
-`make uc{1,2,3,4}-up` each apply their `agents/` directory; the coordinator's a2a delegation only works once all three specialist Agents have reached `Accepted=True`.
+`make uc{3,4}-up` apply the relevant `agents/` directories. UC1 and UC2 no longer ship Agent CRDs that UC4's coordinator depends on (UC2 ships its own `artemis-image-fetcher` for the UC2 tour only; UC4 does not delegate to it).
 
 ### 4. Custom bulb MCP (STORY-022, STORY-023)
 
@@ -57,7 +55,7 @@ A single namespace, `artemis-uc4`, hosts three Deployments in three different st
 | Deployment `…-imagepull`  | `mission-control-imagepull`   | `artemis-uc4`     | Image `mission-control:v999` (unpublished) → `ImagePullBackOff`. UC1-style symptom. Tolerates the synthetic taint (its symptom is image-pull-side, not scheduling-side).                             |
 | Deployment `…-pending`    | `mission-control-pending`     | `artemis-uc4`     | Image `mission-control:v1.0.0` (real). No toleration for the synthetic taint → `Pending` with `FailedScheduling: untolerated taint`. UC2-style symptom. `strategy.type: Recreate` (see Author notes). |
 | Deployment `…-telemetry`  | `lunar-rover-telemetry`       | `artemis-uc4`     | Image `lunar-rover-telemetry:v1.0.0` (real), `resources.limits.memory: 64Mi`. Pod stays `Running 1/1` until the tour's Beat 1 leak loop drives it into OOMKilled. UC3-style symptom. Tolerates the taint. |
-| Agent CRD                 | `artemis-mission-coordinator` | `kagent`          | Declarative type. a2a delegation to the three UC specialist debuggers + RemoteMCPServer references to `kagent-tool-server` (k8s read) + `artemis-bulb-mcp` (bulb writes).                            |
+| Agent CRD                 | `artemis-mission-coordinator` | `kagent`          | Declarative type. A2A delegation to kagent's built-in `k8s-agent` (slots 1+2) and to `artemis-rover-telemetry-debugger` (slot 3) + RemoteMCPServer references to `kagent-tool-server` (`k8s_get_resources` for the pre-fan-out sanity check) + `artemis-bulb-mcp` (bulb writes). |
 
 The three Deployment symptoms surface on different timelines: `…-imagepull` enters `ImagePullBackOff` within ~30 s of apply (kubelet's first pull retry); `…-pending` enters `Pending` within ~5 s of the bootstrap Job completing (which is within ~10 s of apply); `…-telemetry` stays Running until the tour's Beat 1 leak trigger drives it through one OOM cycle (~10-15 s after the trigger fires). All three are visible simultaneously in `kubectl get pods -n artemis-uc4` ~60 s after `kubectl apply -f uc4/manifests/` + the leak trigger.
 
@@ -71,36 +69,43 @@ The coordinator is **`artemis-mission-coordinator`** ([`agents/agent.yaml`](agen
 | ---------------- | -------------------------------------------- | ----------------------------------------------------------- |
 | K8s read (light) | `kagent-tool-server` (RemoteMCPServer, kagent ns) | `k8s_get_resources`                                         |
 | Bulb writes      | `artemis-bulb-mcp` (RemoteMCPServer, kagent ns)   | `list_bulbs`, `update_bulb`                                 |
-| A2a sub-agents   | three sibling Agent CRDs in `kagent` ns       | `artemis-mission-control-debugger`, `artemis-launch-pad-debugger`, `artemis-rover-telemetry-debugger` |
+| A2A sub-agents   | two specialists in `kagent` ns               | `k8s-agent` (kagent built-in, demo profile — slots 1+2), `artemis-rover-telemetry-debugger` (slot 3) |
 
-The K8s read surface is deliberately tight (no `describe`, no `events`) — the coordinator does NOT do deep diagnosis itself. Its job is the *fan-out + bulb-write + summary*; each specialist handles the deep diagnosis for its own namespace.
+The K8s read surface is deliberately tight (no `describe`, no `events`) — the coordinator does NOT do deep diagnosis itself. Its job is the *fan-out + bulb-write + summary*; each specialist handles the deep diagnosis (and remediation, when asked) for its own slot.
 
-### Coordination flow
+### Coordination flow (two modes)
 
-The system prompt encodes a deterministic execution recipe (per [`agents/agent.yaml`](agents/agent.yaml)):
+The system prompt encodes two modes — diagnose and remediate (per [`agents/agent.yaml`](agents/agent.yaml)):
 
-1. **(Optional) `list_bulbs(user="${WORKSHOP_PARTICIPANT_LOGIN}")`** — reads the current bulb state. Debugging aid; not strictly required.
-2. **(Optional) `k8s_get_resources` on `artemis-uc4`** — confirms the three Deployments (`mission-control-imagepull`, `mission-control-pending`, `lunar-rover-telemetry`) exist. If any is missing, stop and report the gap — do not delegate to a specialist for a subsystem that isn't deployed.
-3. **Delegate to all three specialists in parallel where the runtime supports it.** Each delegation is `tools[].type: Agent` + `tools[].agent.name: <specialist>`; the kagent v0.9.0 runtime resolves the agent same-namespace and calls into its reasoning loop with the sub-task prompt the coordinator constructs. Each specialist returns a one-sentence verdict for its own subsystem.
-4. **Map each verdict to a colour** per the FR-017 table (next section).
-5. **Three `update_bulb` calls** — one per slot, each carrying `user="${WORKSHOP_PARTICIPANT_LOGIN}"` to satisfy the tenancy guard. All three slots are written even when the verdict is *symptom absent* (green is a positive status signal, not a no-op).
-6. **Structured reply** to the participant:
-   - Three bulb-state lines (slot N: <colour>, <verdict>).
-   - Three remediation-hint lines (the coordinator copies the specialist's hint verbatim — it is authoritative).
+**Diagnose mode** (Beat 3 of the tour):
 
-**Total round-trip from the participant's perspective:** one `kagent invoke` → one terminal print → three bulbs change colour in the light-manager UI tab simultaneously. The fan-out + correlation + medium-translation happen inside kagent's reasoning loop.
+1. **(Optional) `list_bulbs(user="${WORKSHOP_PARTICIPANT_LOGIN}")`** — reads the current bulb state.
+2. **(Optional) `k8s_get_resources` on the named namespace** — confirms the three Deployments exist. If any is missing, stop and report the gap.
+3. **Delegate three diagnosis sub-tasks** (parallel where supported): slots 1+2 to `k8s-agent`, slot 3 to `artemis-rover-telemetry-debugger`. Each returns a verdict.
+4. **Map each verdict to a colour** per the FR-017 table.
+5. **Three `update_bulb` calls** — one per slot, each carrying `user="${WORKSHOP_PARTICIPANT_LOGIN}"`. All three slots are written (green is a positive status signal, not a no-op).
+6. **Structured reply** to the participant: three bulb-state lines + three remediation hints (copied verbatim from the specialists).
 
-### Slot ↔ sub-agent mapping (FR-017)
+**Remediate mode** (Beat 4 of the tour — triggered by an explicit "fix / patch / remediate" phrasing in the participant's request):
 
-The coordinator's system prompt locks the slot ↔ subsystem mapping. The mapping is also in [`../docs/artemis-naming.md`](../docs/artemis-naming.md#fr-017-bulb--verdict-mapping-uc4) for cross-reference:
+1. **Delegate three remediation sub-tasks** to the same specialists, with prompts that name the fix path (e.g. "patch the Deployment's image to the most-recently-published tag", "remove the synthetic taint from all nodes", "raise the memory limit on the rover Deployment with a workaround caveat").
+2. **Specialists run their fix paths** — `k8s-agent` uses `k8s_patch_resource` / `k8s_apply_manifest` for slots 1+2; `artemis-rover-telemetry-debugger` uses `k8s_patch_resource` for slot 3.
+3. **`update_bulb` each newly-green slot** as confirmations come in.
+4. **Reply** with what was patched per slot, including the rover's workaround caveat (raising the memory limit hides a real memory leak in the application code — a production fix lives in `apps/lunar-rover-telemetry/`, not in the manifest).
 
-| Bulb slot | Sub-agent                                  | Subsystem (UC1/2/3-style symptom in `artemis-uc4`)                        |
-| --------- | ------------------------------------------ | ------------------------------------------------------------------------- |
-| 1         | `artemis-mission-control-debugger`         | UC1 — image-pull symptom on `mission-control-imagepull` Deployment.       |
-| 2         | `artemis-launch-pad-debugger`              | UC2 — scheduling symptom on `mission-control-pending` Deployment.         |
-| 3         | `artemis-rover-telemetry-debugger`         | UC3 — OOM symptom on `lunar-rover-telemetry` Deployment.                  |
+**Total round-trip from the participant's perspective:** two `kagent invoke` calls (diagnose, then fix), six bulb-colour transitions in the light-manager UI tab, one structured terminal reply per call.
 
-The mapping is intentionally aligned with the workshop arc (slot N ↔ UC N) so a participant who has just walked through UC1/UC2/UC3 reads the bulb panel as a recap of the four diagnostic axes.
+### Slot ↔ specialist mapping (FR-017)
+
+The coordinator's system prompt locks the slot ↔ subsystem ↔ specialist mapping. The mapping is also in [`../docs/artemis-naming.md`](../docs/artemis-naming.md#fr-017-bulb--verdict-mapping-uc4) for cross-reference:
+
+| Bulb slot | Deployment name pattern        | Specialist                          | Subsystem                                                                  |
+| --------- | ------------------------------ | ----------------------------------- | -------------------------------------------------------------------------- |
+| 1         | `mission-control-imagepull`    | `k8s-agent` (kagent built-in)       | UC1-family — image-pull anomaly.                                            |
+| 2         | `mission-control-pending`      | `k8s-agent` (kagent built-in)       | UC2-family — scheduling anomaly.                                            |
+| 3         | `lunar-rover-telemetry`        | `artemis-rover-telemetry-debugger`  | UC3-family — restart / memory anomaly with Grafana correlation via A2A.    |
+
+The mapping is intentionally aligned with the workshop arc (slot N ↔ UC N) so a participant who has just walked through UC1/UC2/UC3 reads the bulb panel as a recap of the diagnostic axes.
 
 ### Verdict ↔ colour mapping (FR-017)
 
@@ -112,15 +117,25 @@ The coordinator's system prompt locks the verdict ↔ colour mapping. The mappin
 | Symptom absent (specialist found no anomaly)                 | green  | `(0, 255, 0)`    |
 | Inconclusive / partial finding (specialist could not reach a verdict) | amber  | `(255, 191, 0)`  |
 
-In the workshop's expected end-state, all three slots flip to red simultaneously — UC4's broken state is *deliberately* the three-symptom case (the cluster mess STORY-024 produces). The other colour states are not reachable from UC4's stock cluster state alone; they exist to make the coordinator's mapping robust if the participant experiments (e.g. patches one Deployment to remove its symptom and re-asks the coordinator).
+In the workshop's expected end-state after Beat 3, all three slots flip to **red** simultaneously — UC4's broken state is *deliberately* the three-symptom case. After Beat 4 (the participant asks the coordinator to remediate), the same three slots flip to **green** as each specialist confirms its patch. Amber is reserved for the inconclusive path (specialist could not reach a verdict — namespace unreachable, workload missing) and stays out of the happy-path tour.
 
-**Expected coordinator output** (the structured reply, deterministic to within phrasing):
+**Expected coordinator output — Beat 3 (diagnose, guidance, not deterministic):**
 
 > Three bulbs are now lit: slot 1 red, slot 2 red, slot 3 red.
 >
-> - **Slot 1 (UC1)** — `mission-control-imagepull` in `artemis-uc4` cannot pull its container image: the deploy targets `mission-control:v999`, which was never published. *Remediation:* roll the deploy back to the last published tag (`mission-control:v1.0.0` per the deployment's `artemis.kagent.dev/last-published-tag` annotation).
-> - **Slot 2 (UC2)** — `mission-control-pending` in `artemis-uc4` cannot land any Pod: the only node carries a synthetic `artemis.kagent.dev/launch-pad-fault=true:NoSchedule` taint the Pod does not tolerate. *Remediation:* remove the synthetic taint or add a matching toleration to the Deployment.
-> - **Slot 3 (UC3)** — `lunar-rover-telemetry` in `artemis-uc4` keeps restarting: the container's memory limit (64 Mi) is below the working set the telemetry stream produces, so the kernel OOM-kills it. *Remediation:* raise `resources.limits.memory` or fix the leak in the application code.
+> - **Slot 1** — image-pull anomaly on `mission-control-imagepull` (specialist verdict from `k8s-agent`, copied verbatim).
+> - **Slot 2** — scheduling anomaly on `mission-control-pending` (specialist verdict from `k8s-agent`).
+> - **Slot 3** — restart / memory anomaly on `lunar-rover-telemetry` (specialist verdict from `artemis-rover-telemetry-debugger`, including a Grafana panel URL from its `observability-agent` delegation).
+
+Phrasing varies because the underlying specialists (`k8s-agent` especially) have general system prompts and produce variable wording. The coordinator does NOT rephrase the specialists' replies — it copies them.
+
+**Expected coordinator output — Beat 4 (remediate, guidance):**
+
+> Three slots updated: slot 1 green, slot 2 green, slot 3 green.
+>
+> - **Slot 1** — patched `mission-control-imagepull` image to `:v1.0.0` (specialist confirmation).
+> - **Slot 2** — removed synthetic taint `artemis.kagent.dev/launch-pad-fault` from all nodes.
+> - **Slot 3** — raised `lunar-rover-telemetry` memory limit to 128Mi. **Workaround caveat:** this hides a memory leak in the application code rather than fixing it. A real fix lives in `apps/lunar-rover-telemetry/`, not in the manifest.
 
 ## Tenancy guarantee (FR-015 + NFR-012)
 
@@ -139,7 +154,7 @@ The trade-off vs a shared-MCP design (one MCP pod, N vClusters): per-vCluster co
 ```
 uc4/
   README.md                              this file
-  tour.json                              4-beat workshop-tour content (FR-015, STORY-026)
+  tour.json                              5-beat workshop-tour content (mission setup → status check → diagnose → fix → verify+recap)
   manifests/
     00-namespace.yaml                    artemis-uc4 namespace
     10-rbac.yaml                         ServiceAccount + ClusterRole/Binding + Role/Binding for the bootstrap Job
@@ -156,7 +171,7 @@ UC4 also depends on, but does not contain:
 
 - [`../mcp/`](../mcp/) — the custom bulb MCP (image source + KMCP config + per-vCluster manifests + RemoteMCPServer CRD).
 - [`../infra/observability/kagent-bridge-services.yaml`](../infra/observability/kagent-bridge-services.yaml) — the kagent ↔ artemis-observability namespace bridge (Prom + Graf ExternalName Services in `kagent` ns).
-- [`../uc1/agents/agent.yaml`](../uc1/agents/agent.yaml), [`../uc2/agents/agent.yaml`](../uc2/agents/agent.yaml), [`../uc3/agents/agent.yaml`](../uc3/agents/agent.yaml) — the three specialist Agent CRDs the coordinator delegates to.
+- [`../uc3/agents/agent.yaml`](../uc3/agents/agent.yaml) — the `artemis-rover-telemetry-debugger` Agent CRD the coordinator delegates to for slot 3. (Slots 1 and 2 are handled by kagent's built-in `k8s-agent`, installed by `make kagent-install` — UC1/UC2 do not contribute Agent CRDs the coordinator depends on.)
 
 Manifest filenames are numbered so `kubectl apply -f uc4/manifests/` applies them in dependency order (namespace → RBAC → Job → Services → Deployments).
 
@@ -196,17 +211,14 @@ For each cold-deploy iteration:
    ```
    The `RemoteMCPServer artemis-bulb-mcp` resource may initially show `Accepted=False` for ~7 s due to a pod-creation/reconciler race (STORY-023 + STORY-025 documented this); auto-recovers within 60 s, or trigger a re-reconcile via `kubectl annotate rmcps -n kagent artemis-bulb-mcp poke=$(date +%s) --overwrite`.
 
-4. **Bring up the three specialist Agent CRDs** in `kagent` namespace. Each lives in its own UC's `agents/` directory:
+4. **Bring up the rover-telemetry specialist** in `kagent` namespace (slots 1+2 will be served by the built-in `k8s-agent`, which `make kagent-install` already deployed):
    ```bash
-   kubectl apply -f uc1/agents/
-   kubectl apply -f uc2/agents/   # post-STORY-025 patch: namespace=kagent, MCP=kagent-tool-server, modelConfig=default-model-config
    kubectl apply -f uc3/agents/
    ```
-   Verify all three reach `Accepted=True` within ~30 s:
+   Verify it reaches `Accepted=True` within ~30 s:
    ```bash
-   kubectl get agent -n kagent -o wide | grep artemis-
-   # → artemis-mission-control-debugger     Declarative   python   True   True
-   # → artemis-launch-pad-debugger          Declarative   python   True   True
+   kubectl get agent -n kagent -o wide | grep -E 'k8s-agent|artemis-rover-telemetry-debugger'
+   # → k8s-agent                            Declarative   python   True   True
    # → artemis-rover-telemetry-debugger     Declarative   python   True   True
    ```
 
@@ -260,14 +272,15 @@ For each cold-deploy iteration:
    # → list_bulbs update_bulb
    ```
 
-9. **(Optional) Exercise the coordinator end-to-end** — gated on a real `artemis-llm-credentials` Secret in `kagent` ns + a reachable `light-manager` backend. On a bare local kind without these, the four checks (a)-(d) above are sufficient for STORY-027's NFR-003 self-author smoke.
+9. **(Optional) Exercise the coordinator end-to-end** — gated on a real LLM credentials Secret in `kagent` ns + a reachable `light-manager` backend. On a bare local kind without these, the four checks (a)-(d) above are sufficient for the NFR-003 self-author smoke.
    ```bash
-   kagent invoke \
-       --agent artemis-mission-coordinator \
-       --namespace kagent \
-       --task 'Run a fleet-wide status check on the Artemis subsystems active in the artemis-uc4 namespace and broadcast each verdict to my status bulbs.'
-   # Expected: three bulbs flip to red in the light-manager UI; structured summary
-   # prints to the terminal within ~30-45 s.
+   # Diagnose mode (Beat 3 of the tour) — three bulbs flip to red
+   kagent invoke --agent artemis-mission-coordinator --namespace kagent \
+       --task 'Run a fleet-wide diagnosis on the Artemis subsystems active in the artemis-uc4 namespace and broadcast each verdict to my status bulbs.'
+
+   # Remediate mode (Beat 4 of the tour) — three bulbs flip to green
+   kagent invoke --agent artemis-mission-coordinator --namespace kagent \
+       --task 'Now remediate every red subsystem in artemis-uc4 by delegating the fix to the matching specialist. Update my bulbs as you go.'
    ```
 
 10. **Tear down before the next iteration.**
@@ -275,8 +288,8 @@ For each cold-deploy iteration:
     make uc4-down              # delete uc4/manifests + uc4/agents
     make mcp-down              # delete mcp/manifests (artemis-bulb-mcp)
     make observability-down    # delete infra/observability (bundle + bridge)
-    kubectl delete -f uc1/agents/ -f uc2/agents/ -f uc3/agents/   # specialist Agents
-    kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault-   # clear the synthetic taint
+    kubectl delete -f uc3/agents/                                       # rover-telemetry specialist
+    kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault-      # clear the synthetic taint (no-op if Beat 4 already removed it)
     ```
     For a strict cold deploy (recommended for NFR-003), `make kind-down` between iterations and skip the per-resource teardowns above.
 
@@ -322,11 +335,11 @@ The workshop's intent is to teach **multi-agent fan-out + custom MCP as a diagno
 
 The notes below capture engineering rationale and spike outcomes that participants don't read. Authors come here to find the *why* behind UC4's non-obvious choices.
 
-### kagent v0.9.0 a2a wiring shape (STORY-019 spike, re-exercised by STORY-025)
+### kagent v0.9.0 A2A wiring shape (STORY-019 spike, re-exercised by STORY-025)
 
-The architecture (L300 + L457) said UC4 reuses "the three UC sub-Agents for a2a delegation". STORY-019 first confirmed the v0.9.0 a2a reference shape against the cluster's own `observability-agent.spec`: `tools[].type: Agent` + `tools[].agent.name: <agent-name>`. **No `namespace` field** — the runtime resolves the sub-Agent same-namespace.
+The architecture (L300 + L457) originally said UC4 reuses "the three UC sub-Agents for A2A delegation". STORY-019 first confirmed the v0.9.0 A2A reference shape against the cluster's own `observability-agent.spec`: `tools[].type: Agent` + `tools[].agent.name: <agent-name>`. **No `namespace` field** — the runtime resolves the sub-Agent same-namespace.
 
-This is why all four diagnostic agents (UC1/UC2/UC3 + UC4 coordinator) live in `kagent` namespace per `docs/artemis-naming.md` L60. STORY-025 confirmed the constraint when authoring the UC4 coordinator: the coordinator references the three specialists by name only, and the kagent reasoning loop resolves them against the coordinator's own namespace.
+That's why every A2A target (kagent's built-in `k8s-agent`, the UC3 rover-telemetry specialist, the UC4 coordinator) lives in `kagent` namespace. The UC1–UC4 redesign collapses the old three-specialist setup (mission-control-debugger + launch-pad-debugger + rover-telemetry-debugger) into two (k8s-agent for slots 1+2; rover-telemetry-debugger for slot 3); the same-namespace constraint still holds.
 
 ### UC2 inline drift patch chain (STORY-024 + STORY-025)
 
@@ -370,14 +383,12 @@ STORY-023 documented this on first encounter. STORY-025 re-hit it during validat
 
 STORY-027 inherits a queue of retro items the upstream stories surfaced. Listed here as the consolidated retro plate ahead of M5:
 
-1. **UC2 manifest-side patches** (STORY-024) — image tag `:v1` → `:v1.0.0`, bootstrap shell `/bin/bash` → `/bin/sh`, Pending Deployment `strategy.type: Recreate`, tolerations on Job + imagepull Deployment + rover Deployment. ~10-line patch, identical surgery to UC4's.
-2. **UC2 agent-side patches** (STORY-025) — namespace, MCP server name, modelConfig. Already landed inline as part of STORY-025.
-3. **UC1 stale spec on cluster** — `artemis-mission-control-debugger` on the workshop cluster currently shows `Accepted=False` because the deployed spec references `kagent-tools-k8s` (not the corrected `kagent-tool-server` the repo ships). Single re-apply of `uc1/agents/` fixes it.
-4. **`make kagent-install` non-idempotency** — `helm install` vs `helm upgrade --install` (STORY-018 flagged). Hit by every cold-deploy iteration of UC3 + UC4. One-line Makefile fix.
-5. **`make audit-tours` extension** — STORY-026 nearly shipped comment-stripped `fileEdits` content; a byte-identity check between `fileEdits[].content` and on-disk `uc*/manifests/*.yaml` would have caught it at lint time.
-6. **kagent v0.9.0 a2a runtime parallelism semantics** — the coordinator's system prompt hedges "delegate in parallel where the runtime supports it" because we haven't confirmed whether `tools[].type: Agent` calls are issued in parallel by the kagent reasoning loop. STORY-028 timing observations during the dry-run will resolve this.
-7. **RemoteMCPServer reconcile race** — workshop-infrastructure docs candidate (above).
-8. **`make uc4-down` does not clear the synthetic taint** — the Job already completed, deleting its manifest doesn't undo the `kubectl taint`. The `make uc4-down` target could add a `kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault-` step, or document the manual step (currently in this README's *Recovery procedure*).
+1. **UC1–UC4 redesign follow-ups** — (a) the `mission-control-debugger.yaml` CRD removed from `uc4/agents/` (replaced by built-in `k8s-agent`); (b) UC2 fully pivoted to `image_fetcher` with the `fetcher` MCPServer; (c) UC3 prompt generalised, mutate tool added for UC4 reuse; (d) UC4 coordinator now delegates to two specialists instead of three, 5-beat tour with explicit fix flow.
+2. **`make kagent-install` non-idempotency** — `helm install` vs `helm upgrade --install` (STORY-018 flagged). Hit by every cold-deploy iteration of UC3 + UC4. One-line Makefile fix.
+3. **`make audit-tours` extension** — byte-identity check between `fileEdits[].content` and on-disk `uc*/manifests/*.yaml` to catch comment drift at lint time.
+4. **kagent v0.9.0 A2A runtime parallelism semantics** — the coordinator's system prompt hedges "delegate in parallel where the runtime supports it" because we haven't confirmed whether `tools[].type: Agent` calls are issued in parallel by the kagent reasoning loop. Dry-run timing observations will resolve this.
+5. **RemoteMCPServer reconcile race** — workshop-infrastructure docs candidate (above).
+6. **`make uc4-down` does not clear the synthetic taint** — the Job already completed, deleting its manifest doesn't undo the `kubectl taint`. The `make uc4-down` target could add a `kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault-` step, or document the manual step (currently in this README's *Recovery procedure*).
 
 ## Cleanup
 
@@ -396,6 +407,6 @@ make kind-down           # nuke the kind cluster entirely
 - **PRD:** [`../docs/prd-kagent-workshop-scenarios-2026-04-27.md`](../docs/prd-kagent-workshop-scenarios-2026-04-27.md) — FR-014 (UC4 multi-symptom + coordinator), FR-015 (UC4 tour), FR-016 (custom MCP), FR-017 (bulb-colour-as-diagnosis), NFR-001/002/003 (reliability), NFR-008 (cross-author review), NFR-012 (per-vCluster MCP tenancy).
 - **Architecture:** [`../docs/architecture-kagent-workshop-scenarios-2026-04-28.md`](../docs/architecture-kagent-workshop-scenarios-2026-04-28.md) §Component 6 (UC4) + §C5 (Custom MCP) + §C6 (Multi-symptom manifests) + L325 (tenancy contract) + L457 (coordination flow).
 - **Naming vocabulary:** [`../docs/artemis-naming.md`](../docs/artemis-naming.md) — UC4 row in the narrative arc, namespace + Deployment + Agent + ModelConfig + ToolServer rows; FR-017 bulb / verdict mapping table.
-- **Tour content convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) — the 4-beat mission-framing structure UC4's `tour.json` instantiates; the no-spoiler rule that scopes to tour fields only (this README is author-facing and exempt).
+- **Tour content convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) — the canonical 4-beat mission-framing structure UC4's `tour.json` extends to 5 beats (the extra beat covers the explicit fix flow); the no-spoiler rule that scopes to tour fields only (this README is author-facing and exempt).
 - **Sprint plan:** [`../docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md`](../docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md) §Sprint 3 (STORY-022 MCP source, STORY-023 MCP packaging) + §Sprint 4 (STORY-024 manifests, STORY-025 coordinator, STORY-026 tour, STORY-027 this README + cross-author repro).
 - **Per-story implementation traces:** [`../docs/stories/STORY-022.md`](../docs/stories/STORY-022.md), [`STORY-023.md`](../docs/stories/STORY-023.md), [`STORY-024.md`](../docs/stories/STORY-024.md), [`STORY-025.md`](../docs/stories/STORY-025.md), [`STORY-026.md`](../docs/stories/STORY-026.md), [`STORY-027.md`](../docs/stories/STORY-027.md). The six together document the full UC4 stack including spike findings, validation traces, and the consolidated Sprint-3 retro queue. STORY-028 (M5 dry-run) will close the recursive cross-author-repro deferral chain.

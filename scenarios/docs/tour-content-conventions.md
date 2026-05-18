@@ -12,9 +12,13 @@ The participant must reach the moment of friction *before* knowing the answer. I
 
 Each tour therefore frames the scenario as an Artemis mission the participant is operating, not as a debug exercise the tour walks them through. The bug is real, the cluster's evidence is honest, but the prose never pre-announces it.
 
-## The 4 beats
+## The 4 beats (canonical) and the 5-beat extension (UC4 only)
 
-Every `uc<N>/tour.json` has these four beats in order. Beats 1, 3, and 4 are exactly one step each. **Beat 2 is exactly one step in the typical case** — usually a single `kubectl get pods` that surfaces the friction ("the pod is not Running"). A second Beat-2 step is allowed only if the friction itself is invisible without a second observation (e.g. UC4 may use two if `kubectl get pods` alone doesn't make the multi-symptom mess legible). The deep manual diagnosis — `describe pod`, `get events`, node-side commands, etc. — lives in **Beat 4**, framed as the friction the participant skipped. Don't pre-walk Beat 4's commands inside Beat 2: they overlap and mute the agent's payoff.
+Every `uc<N>/tour.json` follows the canonical 4-beat structure below — **except UC4**, which extends it to 5 beats by splitting "call the agent" into a separate diagnose beat and a separate fix beat (the coordinator runs both). The canonical 4 beats are still the default; the 5-beat extension is reserved for tours that include an explicit agent-driven remediation flow.
+
+### Canonical 4-beat (UC1, UC2, UC3 — and any future single-agent diagnostic tour)
+
+Beats 1, 3, and 4 are exactly one step each. **Beat 2 is exactly one step in the typical case** — usually a single `kubectl get pods` that surfaces the friction ("the pod is not Running"). The deep manual diagnosis — `describe pod`, `get events`, node-side commands, etc. — lives in **Beat 4**, framed as the friction the participant skipped. Don't pre-walk Beat 4's commands inside Beat 2: they overlap and mute the agent's payoff.
 
 ```
 [Mission setup] ──► [Mission status check] ──► [Call the agent] ──► [Manual recap]
@@ -25,12 +29,31 @@ Every `uc<N>/tour.json` has these four beats in order. Beats 1, 3, and 4 are exa
 | ---- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 1    | `Mission setup — …`                                  | Frame the deployment as an Artemis mission objective. **No mention of what is wrong.** Drop manifests via `fileEdits` and apply.   | `fileEdits.create` (`overwrite: true`) for all `uc<N>/manifests/*.yaml`; `commands[]` with one `kubectl apply -f uc<N>/manifests/`.                                                       |
 | 2    | `Mission status check — …`                           | Minimal check, typically one `kubectl get pods`. The explanation opens with a **short lore intro naming the application's purpose** (what role it plays in the mission, who consumes it), then states the **tutorial objective** (what healthy state looks like, e.g. `Running` and `Ready`). It does **not** pre-announce the failure: the participant observes the pod state, and the agent in Beat 3 is the canonical reveal of what's wrong. Don't walk the full diagnosis here; that's Beat 4's job. | One `commands[]` entry per step, usually a single `kubectl get pods …`. One step in the typical case; a second step allowed only if the friction needs multi-resource observation to be visible (rare).  |
-| 3    | `Call the agent for help` (UI/chat or CLI invoke)    | Hand the problem to the kagent agent. UC1 = **UI/chat** (open dashboard, paste prompt). UC2/UC4 = **CLI invoke**. UC3 hybrid.       | UC1: one `commands[]` entry that opens the kagent UI, plus a markdown block with the exact prompt to paste. UC2/UC4: one `kagent invoke …` entry.                                          |
+| 3    | `Call the agent for help` (UI/chat or CLI invoke)    | Hand the problem to the kagent agent. UC1 = **UI/chat** (open dashboard, paste prompt). UC2 = **CLI invoke**. UC3 = **UI/chat** (agent surfaces a Grafana URL the participant clicks).       | UC1/UC3: one `commands[]` entry that opens the kagent UI, plus a markdown block with the exact prompt to paste. UC2: one `kagent invoke …` entry.                                          |
 | 4    | `What we'd have done by hand`                        | Manual recap. List the `kubectl` commands the agent ran on the participant's behalf, framed as friction-the-participant-skipped.   | No `commands[]`, no `fileEdits` — pure markdown.                                                                                                                                            |
 
 The titles can be lightly Artemis-themed (e.g. `Mission setup — bring today's roster online`) but must keep the beat label recognisable. The `workshop-tour` extension renders the titles verbatim.
 
 The 4-beat is a **refinement** of the 3-step *kubectl-way → agent-way → contrast* claim in PRD §147, not a contradiction: Beat 1 is the silent prelude added in front, Beats 2–4 are the renamed CLI baseline / agent step / contrast.
+
+### 5-beat extension (UC4 only — diagnose + fix flow)
+
+UC4's pedagogical hook is that the coordinator does not just diagnose — it also *remediates* (delegates fixes to its specialists). The 4-beat shape doesn't accommodate a clean separation between "ask the agent what's wrong" and "ask the agent to fix it", so UC4 splits Beat 3 in two:
+
+```
+[Mission setup] ──► [Mission status check] ──► [Ask the agent to diagnose] ──► [Ask the agent to fix] ──► [Verify + manual recap]
+   1 step              1 step                     exactly 1 step                  exactly 1 step             exactly 1 step
+```
+
+| Beat | Title shape                                          | Purpose                                                                                                                              |
+| ---- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | `Mission setup — …`                                  | Same as canonical. Brings up the multi-symptom mess.                                                                                  |
+| 2    | `Mission status check — …`                           | Same as canonical. One `kubectl get pods` surfaces N frictions in one listing.                                                        |
+| 3    | `Ask the <agent> to diagnose …`                      | First coordinator invocation. Coordinator delegates per-slot diagnosis sub-tasks; specialists return verdicts; bulbs flip to RED.    |
+| 4    | `Ask the <agent> to fix what it found`               | Second coordinator invocation, explicit remediation phrasing. Coordinator delegates fix sub-tasks; specialists run mutate tools; bulbs flip to GREEN as patches confirm. |
+| 5    | `Verify + what we'd have done by hand`               | One `kubectl get pods` to confirm + the canonical manual-recap content, expanded to include the remediation commands the participant would have run.                   |
+
+The 5-beat extension is restricted to tours that legitimately need it. Single-symptom diagnostic tours (UC1/UC2/UC3) stay 4-beat — adding a fix beat to them dilutes the agent-vs-CLI contrast without adding pedagogical value.
 
 ## Prep tours (UC0 exception)
 

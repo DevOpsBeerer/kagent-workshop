@@ -1,15 +1,15 @@
-# UC1 — ImagePullBackOff
+# UC1 — ImagePullBackOff (use the built-in k8s-agent)
 
 **Owner:** Clément Raussin
-**Milestone:** M2 (Sprint 2, 2026-05-04 → 2026-05-08)
+**Milestone:** M2 (Sprint 2) — pivoted to built-in `k8s-agent` in STORY-045
 **Tour ID:** `kagent-uc1-imagepullbackoff`
 **FR / NFR:** FR-008 (scenario package), FR-009 (tour), NFR-001/003/005/006
 
-UC1 is the workshop's opening scenario: the simplest single-agent diagnosis path. The participant first runs three `kubectl` commands to observe a broken `mission-control` deployment, then hands the same problem to a kagent agent that returns one synthesised root-cause sentence using the same read tools. UC1 establishes the "agent vs. CLI" comparison the rest of the workshop builds on.
+UC1 is the workshop's opening scenario: the simplest single-agent diagnosis path. The participant applies a deliberately broken `mission-control` Deployment, runs one `kubectl get pods` to see something's wrong, and hands the diagnosis to **kagent's built-in `k8s-agent`** (KubeAssist) through the kagent dashboard chat. The agent walks the same describe-pod / events tools the participant would have used by hand, names the root cause in one sentence, and (on a second prompt) hands back the exact `kubectl set image` command to roll the Deployment forward. UC1 establishes the "agent vs. CLI" comparison the rest of the workshop builds on, **without authoring anything** — the agent is already there, installed by `make kagent-install`.
 
 ## Artemis narrative
 
-Mission control is bringing today's on-shift roster online for the Artemis pad shift, but the new replica isn't reaching the cluster — the deploy went out at the end of yesterday's pad shift and the on-call has woken up to a stuck pod. The participant plays the on-call: applies the deployment as a routine mission setup, sweeps the pod and events as a status check, discovers the friction by hand, then hands the diagnosis to **`artemis-mission-control-debugger`** through the kagent dashboard chat. The agent's response in the chat closes the diagnostic loop in one synthesis. See [`docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc, and [`docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) for the 4-beat structure (mission setup → status check → call the agent → manual recap).
+Mission control is bringing today's on-shift roster online for the Artemis pad shift, but the new replica isn't reaching the cluster — the deploy went out at the end of yesterday's pad shift and the on-call has woken up to a stuck pod. The participant plays the on-call: applies the deployment as a routine mission setup, sweeps the pods as a status check, discovers the friction by hand, then hands the diagnosis to **`k8s-agent`** in the kagent dashboard chat (the agent is the generic Kubernetes troubleshooter shipped with kagent's demo profile, already running in the `kagent` namespace). A two-prompt flow — diagnose first, then ask for the remediation command — closes the loop. See [`../docs/artemis-naming.md`](../docs/artemis-naming.md#narrative-arc-uc1--uc4) for the full arc, and [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) for the canonical 4-beat structure (mission setup → status check → call the agent → manual recap).
 
 ## The bug
 
@@ -21,61 +21,59 @@ A single Deployment under one namespace, deliberately broken at the image-tag le
 | Deployment  | `mission-control`     | `artemis-uc1`         | `replicas: 1`, image `rg.fr-par.scw.cloud/apogasa/mission-control:v999` — **the broken bit**.   |
 | Service     | `mission-control`     | `artemis-uc1`         | ClusterIP, port 8000 → container port `http`. Present so a working pod would be reachable.  |
 
-The `mission-control` image is the FastAPI variant from `apps/mission-control/` (FR-007). Tag `:v1` exists and is used unbroken by UC2; `:v999` is intentionally not published. On apply, the kubelet attempts the pull, fails, backs off, and the Pod settles in `Waiting / ImagePullBackOff` (after one or two `ErrImagePull` cycles) within ~30 s on kind. Three pieces of state name the failure:
+The `mission-control` image is the FastAPI variant from `apps/mission-control/` (FR-007). Tag `:v1.0.0` exists and is reused (in `:v999`-broken form) by UC2's `artemis-uc2` namespace; `:v999` is intentionally not published in the registry. On apply, the kubelet attempts the pull, fails, backs off, and the Pod settles in `Waiting / ImagePullBackOff` (after one or two `ErrImagePull` cycles) within ~30 s. Three pieces of state name the failure:
 
 1. The Pod's phase: `Pending`, container state `Waiting` with reason `ImagePullBackOff`.
 2. The container's image reference: `rg.fr-par.scw.cloud/apogasa/mission-control:v999`.
 3. Recent events: repeated `Failed to pull image … manifest unknown` from the kubelet.
 
-In the tour, **Mission status check** is intentionally minimal — a single `kubectl get pods` that surfaces the friction (pod not Running). The full three-command diagnosis is what the participant *would* have walked manually without the agent; in the tour, the agent absorbs it, and Beat 4 (`What we'd have done by hand`) names what was skipped.
+In the tour, **Mission status check** is intentionally minimal — a single `kubectl get pods` that surfaces the friction (pod not Running). The full three-command diagnosis is what the participant *would* have walked manually without the agent; in the tour, the agent absorbs it.
 
-## Expected agent diagnosis
+## Expected agent behaviour
 
-The diagnostic agent is **`artemis-mission-control-debugger`** (see [`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It lives in the `kagent` namespace, references kagent's installed `default-model-config` ModelConfig (the canonical credentials slot across every Artemis agent — backed by the `artemis-llm-credentials` Secret in `kagent`), and sources tools from the `kagent-tool-server` RemoteMCPServer that ships with kagent's demo profile.
+The diagnostic agent is **`k8s-agent`** — kagent's built-in generic Kubernetes troubleshooter, installed in the `kagent` namespace by `make kagent-install` (demo profile). The participant does NOT deploy any custom `Agent` CRD for UC1; that's what makes UC1 the simplest tour.
 
-**Tool surface — exactly the three the participant just used manually:**
+**Tool surface** (kagent's k8s-agent ships with both read and mutate tools from `kagent-tool-server`):
 
-- `k8s_get_resources` (list pods in `artemis-uc1`)
-- `k8s_describe_resource` (describe the mission-control pod)
-- `k8s_get_events`
+- Read: `k8s_get_resources`, `k8s_describe_resource`, `k8s_get_events`, `k8s_get_pod_logs`, `k8s_get_resource_yaml`, `k8s_check_service_connectivity`, `k8s_get_available_api_resources`, `k8s_get_cluster_configuration`.
+- Mutate: `k8s_apply_manifest`, `k8s_patch_resource`, `k8s_create_resource`, `k8s_delete_resource`, `k8s_label_resource`, `k8s_annotate_resource`, plus the corresponding removes. UC1's tour only exercises the read tools — the *participant* runs the `kubectl set image` remediation themselves after the agent proposes it. (UC4 is where the agent runs mutations itself.)
 
-**Expected agent output** (one or two sentences, deterministic across runs to within phrasing):
+**The two-prompt flow** UC1's tour walks:
 
-> The `mission-control` Pod in `artemis-uc1` is in `ImagePullBackOff` because its container references `rg.fr-par.scw.cloud/apogasa/mission-control:v999`, an image tag that has never been published. Update the Deployment to a published tag (e.g. `:v1`) and re-apply.
+1. **Diagnose.** `In the artemis-uc1 namespace, what is failing?` — the agent runs `k8s_get_resources` + `k8s_describe_resource` and reports something like: *"The `mission-control` pod in `artemis-uc1` is stuck in `ImagePullBackOff`. The kubelet cannot pull the container image `rg.fr-par.scw.cloud/apogasa/mission-control:v999` because that tag is not published in the registry."*
+2. **Ask for the remediation command.** `Propose the kubectl command to roll the mission-control deployment forward to image tag v1.0.0.` — the agent returns `kubectl set image deployment/mission-control mission-control=rg.fr-par.scw.cloud/apogasa/mission-control:v1.0.0 -n artemis-uc1`. The participant runs that themselves in the next tour step.
 
-The pedagogical point made in the tour's Beat 4 ("What we'd have done by hand"): same tools, same evidence, three commands collapsed into one synthesis — the participant skipped them. UC2 scales this up to multi-resource correlation; UC3 to external observability; UC4 to multi-agent fan-out.
+The pedagogical point made in the tour's recap: same tools, same evidence, three commands collapsed into one synthesis — and the participant authored nothing. UC2 raises the stakes by having the participant **write their own Agent CRD**; UC3 introduces MCP and external observability; UC4 climaxes with multi-agent fan-out + a custom MCP.
 
 ## Files in this directory
 
 ```
 uc1/
   README.md          this file
-  tour.json          3-beat workshop-tour content (FR-009, STORY-013)
+  tour.json          4-beat workshop-tour content (FR-009)
   manifests/
     00-namespace.yaml      artemis-uc1 namespace
     10-service.yaml        ClusterIP for mission-control
     20-deployment.yaml     1-replica Deployment with the broken :v999 tag
-  agents/
-    agent.yaml             artemis-mission-control-debugger (kagent.dev/v1alpha2 Agent; references default-model-config)
 ```
+
+There is no `agents/` directory under UC1 — the agent UC1 talks to is `k8s-agent`, which lives in `kagent` ns and is owned by kagent's helm install. (UC2/UC3/UC4 all ship their own custom Agent CRDs because they teach the authoring side.)
 
 The manifest filenames are numbered so `kubectl apply -f uc1/manifests/` applies them in dependency order (namespace before namespaced resources).
 
 ## Reproduction (NFR-003 — 3/3 cold deploys)
 
-The reproduction checklist below is the **manual** form of the NFR-003 reliability AC. Run it three times in a row from a deleted cluster; all three runs must reach the documented broken state. Tooling prereqs are validated by `make preflight` (`docker`, `kubectl`, `kind`, `helm`, `kagent`).
-
 For each cold-deploy iteration:
 
 1. **Reset the cluster.** From the repo root:
    ```bash
-   make kind-down  # no-op if no cluster exists
-   make kind-up    # creates the kagent-workshop kind cluster
-   make kagent-install  # installs kagent v0.9.0 CRDs into the kagent namespace
+   make kind-down       # no-op if no cluster exists
+   make kind-up         # creates the kagent-workshop kind cluster
+   make kagent-install  # installs kagent v0.9.0 (demo profile) — brings up k8s-agent
    ```
 2. **Apply UC1.**
    ```bash
-   make uc1-up    # equivalent to: kubectl apply -f uc1/manifests/ && kubectl apply -f uc1/agents/
+   make uc1-up    # equivalent to: kubectl apply -f uc1/manifests/
    ```
 3. **Wait ~30 s** for the kubelet to attempt and fail the image pull.
 4. **Verify the broken state.** Each of the three checks below must pass:
@@ -94,32 +92,31 @@ For each cold-deploy iteration:
    kubectl get events -n artemis-uc1 --field-selector reason=Failed
    # → at least one "Failed to pull image … manifest unknown" event
    ```
-5. **(Optional) Exercise the agent end-to-end** to confirm the diagnostic path is wired:
+5. **(Optional) Exercise the agent end-to-end** — gated on a real LLM credentials Secret in the `kagent` namespace (the `k8s-agent` uses `default-model-config`, which `make kagent-install` pre-wires); on a bare local kind without one, the checks (a)–(c) above are sufficient for NFR-003 sign-off.
    ```bash
-   kagent invoke \
-     --agent artemis-mission-control-debugger \
-     --namespace kagent \
-     --task 'The mission-control pod in the artemis-uc1 namespace is not coming up. Diagnose it.'
+   kagent invoke --agent k8s-agent --namespace kagent \
+     --task 'In the artemis-uc1 namespace, what is failing?'
    # Expected: the agent names the v999 tag as the root cause within ~10–20 s.
+
+   kagent invoke --agent k8s-agent --namespace kagent \
+     --task 'Propose the kubectl command to roll the mission-control deployment forward to image tag v1.0.0.'
+   # Expected: kubectl set image deployment/mission-control ...
    ```
-   This step is gated on a real `artemis-llm-credentials` Secret being present in the `kagent` namespace (the agent uses `default-model-config`, which kagent's helm install pre-wires); on a bare local kind without one, the manifest checks (a–c) above are sufficient for NFR-003 sign-off.
 6. **Tear down before the next iteration.**
    ```bash
    make uc1-down
    ```
    For a strict cold deploy (recommended for NFR-003), `make kind-down` between iterations.
 
-**Sign-off:** record the run in the PR description per the M5 dry-run convention — three timestamps, three "OK" lines for checks (a)/(b)/(c), and a one-line note on whether step 5 was exercised. The cross-author sign-off (Clément ↔ Quentin) lands on the PR per NFR-003 AC #2 before the M5 dry-run.
-
 ## Author notes
 
-The note below captures the spike outcome that was temporarily inlined in `tour.json`'s participant text and has since been relocated here per the convention's *No meta-references in prose* rule (`../docs/tour-content-conventions.md`). Participants never read this section; authors come here to find the *why* behind the Beat 3 invocation form.
+### Beat 3 invocation — dashboard button
 
-### Beat 3 invocation — dashboard button (post-freeze update)
+The workshop-tour VS Code extension exposes a **dashboard** button that opens the kagent web dashboard directly. UC1's Beat 3 step relies on that button rather than shipping a `commands[]` entry — the participant taps the button, the dashboard opens, they paste the two prompts into the chat for `k8s-agent` (which lives in `kagent` ns). An author testing locally without the extension can fall back to `kagent invoke ...` as shown in the reproduction §step 5 above, or to `kubectl port-forward -n kagent svc/kagent-ui` + the dashboard URL.
 
-The workshop-tour VS Code extension exposes a **dashboard** button that opens the kagent web dashboard directly. UC1's Beat 3 step relies on that button rather than shipping a `commands[]` entry (it has none) — the participant taps the button, the dashboard opens, they paste the prompt into the chat for `artemis-mission-control-debugger`.
+### Why no custom agent
 
-Earlier iterations (pre-button) shipped `kagent dashboard` as a `commands[]` entry; the CLI subcommand foregrounded a `kubectl port-forward -n kagent svc/kagent-ui` and stayed alive until `Ctrl+C`. That form is still available for authors testing locally without the extension (see [`../TESTING.md`](../TESTING.md) §Testing the agents), but the tour no longer requires it.
+The pre-STORY-045 design shipped `artemis-mission-control-debugger`, a read-only custom Agent CRD scoped to `artemis-uc1`. STORY-045 dropped it: kagent's built-in `k8s-agent` does the same job with a wider toolset, no authoring overhead, and a setup the participant doesn't have to read. The pedagogical loss is zero — UC2 covers agent authoring properly, with a non-Kubernetes domain (registry inspection) that makes the authoring concepts clearer.
 
 ## Cleanup
 
@@ -132,6 +129,5 @@ make kind-down  # nuke the kind cluster entirely
 
 - **PRD:** [`../docs/prd-kagent-workshop-scenarios-2026-04-27.md`](../docs/prd-kagent-workshop-scenarios-2026-04-27.md) — FR-008 (scenario package), FR-009 (tour), NFR-003 (reproduction).
 - **Architecture:** [`../docs/architecture-kagent-workshop-scenarios-2026-04-28.md`](../docs/architecture-kagent-workshop-scenarios-2026-04-28.md).
-- **Naming vocabulary:** [`../docs/artemis-naming.md`](../docs/artemis-naming.md) — UC1 row in the narrative arc, namespace + Deployment + Agent rows.
-- **Tour content convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) — the 3-beat structure UC1's `tour.json` instantiates.
-- **Sprint plan:** [`../docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md`](../docs/sprint-plan-kagent-workshop-scenarios-2026-04-28.md) §Sprint 2 — STORY-012 (manifests + agent CRDs), STORY-013 (`tour.json`), STORY-014 (this README + cross-author repro).
+- **Naming vocabulary:** [`../docs/artemis-naming.md`](../docs/artemis-naming.md) — UC1 row in the narrative arc.
+- **Tour content convention:** [`../docs/tour-content-conventions.md`](../docs/tour-content-conventions.md) — the 4-beat structure UC1's `tour.json` instantiates.

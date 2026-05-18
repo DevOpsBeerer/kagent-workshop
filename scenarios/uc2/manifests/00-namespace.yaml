@@ -4,4 +4,4 @@ metadata:
   name: artemis-uc2
   labels:
     kagent-workshop/uc: uc2
-    kagent-workshop/scenario: pod-pending
+    kagent-workshop/scenario: image-discovery

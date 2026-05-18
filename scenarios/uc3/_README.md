@@ -75,19 +75,28 @@ The participant's job in the manual diagnosis is to combine `kubectl describe po
 
 The diagnostic agent is **`artemis-rover-telemetry-debugger`** ([`agents/agent.yaml`](agents/agent.yaml)), a kagent v0.9.0 `Agent` of type `Declarative`. It lives in the `kagent` namespace per `docs/artemis-naming.md` (cluster-scope-discoverable kagent CRDs use the `artemis-` prefix and live in `kagent`) and references kagent's installed `default-model-config` ModelConfig — the canonical credentials slot across every Artemis agent, backed by the `artemis-llm-credentials` Secret in `kagent`.
 
-**Tool surface — three layers:**
+**Tool surface — four layers (post-redesign):**
 
-- **Direct K8s read tools** from `kagent-tool-server` (RemoteMCPServer): `k8s_get_resources` (list pods in `artemis-uc3`), `k8s_describe_resource` (describe the rover pod), `k8s_get_events`.
-- **A2a sub-agent: `promql-agent`** — kagent's pre-packaged PromQL generator (text-in / text-out: translates a natural-language ask into a PromQL query, no execution).
+- **Direct K8s read tools** from `kagent-tool-server` (RemoteMCPServer): `k8s_get_resources` (list pods in any namespace the caller names), `k8s_describe_resource`, `k8s_get_events` (fallback).
+- **K8s mutate tool** from the same RemoteMCPServer: `k8s_patch_resource` — used **only when the caller explicitly asks the agent to fix / remediate**. UC3's standalone tour does not invoke the fix path; UC4's coordinator does (slot 3). The agent's system prompt encodes the remediation policy: only patch the namespace the caller named, only on an explicit fix request, only the minimum patch that addresses the diagnosis (typically a memory-limit bump capped at 256Mi with an explicit "this hides a code-level leak rather than fixing it" note).
+- **A2a sub-agent: `promql-agent`** — kagent's pre-packaged PromQL generator (text-in / text-out).
 - **A2a sub-agent: `observability-agent`** — kagent's pre-packaged Grafana / Prom executor. Internally delegates to `promql-agent` for query generation, executes the query via the bridged `prometheus.kagent.svc:9090`, creates a Grafana panel via the `kagent-grafana-mcp` RemoteMCPServer (which talks to the bridged `grafana.kagent.svc:3000`), and returns the panel URL.
 
-**Expected agent output** (one or two sentences plus a Grafana URL, deterministic across runs to within phrasing):
+**System prompt is general, not UC3-specific** (per the UC1–UC4 redesign principle: agents should be reusable, not biased toward a known answer). The prompt takes the namespace + (optional) Deployment / Pod name from the caller — no hard-coded `artemis-uc3` or `lunar-rover-telemetry` references. UC4's coordinator delegates a sub-task naming the `artemis-uc4` Deployment; UC3's tour calls it for `artemis-uc3`. Same agent, two contexts.
 
-> The `lunar-rover-telemetry` Pod in `artemis-uc3` keeps restarting because its container's memory limit (64 Mi) is below the working set the telemetry stream produces, so the kernel OOM-kills it before the stream completes. Memory curve: <Grafana panel URL>. Raise `resources.limits.memory` or fix the leak in the application code.
+**Expected agent output** (guidance — the prompt emits a fixed three-line format, but phrasing within each line varies because the prompt is general):
 
-The pedagogical point made in the tour's Beat 4 ("What we'd have done by hand"): same evidence, same conclusion, but the participant had to assemble it from three `kubectl` commands AND a Grafana dashboard the participant doesn't yet have. The agent did the cross-surface correlation in one synthesis. UC4 will fold this debugger into the `artemis-mission-coordinator` (STORY-025) so a single coordinator delegates to UC1/UC2/UC3 specialists and reports verdicts on the participant's status bulbs (FR-017).
+```
+Root cause: <one sentence naming the failure mode and key values from describe — e.g. "OOMKilled with limits.memory=64Mi, below the leak's working set".>
+Evidence:   <Grafana URL from the observability-agent delegation>
+Fix:        <one short remediation hint, no command unless the caller asked to remediate>
+```
 
-The agent's system prompt caps tool budget at 1 describe-pod + 1 delegation to `observability-agent` + 0 other tool calls — the synthesis is intentionally narrow because the participant is on a 5-minute tour, not a tutorial.
+The pedagogical point made in the tour's Beat 4 ("What we'd have done by hand"): same evidence, same conclusion, but the participant had to assemble it from three `kubectl` commands AND a Grafana dashboard the participant doesn't yet have. The agent did the cross-surface correlation in one synthesis.
+
+UC4's `artemis-mission-coordinator` reuses this same agent (no rover-specific fork): the coordinator delegates a sub-task naming the `artemis-uc4` rover Deployment, the agent diagnoses, and — if the coordinator's prompt then asks for remediation — the agent runs the fix path (one `k8s_patch_resource` bumping the memory limit, with the workaround caveat in the reply).
+
+The agent's tool budget: 1× `k8s_get_resources`, 1× `k8s_describe_resource`, 1× `observability-agent` delegation, plus 1× `k8s_patch_resource` on the remediation path. `k8s_get_events` is reserved for the non-OOM fallback path.
 
 ## Files in this directory
 
