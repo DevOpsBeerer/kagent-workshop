@@ -15,4 +15,4 @@ resources:
 images:
 - name: light-manager
   newName: rg.fr-par.scw.cloud/apogasa/mlc-system
-  newTag: v1.0.5
+  newTag: v1.0.6
