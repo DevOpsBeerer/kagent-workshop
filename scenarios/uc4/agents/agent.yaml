@@ -11,10 +11,11 @@
 #      kagent-tool-server (kagent v0.9.0 demo profile).
 #
 #   2. Bulb MCP (custom): list_bulbs, update_bulb
-#      Sourced from the artemis-bulb-mcp RemoteMCPServer (STORY-023). The
-#      tenancy guard inside the MCP fails closed unless
-#      user="${WORKSHOP_PARTICIPANT_LOGIN}" matches the pinned login
-#      (NFR-012); the system prompt below encodes the contract.
+#      Sourced from the artemis-bulb-mcp MCPServer (kmcp-deployed in UC4 Beat 1).
+#      Tenancy (NFR-012) is now enforced at the MCP side from its pinned
+#      WORKSHOP_PARTICIPANT_LOGIN env var — the tools take NO `user=` argument,
+#      so a misprompted coordinator cannot target a different participant
+#      because the call has no slot for a different user.
 #
 #   3. A2A sub-agents (2 — down from 3 in the M4 baseline):
 #        - k8s-agent (kagent built-in, demo profile) — handles slots 1 and 2.
@@ -191,19 +192,22 @@ spec:
 
       # Tenancy contract (NFR-012)
 
-      The bulb MCP is tenancy-pinned. Every `list_bulbs` and `update_bulb`
-      call MUST pass `user="${WORKSHOP_PARTICIPANT_LOGIN}"` (the literal
-      placeholder — the kagent runtime substitutes the env at invocation
-      time). The MCP fails closed on any other value; honour the contract.
+      The bulb MCP is tenancy-pinned at deploy time via its
+      `WORKSHOP_PARTICIPANT_LOGIN` env var. `list_bulbs` and `update_bulb`
+      take NO `user=` argument — the MCP sources the login from its own
+      env and uses it on every light-manager call. You only pass `slot` /
+      `r` / `g` / `b` to `update_bulb`, and no arguments at all to
+      `list_bulbs`. Cross-tenant writes are impossible by construction:
+      there is no slot in the tool input for a different participant.
 
       # Execution recipe
 
       Diagnose mode:
-        1. (Optional) list_bulbs to read current bulb state.
+        1. (Optional) `list_bulbs()` to read current bulb state.
         2. (Optional) k8s_get_resources sanity check on the namespace.
         3. Delegate all three diagnosis sub-tasks (parallel where possible).
         4. Map each verdict to a colour.
-        5. update_bulb once per slot, all three slots.
+        5. `update_bulb(slot=N, r=R, g=G, b=B)` once per slot, all three slots.
         6. Reply with three bulb-state lines + three remediation hints
            (copy verbatim from the specialists).
 
@@ -248,7 +252,7 @@ spec:
       - type: McpServer
         mcpServer:
           apiGroup: kagent.dev
-          kind: RemoteMCPServer
+          kind: MCPServer
           name: artemis-bulb-mcp
           namespace: kagent
           toolNames:

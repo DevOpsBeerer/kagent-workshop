@@ -38,9 +38,9 @@ The coordinator's `tools[].type: Agent` references resolve same-namespace only i
 
 ### 4. Custom bulb MCP (STORY-022, STORY-023)
 
-UC4's diagnosis-output medium is the participant's three status bulbs. The coordinator writes them through a per-vCluster custom MCP that wraps the sibling `light-manager` API (`GET /api/bulbs?user=<login>`, `PUT /api/bulbs/<slot>?user=<login>`). The MCP lives under [`../mcp/`](../mcp/); the `RemoteMCPServer artemis-bulb-mcp` resource that exposes it to kagent ships at [`../mcp/manifests/30-remotemcpserver.yaml`](../mcp/manifests/30-remotemcpserver.yaml). `make mcp-up` brings it up after a `make mcp-build` + `kind load docker-image` chain (or, on the real workshop cluster, the image comes from the apogasa registry per workshop-infrastructure's pre-publishing step).
+UC4's diagnosis-output medium is the participant's three status bulbs. The coordinator writes them through a per-vCluster custom MCP that wraps the sibling `light-manager` API (`GET /api/bulbs?user=<login>`, `PUT /api/bulbs/<slot>?user=<login>`). The MCP source lives under [`../mcp/`](../mcp/); the tour brings it up by running `kmcp build` + `kmcp deploy --no-inspector` in Beat 1. `kmcp deploy` creates an **`MCPServer`** CRD (kagent.dev/v1alpha1), and kagent's reconciler then materialises the Deployment + Service + auto-discovers the tool surface — no separate `RemoteMCPServer` pointer is applied. The coordinator's `tools[]` references `kind: MCPServer name: artemis-bulb-mcp` directly. The `--no-inspector` flag tells `kmcp deploy` not to open a post-deploy browser-side MCP inspector.
 
-The MCP is **tenancy-pinned** (NFR-012): it reads `$WORKSHOP_PARTICIPANT_LOGIN` at startup and refuses every call where `user != $WORKSHOP_PARTICIPANT_LOGIN`. The coordinator's system prompt always passes `user="${WORKSHOP_PARTICIPANT_LOGIN}"` — workshop-infrastructure substitutes the env at invocation time. See [`../mcp/`](../mcp/) for the full MCP source + the tenancy guard implementation.
+The MCP is **tenancy-pinned** (NFR-012) at deploy time, **not** at call time: `list_bulbs()` and `update_bulb(slot, r, g, b)` take NO `user=` argument. The MCP reads `$WORKSHOP_PARTICIPANT_LOGIN` from its own env at every call and uses it on the light-manager request — agents have no way to target a different participant because the tool input schema has no slot for one. Beat 1's `kmcp deploy` threads two env vars into the MCP container: `--env WORKSHOP_PARTICIPANT_LOGIN=$WORKSHOP_PARTICIPANT_LOGIN` (the tenancy pin — the MCP fails closed on an unset/empty value) and `--env LIGHT_MANAGER_URL=http://light-manager.light-manager.svc.cluster.local:8000` (the light-manager backend the bulbs write to). See [`../mcp/`](../mcp/) for the full MCP source.
 
 ## The multi-symptom mess
 
@@ -55,7 +55,7 @@ A single namespace, `artemis-uc4`, hosts three Deployments in three different st
 | Deployment `…-imagepull`  | `mission-control-imagepull`   | `artemis-uc4`     | Image `mission-control:v999` (unpublished) → `ImagePullBackOff`. UC1-style symptom. Tolerates the synthetic taint (its symptom is image-pull-side, not scheduling-side).                             |
 | Deployment `…-pending`    | `mission-control-pending`     | `artemis-uc4`     | Image `mission-control:v1.0.0` (real). No toleration for the synthetic taint → `Pending` with `FailedScheduling: untolerated taint`. UC2-style symptom. `strategy.type: Recreate` (see Author notes). |
 | Deployment `…-telemetry`  | `lunar-rover-telemetry`       | `artemis-uc4`     | Image `lunar-rover-telemetry:v1.0.0` (real), `resources.limits.memory: 64Mi`. Pod stays `Running 1/1` until the tour's Beat 1 leak loop drives it into OOMKilled. UC3-style symptom. Tolerates the taint. |
-| Agent CRD                 | `artemis-mission-coordinator` | `kagent`          | Declarative type. A2A delegation to kagent's built-in `k8s-agent` (slots 1+2) and to `artemis-rover-telemetry-debugger` (slot 3) + RemoteMCPServer references to `kagent-tool-server` (`k8s_get_resources` for the pre-fan-out sanity check) + `artemis-bulb-mcp` (bulb writes). |
+| Agent CRD                 | `artemis-mission-coordinator` | `kagent`          | Declarative type. A2A delegation to kagent's built-in `k8s-agent` (slots 1+2) and to `artemis-rover-telemetry-debugger` (slot 3) + MCP refs to `kagent-tool-server` RemoteMCPServer (`k8s_get_resources` for the pre-fan-out sanity check) and to the kmcp-deployed `artemis-bulb-mcp` MCPServer (bulb writes). |
 
 The three Deployment symptoms surface on different timelines: `…-imagepull` enters `ImagePullBackOff` within ~30 s of apply (kubelet's first pull retry); `…-pending` enters `Pending` within ~5 s of the bootstrap Job completing (which is within ~10 s of apply); `…-telemetry` stays Running until the tour's Beat 1 leak trigger drives it through one OOM cycle (~10-15 s after the trigger fires). All three are visible simultaneously in `kubectl get pods -n artemis-uc4` ~60 s after `kubectl apply -f uc4/manifests/` + the leak trigger.
 
@@ -67,8 +67,8 @@ The coordinator is **`artemis-mission-coordinator`** ([`agents/agent.yaml`](agen
 
 | Layer            | Source                                       | Tools available to the coordinator                          |
 | ---------------- | -------------------------------------------- | ----------------------------------------------------------- |
-| K8s read (light) | `kagent-tool-server` (RemoteMCPServer, kagent ns) | `k8s_get_resources`                                         |
-| Bulb writes      | `artemis-bulb-mcp` (RemoteMCPServer, kagent ns)   | `list_bulbs`, `update_bulb`                                 |
+| K8s read (light) | `kagent-tool-server` (RemoteMCPServer, kagent ns)                  | `k8s_get_resources`                                         |
+| Bulb writes      | `artemis-bulb-mcp` (MCPServer, kagent ns — kmcp-deployed)          | `list_bulbs`, `update_bulb`                                 |
 | A2A sub-agents   | two specialists in `kagent` ns               | `k8s-agent` (kagent built-in, demo profile — slots 1+2), `artemis-rover-telemetry-debugger` (slot 3) |
 
 The K8s read surface is deliberately tight (no `describe`, no `events`) — the coordinator does NOT do deep diagnosis itself. Its job is the *fan-out + bulb-write + summary*; each specialist handles the deep diagnosis (and remediation, when asked) for its own slot.
@@ -79,11 +79,11 @@ The system prompt encodes two modes — diagnose and remediate (per [`agents/age
 
 **Diagnose mode** (Beat 3 of the tour):
 
-1. **(Optional) `list_bulbs(user="${WORKSHOP_PARTICIPANT_LOGIN}")`** — reads the current bulb state.
+1. **(Optional) `list_bulbs()`** — reads the current bulb state. No arguments; the MCP knows which login to query from its own env.
 2. **(Optional) `k8s_get_resources` on the named namespace** — confirms the three Deployments exist. If any is missing, stop and report the gap.
 3. **Delegate three diagnosis sub-tasks** (parallel where supported): slots 1+2 to `k8s-agent`, slot 3 to `artemis-rover-telemetry-debugger`. Each returns a verdict.
 4. **Map each verdict to a colour** per the FR-017 table.
-5. **Three `update_bulb` calls** — one per slot, each carrying `user="${WORKSHOP_PARTICIPANT_LOGIN}"`. All three slots are written (green is a positive status signal, not a no-op).
+5. **Three `update_bulb(slot, r, g, b)` calls** — one per slot. No `user=` argument; the MCP sources the pinned login from its own env. All three slots are written (green is a positive status signal, not a no-op).
 6. **Structured reply** to the participant: three bulb-state lines + three remediation hints (copied verbatim from the specialists).
 
 **Remediate mode** (Beat 4 of the tour — triggered by an explicit "fix / patch / remediate" phrasing in the participant's request):
@@ -144,7 +144,7 @@ UC4's diagnosis-output medium is a shared physical resource — the participant'
 Three pieces of the design enforce the guarantee:
 
 1. **Per-vCluster MCP.** Each participant gets their own `artemis-bulb-mcp` Deployment in their `artemis-mcp` namespace, with `WORKSHOP_PARTICIPANT_LOGIN` injected from a per-participant Secret. The MCP refuses every call where `user != $WORKSHOP_PARTICIPANT_LOGIN`. See [`../mcp/src/core/tenancy.py`](../mcp/src/core/tenancy.py).
-2. **The coordinator's system prompt** always passes `user="${WORKSHOP_PARTICIPANT_LOGIN}"` on every `list_bulbs` / `update_bulb` call. workshop-infrastructure substitutes the env at invocation time. See [`agents/agent.yaml`](agents/agent.yaml).
+2. **`list_bulbs` / `update_bulb` take no `user=` argument** — the MCP's tool input schema has no slot for one. The coordinator's prompt only specifies `slot`, `r`, `g`, `b`; the MCP threads the env-pinned login on every light-manager request itself. The agent literally cannot misuse it. See [`agents/agent.yaml`](agents/agent.yaml) for the prompt and [`../mcp/src/tools/`](../mcp/src/tools/) for the tool signatures.
 3. **The tour's Beat 3 explanation** (per FR-015) names the `?user=<login>` query parameter explicitly so the participant *sees* the tenancy scope as a feature: they open the light-manager UI in a browser tab with their own `?user=<their-login>` and watch their three bulbs flip — the same query parameter the MCP enforces server-side. See [`tour.json`](tour.json) Beat 3.
 
 The trade-off vs a shared-MCP design (one MCP pod, N vClusters): per-vCluster costs ~50 MiB of RAM per participant slice (architecture L122-126), but gives a hard guarantee at the topology level — vCluster A's coordinator cannot even reach vCluster B's MCP because the per-vCluster MCP doesn't know B's login.
@@ -164,12 +164,13 @@ uc4/
     50-deployment-pending.yaml           mission-control-pending — UC2-style scheduling symptom (Recreate strategy)
     60-deployment-telemetry.yaml         lunar-rover-telemetry — UC3-style OOM symptom (64Mi limit)
   agents/
-    agent.yaml                           artemis-mission-coordinator (a2a + 2× RemoteMCPServer; references default-model-config)
+    agent.yaml                           artemis-mission-coordinator (A2A specialists + kagent-tool-server RemoteMCPServer + artemis-bulb-mcp MCPServer; references default-model-config)
+    rover-telemetry-debugger.yaml        artemis-rover-telemetry-debugger (slot 3 specialist — moved here from uc3/agents/ when UC3 pivoted to A2A auto-remediation)
 ```
 
 UC4 also depends on, but does not contain:
 
-- [`../mcp/`](../mcp/) — the custom bulb MCP (image source + KMCP config + per-vCluster manifests + RemoteMCPServer CRD).
+- [`../mcp/`](../mcp/) — the custom bulb MCP source (Python project + `kmcp.yaml`). The tour builds it with `kmcp build` and ships it with `kmcp deploy --no-inspector` (Beat 1) — the latter creates the `MCPServer` CRD that kagent reconciles into a Deployment + Service + tool registration.
 - [`../infra/observability/kagent-bridge-services.yaml`](../infra/observability/kagent-bridge-services.yaml) — the kagent ↔ artemis-observability namespace bridge (Prom + Graf ExternalName Services in `kagent` ns).
 - (no external Agent CRDs required) — the `artemis-rover-telemetry-debugger` specialist now lives under [`agents/rover-telemetry-debugger.yaml`](agents/rover-telemetry-debugger.yaml) and is applied alongside the coordinator by `make uc4-up`. Slots 1 and 2 are handled by kagent's built-in `k8s-agent` (installed by `make kagent-install`). UC1/UC2/UC3 do not contribute Agent CRDs the coordinator depends on.
 
@@ -197,19 +198,27 @@ For each cold-deploy iteration:
    # → kubectl rollout status deploy/{prometheus-server,grafana} -n artemis-observability
    ```
 
-3. **Bring up the custom bulb MCP.** Local-kind form (workshop-infrastructure does this differently on the real cluster):
+3. **Build + deploy the custom bulb MCP.** Same shape the Beat 1 tour commands run; threads the two env vars the MCP needs (`WORKSHOP_PARTICIPANT_LOGIN` for tenancy, `LIGHT_MANAGER_URL` for the bulbs backend) and uses `--no-inspector` so the post-deploy step doesn't try to open a browser-side MCP inspector:
    ```bash
-   make mcp-build                                                       # builds the image
-   kind load docker-image rg.fr-par.scw.cloud/apogasa/artemis-bulb-mcp:v0.1.0 \
-       --name kagent-workshop                                           # side-load into kind
-   kubectl create namespace artemis-mcp
-   kubectl -n artemis-mcp create secret generic artemis-bulb-mcp-tenancy \
-       --from-literal=WORKSHOP_PARTICIPANT_LOGIN=operator-test          # placeholder login
-   kubectl -n artemis-mcp create configmap artemis-bulb-mcp-config \
-       --from-literal=LIGHT_MANAGER_URL=http://light-manager.light-manager.svc.cluster.local:8000
-   make mcp-up                                                          # applies mcp/manifests/
+   kmcp build --project-dir mcp/ \
+       -t registry.workshop.qcs.ovh/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 \
+       --push --platform linux/amd64
+
+   kmcp deploy \
+       --file mcp/kmcp.yaml \
+       --image registry.workshop.qcs.ovh/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 \
+       --namespace kagent \
+       --transport http \
+       --no-inspector \
+       --env WORKSHOP_PARTICIPANT_LOGIN=$WORKSHOP_PARTICIPANT_LOGIN \
+       --env LIGHT_MANAGER_URL=http://light-manager.light-manager.svc.cluster.local:8000
    ```
-   The `RemoteMCPServer artemis-bulb-mcp` resource may initially show `Accepted=False` for ~7 s due to a pod-creation/reconciler race (STORY-023 + STORY-025 documented this); auto-recovers within 60 s, or trigger a re-reconcile via `kubectl annotate rmcps -n kagent artemis-bulb-mcp poke=$(date +%s) --overwrite`.
+   `kmcp deploy` creates an `MCPServer` CRD named `artemis-bulb-mcp` in `kagent` ns; the kagent reconciler turns it into a Deployment + Service + tool registration within ~10 s. No separate `RemoteMCPServer` pointer is applied — the coordinator's `tools[]` references the `MCPServer` directly. Verify:
+   ```bash
+   kubectl get mcpserver -n kagent artemis-bulb-mcp \
+     -o jsonpath='{range .status.conditions[*]}{.type}={.status}{","}{end}'
+   # → Accepted=True,ResolvedRefs=True,Programmed=True,Ready=True,
+   ```
 
 4. **Bring up UC4's agents** (coordinator + rover-telemetry specialist; slots 1+2 are served by the built-in `k8s-agent` that `make kagent-install` already deployed):
    ```bash
@@ -267,10 +276,10 @@ For each cold-deploy iteration:
    # → Accepted=True
    # → Ready=True
 
-   # (d) discoveredTools include list_bulbs + update_bulb from artemis-bulb-mcp
-   kubectl get rmcps -n kagent artemis-bulb-mcp \
-     -o jsonpath='{.status.discoveredTools[*].name}'
-   # → list_bulbs update_bulb
+   # (d) MCPServer artemis-bulb-mcp is Ready (kagent reconciled the Deployment + Service)
+   kubectl get mcpserver -n kagent artemis-bulb-mcp \
+     -o jsonpath='{range .status.conditions[*]}{.type}={.status}{","}{end}'
+   # → Accepted=True,ResolvedRefs=True,Programmed=True,Ready=True,
    ```
 
 9. **(Optional) Exercise the coordinator end-to-end** — gated on a real LLM credentials Secret in `kagent` ns + a reachable `light-manager` backend. On a bare local kind without these, the four checks (a)-(d) above are sufficient for the NFR-003 self-author smoke.

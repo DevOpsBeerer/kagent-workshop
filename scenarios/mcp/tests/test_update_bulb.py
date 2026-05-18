@@ -1,10 +1,13 @@
 """Tests for the update_bulb MCP tool.
 
-Covers AC-named scenarios:
-- Happy path (mocked light-manager response, tenancy match, valid slot + RGB).
+Covers:
+- Happy path (mocked light-manager response, login env set, valid slot + RGB).
 - Slot validation — slot ∈ {1, 2, 3} accepted; 0 / 4 / -1 rejected before HTTP call.
 - RGB validation — boundary 0/255 accepted; -1 / 256 rejected by Pydantic.
-- Tenancy mismatch — guard fires before HTTP call.
+- Fail-closed posture when WORKSHOP_PARTICIPANT_LOGIN is unset.
+
+The tool no longer accepts a `user=` argument — the pinned login is sourced
+from the env var directly per NFR-012.
 """
 
 import sys
@@ -16,7 +19,6 @@ from pydantic import ValidationError
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from core.tenancy import TenancyMismatchError  # noqa: E402
 from tools.update_bulb import update_bulb  # noqa: E402
 
 
@@ -39,7 +41,7 @@ class TestUpdateBulbHappyPath:
             "core.lightmanager_client.put_bulb",
             return_value=_ok_response(slot, 10, 20, 30),
         ) as m:
-            out = update_bulb(user="operator-01", slot=slot, r=10, g=20, b=30)
+            out = update_bulb(slot=slot, r=10, g=20, b=30)
         m.assert_called_once_with(
             user="operator-01", slot=slot, payload={"r": 10, "g": 20, "b": 30}
         )
@@ -55,7 +57,7 @@ class TestUpdateBulbSlotValidation:
         monkeypatch.setenv("WORKSHOP_PARTICIPANT_LOGIN", "operator-01")
         with patch("core.lightmanager_client.put_bulb") as m:
             with pytest.raises(ValueError, match="Invalid slot"):
-                update_bulb(user="operator-01", slot=slot, r=0, g=0, b=0)
+                update_bulb(slot=slot, r=0, g=0, b=0)
         m.assert_not_called()
 
 
@@ -74,7 +76,7 @@ class TestUpdateBulbRgbValidation:
             "core.lightmanager_client.put_bulb",
             return_value=_ok_response(1, kwargs["r"], kwargs["g"], kwargs["b"]),
         ):
-            update_bulb(user="operator-01", slot=1, **kwargs)
+            update_bulb(slot=1, **kwargs)
 
     @pytest.mark.parametrize(
         "channel,value",
@@ -87,23 +89,14 @@ class TestUpdateBulbRgbValidation:
         kwargs = {"r": 0, "g": 0, "b": 0, channel: value}
         with patch("core.lightmanager_client.put_bulb") as m:
             with pytest.raises(ValidationError):
-                update_bulb(user="operator-01", slot=1, **kwargs)
+                update_bulb(slot=1, **kwargs)
         m.assert_not_called()
 
 
 class TestUpdateBulbTenancy:
-    def test_tenancy_mismatch_blocks_http_call(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        monkeypatch.setenv("WORKSHOP_PARTICIPANT_LOGIN", "operator-01")
-        with patch("core.lightmanager_client.put_bulb") as m:
-            with pytest.raises(TenancyMismatchError):
-                update_bulb(user="operator-02", slot=1, r=10, g=20, b=30)
-        m.assert_not_called()
-
     def test_unset_env_fails_closed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("WORKSHOP_PARTICIPANT_LOGIN", raising=False)
         with patch("core.lightmanager_client.put_bulb") as m:
             with pytest.raises(RuntimeError):
-                update_bulb(user="operator-01", slot=1, r=10, g=20, b=30)
+                update_bulb(slot=1, r=10, g=20, b=30)
         m.assert_not_called()

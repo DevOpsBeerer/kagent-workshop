@@ -22,8 +22,10 @@ metadata:
 spec:
   description: |
     Per-vCluster MCP wrapping light-manager bulbs API; tenancy-pinned to
-    WORKSHOP_PARTICIPANT_LOGIN (NFR-012). Provides list_bulbs(user) and
-    update_bulb(user, slot, r, g, b) tools to the UC4 mission coordinator.
+    WORKSHOP_PARTICIPANT_LOGIN at deploy time (NFR-012 — the tools take no
+    user= argument; the login is sourced from the MCP's env). Provides
+    list_bulbs() and update_bulb(slot, r, g, b) tools to the UC4 mission
+    coordinator.
   protocol: STREAMABLE_HTTP
   url: http://artemis-bulb-mcp.kagent.svc.cluster.local:3000/mcp
   timeout: 30s

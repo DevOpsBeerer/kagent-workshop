@@ -2,13 +2,14 @@
 
 The MCP is deployed per-vCluster, with WORKSHOP_PARTICIPANT_LOGIN injected at
 deploy time by workshop-infrastructure (per architecture §C6). Every MCP tool
-call's `user=` argument is checked against that env var before any HTTP call to
-light-manager. A misprompted coordinator in vCluster A literally cannot mutate
-participant B's bulbs because vCluster A's MCP doesn't know B's login.
+call's `user` value is **sourced from this env var directly** — agents do NOT
+pass a `user=` argument, so a misprompted coordinator literally cannot target
+a different participant. The tenancy guard collapses to: "what login is this
+MCP pinned to?", and every tool call uses that.
 
-Fail-closed posture: if WORKSHOP_PARTICIPANT_LOGIN is unset or empty, every call
-fails with RuntimeError. NFR-012 is non-negotiable; an unset login means the MCP
-cannot enforce anything, so it refuses to serve.
+Fail-closed posture: if WORKSHOP_PARTICIPANT_LOGIN is unset or empty, every
+call fails with RuntimeError. NFR-012 is non-negotiable; an unset login means
+the MCP cannot identify its tenant, so it refuses to serve.
 """
 
 import os
@@ -16,31 +17,17 @@ import os
 WORKSHOP_PARTICIPANT_LOGIN_ENV = "WORKSHOP_PARTICIPANT_LOGIN"
 
 
-class TenancyMismatchError(PermissionError):
-    """Raised when an MCP tool call's `user=` arg differs from the pinned login."""
-
-    def __init__(self, user: str, expected: str) -> None:
-        super().__init__(
-            f"Tenancy mismatch: this MCP is pinned to '{expected}' but the call "
-            f"requested user='{user}'. NFR-012 hard-prohibits cross-participant "
-            f"writes; the call is rejected."
-        )
-        self.user = user
-        self.expected = expected
-
-
-def enforce_tenancy(user: str) -> None:
-    """Reject any tool call where `user` differs from the pinned login.
+def pinned_login() -> str:
+    """Return the WORKSHOP_PARTICIPANT_LOGIN this MCP instance is pinned to.
 
     Raises:
-        RuntimeError: if WORKSHOP_PARTICIPANT_LOGIN is unset / empty (fail-closed).
-        TenancyMismatchError: if the call's `user` arg does not match the pinned login.
+        RuntimeError: if WORKSHOP_PARTICIPANT_LOGIN is unset / empty
+            (fail-closed per NFR-012).
     """
-    expected = os.environ.get(WORKSHOP_PARTICIPANT_LOGIN_ENV, "").strip()
-    if not expected:
+    login = os.environ.get(WORKSHOP_PARTICIPANT_LOGIN_ENV, "").strip()
+    if not login:
         raise RuntimeError(
-            f"STORY-022 fail-closed: {WORKSHOP_PARTICIPANT_LOGIN_ENV} must be set "
-            "at deploy time per NFR-012; check the Deployment's env: section."
+            f"Fail-closed: {WORKSHOP_PARTICIPANT_LOGIN_ENV} must be set at "
+            "deploy time per NFR-012; check the MCPServer's `--env` flags."
         )
-    if user != expected:
-        raise TenancyMismatchError(user=user, expected=expected)
+    return login
