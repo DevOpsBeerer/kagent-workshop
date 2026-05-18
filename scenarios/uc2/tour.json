@@ -5,7 +5,7 @@
   "steps": [
     {
       "title": "Mission setup \u2014 bring up the replacement replica and your custom agent",
-      "explanation": "A new `mission-control` replica was scheduled in `artemis-uc2` but the deployment manifest references an image tag that nobody can confirm is published. Rather than guess at the right tag, you're going to author a small custom agent \u2014 `artemis-image-fetcher` \u2014 that asks the registry directly.\n\nThe agent consumes one tool: `fetch_json`, served by a small MCP server you also apply here (`fetcher`). The MCP is just plumbing for the agent's HTTP needs \u2014 UC3 covers MCP properly; for now just apply it.\n\nFive files are dropped into your workspace by this step (`fileEdits`): four manifests under `uc2/manifests/` and one Agent CRD under `uc2/agents/`. The two `kubectl apply -f` commands send them to the cluster in order.",
+      "explanation": "A new `mission-control` replica was scheduled in `artemis-uc2` but the deployment manifest references an image tag that nobody can confirm is published. Rather than guess at the right tag, you're going to author a small custom agent \u2014 `artemis-image-fetcher` \u2014 that asks the registry directly.\n\nThe agent consumes one tool: `fetch_json`, served by a small MCP server you also apply here (`fetcher`). The MCP is just plumbing for the agent's HTTP needs \u2014 UC3 covers MCP properly; for now just apply it.\n\nFive files are dropped into your workspace by this step (`fileEdits`): four manifests under `uc2/manifests/` and one Agent CRD under `uc2/agents/`. The two `kubectl apply -f` commands send them to the cluster, then `kubectl describe` shows you what actually landed \u2014 read the Agent's `Description`, `System Message`, and `Tools` to see the contract you just authored.",
       "fileEdits": [
         {
           "type": "create",
@@ -46,6 +46,14 @@
         {
           "label": "Apply your custom agent",
           "command": "kubectl apply -f uc2/agents/"
+        },
+        {
+          "label": "Inspect the agent you just authored",
+          "command": "kubectl describe agent artemis-image-fetcher -n kagent"
+        },
+        {
+          "label": "Inspect the MCP server it consumes",
+          "command": "kubectl describe mcpserver fetcher -n kagent"
         }
       ]
     },
