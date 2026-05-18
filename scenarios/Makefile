@@ -48,13 +48,13 @@ help:
 	@echo "  kind-up           Create the local kind cluster '$(KIND_CLUSTER)' (idempotent)"
 	@echo "  kind-down         Delete the local kind cluster"
 	@echo "  kagent-install    Helm-install kagent v$(KAGENT_VERSION) into the current cluster"
-	@echo "  observability-up  Apply $(OBSERVABILITY_DIR)/ (Prom + Graf) — auto-installed by uc3-up / uc4-up"
+	@echo "  observability-up  Apply $(OBSERVABILITY_DIR)/ (Prom + Graf) — standalone target; no UC currently auto-installs it"
 	@echo "  observability-down Delete $(OBSERVABILITY_DIR)/ resources"
 	@echo "  mcp-build         Build the MCP Docker image as $(MCP_IMAGE)"
 	@echo "  mcp-up            Apply $(MCP_DIR)/manifests/ (artemis-bulb-mcp Deployment + Service + RemoteMCPServer)"
 	@echo "  mcp-down          Delete $(MCP_DIR)/manifests/ resources"
 	@echo "  uc<N>-up          kind-up + kagent-install + apply uc<N>/manifests + uc<N>/agents"
-	@echo "                    (uc3-up / uc4-up additionally bring up the observability bundle)"
+	@echo "                    (no UC currently auto-brings the observability bundle; run observability-up separately if you want it)"
 	@echo "  uc<N>-down        Delete UC<N> resources (cluster stays up; use kind-down to nuke)"
 
 # ── Schema validation ──
@@ -133,7 +133,10 @@ kagent-install:
     --create-namespace \
 	--wait
 
-# Observability bundle (STORY-018) — auto-installed by uc3-up / uc4-up.
+# Observability bundle (STORY-018) — standalone target; not currently a UC
+# dependency. Earlier iterations had UC3/UC4 auto-install it; the UC1–UC4
+# redesign removed the per-UC observability hookup (UC3 pivoted to A2A
+# auto-remediation, UC4's coordinator collapsed slot 3 onto k8s-agent).
 # The kagent ↔ artemis-observability namespace bridge (kagent-bridge-services.yaml,
 # promoted from uc3/agents/ to infra/observability/ by STORY-025) is applied
 # separately because it lives in the `kagent` namespace and the kustomization's
@@ -210,4 +213,4 @@ $(foreach n,$(UCS),$(eval $(call UC_TARGETS,$(n))))
 # slot's specialist agent delegates to kagent's observability-agent for
 # Grafana panels). Declared outside the macro so UC1/UC2/UC3 author dev-loop
 # cycles stay fast — they don't pull Prom + Graf images on every iteration.
-uc4-up: observability-up
+# uc4-up no longer depends on observability-up — the coordinator only delegates to k8s-agent, no Grafana A2A.

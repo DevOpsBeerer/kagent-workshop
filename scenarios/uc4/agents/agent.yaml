@@ -17,16 +17,14 @@
 #      so a misprompted coordinator cannot target a different participant
 #      because the call has no slot for a different user.
 #
-#   3. A2A sub-agents (2 — down from 3 in the M4 baseline):
-#        - k8s-agent (kagent built-in, demo profile) — handles slots 1 and 2.
-#          A general K8s diagnostician and remediator with mutate tools
-#          (k8s_patch_resource, k8s_apply_manifest, etc.). Replaces the
-#          older artemis-mission-control-debugger and artemis-launch-pad-
-#          debugger specialists, which had read-only tool surfaces and were
-#          biased toward UC1/UC2-specific symptoms.
-#        - artemis-rover-telemetry-debugger (uc3/agents/agent.yaml) — handles
-#          slot 3. Combines k8s read + mutate with A2A delegation to kagent's
-#          observability-agent for the Grafana memory-curve panel.
+#   3. A2A sub-agent (1):
+#        - k8s-agent (kagent built-in, demo profile) — handles all three
+#          slots. A general K8s diagnostician and remediator with read
+#          (k8s_describe_resource, k8s_get_events, k8s_get_pod_logs, ...)
+#          and mutate (k8s_patch_resource, k8s_apply_manifest, ...) tools.
+#          Replaces the three custom specialists earlier iterations shipped
+#          (mission-control-debugger / launch-pad-debugger / rover-telemetry-
+#          debugger), each of which was biased toward a single symptom.
 #
 # All A2A targets live in the `kagent` namespace, which is required for
 # same-namespace A2A wiring in kagent v0.9.0.
@@ -93,11 +91,9 @@ spec:
                  Deployment name pattern: `mission-control-pending`
                  Specialist: `k8s-agent` (kagent built-in)
 
-        Slot 3 — restart / memory-class anomaly with observability
+        Slot 3 — restart / memory-class anomaly
                  Deployment name pattern: `lunar-rover-telemetry`
-                 Specialist: `artemis-rover-telemetry-debugger` (K8s
-                 read+mutate plus A2A to kagent's observability-agent
-                 for Grafana panels)
+                 Specialist: `k8s-agent` (kagent built-in)
 
       When the caller names a namespace (typically `artemis-uc4`),
       delegate one task per slot. On any fleet-wide ask ("status check",
@@ -154,11 +150,11 @@ spec:
                       an unsatisfiable node taint OR add a matching
                       toleration to the Deployment)."
 
-      ## Slot 3 → artemis-rover-telemetry-debugger
+      ## Slot 3 → k8s-agent
         Diagnose:    "In namespace <NS>, diagnose why the Deployment
-                      `lunar-rover-telemetry` keeps restarting. Build a
-                      Grafana memory panel and report root cause +
-                      Grafana URL + remediation hint."
+                      `lunar-rover-telemetry` keeps restarting. Report
+                      the root cause in one sentence and a remediation
+                      hint."
         Remediate:   "In namespace <NS>, remediate the restart/memory
                       anomaly on the `lunar-rover-telemetry` Deployment.
                       Apply the minimum patch (typically: raise the
@@ -261,6 +257,3 @@ spec:
       - type: Agent
         agent:
           name: k8s-agent
-      - type: Agent
-        agent:
-          name: artemis-rover-telemetry-debugger
