@@ -4,4 +4,4 @@ metadata:
   name: artemis-uc3
   labels:
     kagent-workshop/uc: uc3
-    kagent-workshop/scenario: oomkilled
+    kagent-workshop/scenario: auto-remediation

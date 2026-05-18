@@ -1,43 +1,64 @@
 {
   "id": "kagent-uc0-install",
-  "title": "UC0 — Install kagent",
-  "description": "Run this first. Install kagent on your slice — every Artemis mission tour assumes a working agent runtime is already on the cluster.",
+  "title": "UC0 \u2014 Install kagent",
+  "description": "Run this first. Install kagent on your slice \u2014 every Artemis mission tour assumes a working agent runtime is already on the cluster.",
   "steps": [
     {
       "title": "Check your cluster",
       "explanation": "Before installing kagent, confirm your slice is reachable.\n\n- `kubectl config current-context` should show your participant slice.\n- `kubectl get nodes` should list at least one node in `Ready` state. If nothing comes back, raise it with the workshop crew before continuing.",
       "commands": [
-        { "label": "Show current context", "command": "kubectl config current-context" },
-        { "label": "List nodes", "command": "kubectl get nodes" }
+        {
+          "label": "Show current context",
+          "command": "kubectl config current-context"
+        },
+        {
+          "label": "List nodes",
+          "command": "kubectl get nodes"
+        }
       ]
     },
     {
       "title": "Install kagent via CLI",
-      "explanation": "kagent ships a CLI that handles the full install — CRDs, controller, and the demo profile's pre-packaged agents (Prometheus / Grafana agents shipped alongside the controller).\n\n- `--profile demo` is the broadest install — controller plus the pre-packaged Prometheus / Grafana agents that observability missions rely on. The other documented profile, `--profile minimal`, ships the controller alone.\n- `--timeout 15m` overrides the CLI default of 5 min — enough headroom for a first-time install to settle without the wait phase failing.\n- The CLI installs into the `kagent` namespace by default.\n- `kubectl rollout status` then waits for the controller to be `Available` before we move on.",
+      "explanation": "kagent ships a CLI that handles the full install \u2014 CRDs, controller, and the demo profile's pre-packaged agents (Prometheus / Grafana agents shipped alongside the controller).\n\n- `--profile demo` is the broadest install \u2014 controller plus the pre-packaged Prometheus / Grafana agents that observability missions rely on. The other documented profile, `--profile minimal`, ships the controller alone.\n- `--timeout 15m` overrides the CLI default of 5 min \u2014 enough headroom for a first-time install to settle without the wait phase failing.\n- The CLI installs into the `kagent` namespace by default.\n- `kubectl rollout status` then waits for the controller to be `Available` before we move on.",
       "commands": [
-        { "label": "Install kagent", "command": "kagent install --profile demo --timeout 15m" },
-        { "label": "Watch the rollout", "command": "kubectl rollout status deployment/kagent-controller -n kagent" }
+        {
+          "label": "Install kagent",
+          "command": "kagent install --profile demo --timeout 15m"
+        },
+        {
+          "label": "Watch the rollout",
+          "command": "kubectl rollout status deployment/kagent-controller -n kagent"
+        }
       ]
     },
     {
       "title": "List the kagent CRDs",
       "explanation": "kagent extends Kubernetes with its own custom resource kinds (CRDs). The API server now knows how to handle an `Agent` the same way it handles a `Deployment`, which is what lets every Artemis tour describe its agent in YAML and `kubectl apply` it.\n\nRun the command below to confirm the new kinds are registered. You should see at least:\n\n- `agents.kagent.dev`: the agent itself (model, tools, prompt).\n- `modelconfigs.kagent.dev`: the LLM binding.\n- `toolservers.kagent.dev` and `remotemcpservers.kagent.dev`: the tool surface.\n\nThese kinds are what every UC tour will create.",
       "commands": [
-        { "label": "List kagent CRDs", "command": "kubectl get crds | grep kagent" }
+        {
+          "label": "List kagent CRDs",
+          "command": "kubectl get crds | grep kagent"
+        }
       ]
     },
     {
       "title": "Find the controller pod",
       "explanation": "The kagent **controller** is the workhorse that watches your CRDs and turns them into running things. When you create an `Agent` resource, the controller wires up its tools, binds the model, and stands up the request surface so the agent can actually answer questions.\n\nThe command below lists every pod in the `kagent` namespace. You want a `kagent-controller-...` pod in `Running` state, alongside a few helpers (UI, tool servers, postgres, etc.).",
       "commands": [
-        { "label": "List pods in the kagent namespace", "command": "kubectl get pods -n kagent" }
+        {
+          "label": "List pods in the kagent namespace",
+          "command": "kubectl get pods -n kagent"
+        }
       ]
     },
     {
       "title": "See the default ModelConfig",
       "explanation": "A `ModelConfig` is how an agent declares which LLM to use: provider, model name, and a reference to the credentials. Every agent points at a ModelConfig by name.\n\nThe demo profile pre-creates `default-model-config` so every Artemis agent (UC1 through UC4) can reuse the same one without each scenario wiring up its own credentials. The command below should show exactly that single ModelConfig in the `kagent` namespace.",
       "commands": [
-        { "label": "List ModelConfigs", "command": "kubectl get modelconfig -n kagent" }
+        {
+          "label": "List ModelConfigs",
+          "command": "kubectl get modelconfig -n kagent"
+        }
       ]
     },
     {

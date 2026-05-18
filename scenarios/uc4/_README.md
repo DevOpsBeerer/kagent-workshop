@@ -32,7 +32,7 @@ The coordinator's `tools[].type: Agent` references resolve same-namespace only i
 | Specialist                          | Source                                                        | Used for                                                                                |
 | ----------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `k8s-agent`                         | kagent built-in (installed by `make kagent-install`, demo profile) — already in `kagent` ns | Slots 1 and 2 — general K8s diagnose + remediate (image-pull and scheduling sub-tasks). Replaces the older read-only `artemis-mission-control-debugger` and `artemis-launch-pad-debugger`, which were biased toward their UC's specific symptom and lacked mutate tools. |
-| `artemis-rover-telemetry-debugger`  | [`../uc3/agents/agent.yaml`](../uc3/agents/agent.yaml) — UC3 ships it, UC4 reuses it via A2A | Slot 3 — combines K8s read+mutate with A2A delegation to kagent's `observability-agent` for the Grafana memory panel; remediates by patching the rover Deployment's memory limit. |
+| `artemis-rover-telemetry-debugger`  | [`agents/rover-telemetry-debugger.yaml`](agents/rover-telemetry-debugger.yaml) — applied alongside the coordinator by `make uc4-up`. (Originally shipped under `uc3/agents/`; relocated here once UC3 pivoted to the A2A auto-remediation tour.) | Slot 3 — combines K8s read+mutate with A2A delegation to kagent's `observability-agent` for the Grafana memory panel; remediates by patching the rover Deployment's memory limit. |
 
 `make uc{3,4}-up` apply the relevant `agents/` directories. UC1 and UC2 no longer ship Agent CRDs that UC4's coordinator depends on (UC2 ships its own `artemis-image-fetcher` for the UC2 tour only; UC4 does not delegate to it).
 
@@ -171,7 +171,7 @@ UC4 also depends on, but does not contain:
 
 - [`../mcp/`](../mcp/) — the custom bulb MCP (image source + KMCP config + per-vCluster manifests + RemoteMCPServer CRD).
 - [`../infra/observability/kagent-bridge-services.yaml`](../infra/observability/kagent-bridge-services.yaml) — the kagent ↔ artemis-observability namespace bridge (Prom + Graf ExternalName Services in `kagent` ns).
-- [`../uc3/agents/agent.yaml`](../uc3/agents/agent.yaml) — the `artemis-rover-telemetry-debugger` Agent CRD the coordinator delegates to for slot 3. (Slots 1 and 2 are handled by kagent's built-in `k8s-agent`, installed by `make kagent-install` — UC1/UC2 do not contribute Agent CRDs the coordinator depends on.)
+- (no external Agent CRDs required) — the `artemis-rover-telemetry-debugger` specialist now lives under [`agents/rover-telemetry-debugger.yaml`](agents/rover-telemetry-debugger.yaml) and is applied alongside the coordinator by `make uc4-up`. Slots 1 and 2 are handled by kagent's built-in `k8s-agent` (installed by `make kagent-install`). UC1/UC2/UC3 do not contribute Agent CRDs the coordinator depends on.
 
 Manifest filenames are numbered so `kubectl apply -f uc4/manifests/` applies them in dependency order (namespace → RBAC → Job → Services → Deployments).
 
@@ -211,15 +211,16 @@ For each cold-deploy iteration:
    ```
    The `RemoteMCPServer artemis-bulb-mcp` resource may initially show `Accepted=False` for ~7 s due to a pod-creation/reconciler race (STORY-023 + STORY-025 documented this); auto-recovers within 60 s, or trigger a re-reconcile via `kubectl annotate rmcps -n kagent artemis-bulb-mcp poke=$(date +%s) --overwrite`.
 
-4. **Bring up the rover-telemetry specialist** in `kagent` namespace (slots 1+2 will be served by the built-in `k8s-agent`, which `make kagent-install` already deployed):
+4. **Bring up UC4's agents** (coordinator + rover-telemetry specialist; slots 1+2 are served by the built-in `k8s-agent` that `make kagent-install` already deployed):
    ```bash
-   kubectl apply -f uc3/agents/
+   kubectl apply -f uc4/agents/
    ```
-   Verify it reaches `Accepted=True` within ~30 s:
+   Verify they reach `Accepted=True` within ~30 s:
    ```bash
-   kubectl get agent -n kagent -o wide | grep -E 'k8s-agent|artemis-rover-telemetry-debugger'
+   kubectl get agent -n kagent -o wide | grep -E 'k8s-agent|artemis-(rover-telemetry-debugger|mission-coordinator)'
    # → k8s-agent                            Declarative   python   True   True
    # → artemis-rover-telemetry-debugger     Declarative   python   True   True
+   # → artemis-mission-coordinator          Declarative   python   True   True
    ```
 
 5. **Bring up UC4** (manifests + coordinator + per-UC ModelConfig slot):
@@ -288,7 +289,7 @@ For each cold-deploy iteration:
     make uc4-down              # delete uc4/manifests + uc4/agents
     make mcp-down              # delete mcp/manifests (artemis-bulb-mcp)
     make observability-down    # delete infra/observability (bundle + bridge)
-    kubectl delete -f uc3/agents/                                       # rover-telemetry specialist
+    # rover-telemetry specialist is deleted by `make uc4-down` (it now lives under uc4/agents/)
     kubectl taint nodes --all artemis.kagent.dev/launch-pad-fault-      # clear the synthetic taint (no-op if Beat 4 already removed it)
     ```
     For a strict cold deploy (recommended for NFR-003), `make kind-down` between iterations and skip the per-resource teardowns above.

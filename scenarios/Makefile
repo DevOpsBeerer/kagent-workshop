@@ -206,8 +206,8 @@ endef
 
 $(foreach n,$(UCS),$(eval $(call UC_TARGETS,$(n))))
 
-# UC3 + UC4 additionally depend on the observability bundle (STORY-018).
-# Declared outside the macro so UC1/UC2 author dev-loop cycles stay fast — they
-# don't pull Prom + Graf images on every iteration.
-uc3-up: observability-up
+# UC4 additionally depends on the observability bundle (the rover-telemetry
+# slot's specialist agent delegates to kagent's observability-agent for
+# Grafana panels). Declared outside the macro so UC1/UC2/UC3 author dev-loop
+# cycles stay fast — they don't pull Prom + Graf images on every iteration.
 uc4-up: observability-up

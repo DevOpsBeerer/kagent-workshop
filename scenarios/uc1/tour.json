@@ -1,31 +1,11 @@
 {
   "id": "kagent-uc1-imagepullbackoff",
-  "title": "UC1 — Mission control's roster won't come online",
+  "title": "UC1 \u2014 Mission control's roster won't come online",
   "description": "Today's mission for the Artemis pad shift: bring mission-control's on-shift roster online, then hand the diagnosis to k8s agent through the kagent dashboard chat.",
   "steps": [
     {
-      "title": "Mission setup — bring today's roster online",
-      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the bundle below to your vCluster: namespace, service, and deployment. Once the apply completes, the roster should be reachable on the cluster.\n\nThree files are dropped into your workspace by this step (`fileEdits`), all under `uc1/manifests/`. The `kubectl apply -f` command below sends them to the cluster. The diagnostic agent you will talk to later in this tour is `k8s-agent`, kagent's built-in generic Kubernetes troubleshooter; it is already running in the cluster as part of kagent's demo profile, no extra deploy needed.",
-      "fileEdits": [
-        {
-          "type": "create",
-          "path": "uc1/manifests/00-namespace.yaml",
-          "overwrite": true,
-          "content": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: artemis-uc1\n  labels:\n    kagent-workshop/uc: uc1\n    kagent-workshop/scenario: imagepullbackoff\n"
-        },
-        {
-          "type": "create",
-          "path": "uc1/manifests/10-service.yaml",
-          "overwrite": true,
-          "content": "apiVersion: v1\nkind: Service\nmetadata:\n  name: mission-control\n  namespace: artemis-uc1\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc1\nspec:\n  type: ClusterIP\n  selector:\n    app: mission-control\n  ports:\n    - name: http\n      port: 8000\n      targetPort: http\n      protocol: TCP\n"
-        },
-        {
-          "type": "create",
-          "path": "uc1/manifests/20-deployment.yaml",
-          "overwrite": true,
-          "content": "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: mission-control\n  namespace: artemis-uc1\n  labels:\n    app: mission-control\n    kagent-workshop/uc: uc1\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: mission-control\n  template:\n    metadata:\n      labels:\n        app: mission-control\n    spec:\n      containers:\n        - name: mission-control\n          # Tag deliberately not published — produces ImagePullBackOff on first pull (FR-008).\n          image: rg.fr-par.scw.cloud/apogasa/mission-control:v999\n          ports:\n            - name: http\n              containerPort: 8000\n          env:\n            - name: APP_IDENTITY\n              value: mission-control\n          resources:\n            requests:\n              cpu: \"10m\"\n              memory: \"64Mi\"\n            limits:\n              cpu: \"100m\"\n              memory: \"128Mi\"\n"
-        }
-      ],
+      "title": "Mission setup \u2014 bring today's roster online",
+      "explanation": "Mission control is bringing today's on-shift roster online for the Artemis pad shift. Apply the bundle below to your vCluster: namespace, service, and deployment. Once the apply completes, the roster should be reachable on the cluster. The `kubectl apply -f` command below sends them to the cluster. The diagnostic agent you will talk to later in this tour is `k8s-agent`, kagent's built-in generic Kubernetes troubleshooter; it is already running in the cluster as part of kagent's demo profile, no extra deploy needed.",
       "commands": [
         {
           "label": "Apply the manifests",
@@ -34,7 +14,7 @@
       ]
     },
     {
-      "title": "Mission status check — is the roster live?",
+      "title": "Mission status check \u2014 is the roster live?",
       "explanation": "Mission control should be online by now. Today's pad-shift roster depends on it: every crew member opening their dashboard at shift start hits the `mission-control` deployment to pull their schedule.\n\nGive the kubelet ~30 s to settle, then run the command below to check the roster pod's state. The pod should be `Running` and `Ready` if the deployment is healthy.",
       "commands": [
         {
@@ -45,10 +25,10 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`k8s-agent`** through the kagent dashboard. `k8s-agent` is the generic Kubernetes troubleshooting agent that ships with kagent's demo profile, already running in the `kagent` namespace.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`k8s-agent`** (namespace `kagent`) and walk through the two prompts below in order.\n\n**Prompt 1: diagnose.** Paste this and read the agent's synthesis:\n\n> In the `artemis-uc1` namespace, what is failing?\n\n**Prompt 2: ask for the remediation command.** Once you have the root cause, ask the agent for the exact kubectl fix. Paste:\n\n> what kubectl command to excute to fix this.\n\n"
+      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`k8s-agent`** through the kagent dashboard. `k8s-agent` is the generic Kubernetes troubleshooting agent that ships with kagent's demo profile, already running in the `kagent` namespace.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`k8s-agent`** (namespace `kagent`) and walk through the two prompts below in order.\n\n**Prompt 1: diagnose.** Paste this and read the agent's synthesis:\n\n> In the `artemis-uc1` namespace, what is failing?\n\n**Prompt 2: ask for the remediation command.** Once you have the root cause, ask the agent for the exact kubectl fix. Paste:\n\n> what kubectl command to excute to fix this."
     },
     {
-      "title": "Mission recovery — roll the roster forward to the published tag",
+      "title": "Mission recovery \u2014 roll the roster forward to the published tag",
       "explanation": "The agent in Beat 3 named the bad tag and proposed the exact `kubectl set image` command. Run it now to update the Deployment in place: it rolls `mission-control` forward to its most recent published tag, `v1.0.0`. The kubelet will pull the new image and bring the roster online within ~30 s.\n\nWhen the command completes, re-run `kubectl get pods -n artemis-uc1` if you want to watch the Pod transition out of the stuck state into `Running`.",
       "commands": [
         {
