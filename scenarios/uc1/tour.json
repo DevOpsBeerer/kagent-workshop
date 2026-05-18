@@ -45,7 +45,7 @@
     },
     {
       "title": "Call the agent for help",
-      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`k8s-agent`** through the kagent dashboard. `k8s-agent` is the generic Kubernetes troubleshooting agent that ships with kagent's demo profile, already running in the `kagent` namespace.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`k8s-agent`** (namespace `kagent`) and walk through the two prompts below in order.\n\n**Prompt 1: diagnose.** Paste this and read the agent's synthesis:\n\n> In the `artemis-uc1` namespace, what is failing?."
+      "explanation": "The roster is stuck and the pad shift starts soon. Hand the diagnosis to **`k8s-agent`** through the kagent dashboard. `k8s-agent` is the generic Kubernetes troubleshooting agent that ships with kagent's demo profile, already running in the `kagent` namespace.\n\nUse the **dashboard** button in this workshop-tour extension to open the kagent web dashboard in your browser. In the dashboard, open the chat for **`k8s-agent`** (namespace `kagent`) and walk through the two prompts below in order.\n\n**Prompt 1: diagnose.** Paste this and read the agent's synthesis:\n\n> In the `artemis-uc1` namespace, what is failing?\n\n**Prompt 2: ask for the remediation command.** Once you have the root cause, ask the agent for the exact kubectl fix. Paste:\n\n> what kubectl command to excute to fix this.\n\n"
     },
     {
       "title": "Mission recovery — roll the roster forward to the published tag",
