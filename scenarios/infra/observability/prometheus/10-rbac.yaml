@@ -1,9 +1,15 @@
-# RBAC for Prometheus' kubernetes_sd_configs (role: endpoints).
+# RBAC for Prometheus.
 #
-# Prom needs cluster-scoped read on services / endpoints / pods / nodes to
-# resolve the targets the scrape config selects via the `monitoring=prom`
-# Service label. This is the minimum verb set documented for the `endpoints`
-# SD role; trimming further breaks discovery silently.
+# kubernetes_sd_configs needs cluster-scoped read on services / endpoints /
+# pods / nodes for target discovery (`role: endpoints`, `role: node`,
+# `role: pod`).
+#
+# `nodes/metrics` is the kubelet's own /metrics endpoint when reached directly
+# on port 10250; `nodes/proxy` is needed for the API-server proxy path
+# (`/api/v1/nodes/<name>/proxy/metrics(/cadvisor)`) that the
+# `kubernetes-nodes` + `kubernetes-nodes-cadvisor` scrape jobs use to avoid
+# direct 10250 reach. The nonResourceURL `/metrics` covers the API server's
+# own metrics endpoint scraped by the `kubernetes-apiservers` job.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -21,7 +27,13 @@ metadata:
     kagent-workshop/component: observability
 rules:
   - apiGroups: [""]
-    resources: ["services", "endpoints", "pods", "nodes", "nodes/metrics"]
+    resources:
+      - services
+      - endpoints
+      - pods
+      - nodes
+      - nodes/metrics
+      - nodes/proxy
     verbs: ["get", "list", "watch"]
   - nonResourceURLs: ["/metrics"]
     verbs: ["get"]

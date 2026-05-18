@@ -1,16 +1,37 @@
 # Prometheus scrape config.
 #
-# Two jobs:
-#   1. `prometheus`         — self-scrape on localhost:9090 so the Prom UI shows
-#                             at least one healthy target before any UC ships.
-#   2. `kubernetes-services` — `kubernetes_sd_configs: role: endpoints` filtered
-#                             to Services labelled `monitoring=prom`. This is
-#                             how UC3 / UC4 opt into being scraped without any
-#                             per-UC scrape-config edits (architecture §C5).
+# Six jobs (post-redesign — was two):
+#   1. prometheus            — self-scrape so the Prom UI shows at least one healthy
+#                              target before any UC ships.
+#   2. kubernetes-apiservers — API server /metrics over HTTPS using Prom's SA bearer
+#                              token. Surfaces apiserver_*, etcd_*, audit_*, admission
+#                              controller metrics.
+#   3. kubernetes-nodes      — kubelet /metrics via the API-server proxy. Surfaces
+#                              kubelet_*, volume_manager_*, cri_*. Uses the SA bearer
+#                              token; no direct 10250 reach needed (works in kind,
+#                              managed clusters, vClusters identically).
+#   4. kubernetes-nodes-cadvisor — kubelet /metrics/cadvisor via the API-server
+#                              proxy. Surfaces container_memory_working_set_bytes,
+#                              container_memory_rss, container_cpu_usage_seconds_total,
+#                              container_network_*, per-pod per-container. UC3/UC4
+#                              prefer this over the app's self-reported RSS because
+#                              the kernel OOM-kills on cgroup memory, not Python RSS.
+#   5. kubernetes-pods       — auto-scrape any Pod annotated
+#                              `prometheus.io/scrape: "true"`. Lets future apps opt
+#                              in without scrape-config edits.
+#   6. kubernetes-services   — Service-endpoints discovery filtered to
+#                              `monitoring=prom`. Original opt-in path UC3/UC4 use
+#                              for the `lunar-rover-telemetry` Service.
 #
 # Workshop-fast intervals (15s) — the UC3 leak curve needs to surface within
 # seconds of the participant starting the loop, not on the operator-style 60s
-# default.
+# default. cAdvisor is heavier so it gets a 30s scrape interval to keep Prom RAM
+# below the 256Mi limit on small kinds.
+#
+# RBAC for these jobs is already in 10-rbac.yaml:
+#   - get/list/watch on services, endpoints, pods, nodes, nodes/metrics
+#   - nonResourceURLs: ["/metrics"] for the apiserver job
+# No RBAC change needed to enable the new jobs.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,10 +47,95 @@ data:
       evaluation_interval: 15s
 
     scrape_configs:
+      # 1. Prometheus self-scrape.
       - job_name: prometheus
         static_configs:
           - targets: ['localhost:9090']
 
+      # 2. Kubernetes API server.
+      - job_name: kubernetes-apiservers
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: false
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          # Keep only the default/kubernetes endpoint (the API server itself).
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      # 3. Kubelet /metrics via the API-server proxy.
+      - job_name: kubernetes-nodes
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: false
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+
+      # 4. Kubelet cAdvisor /metrics/cadvisor via the API-server proxy.
+      - job_name: kubernetes-nodes-cadvisor
+        scrape_interval: 30s
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: false
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      # 5. Annotation-driven pod discovery.
+      #    Pods opt in with `prometheus.io/scrape: "true"` on the Pod template;
+      #    can override the path / port via `prometheus.io/path` and
+      #    `prometheus.io/port` annotations.
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+      # 6. Service-endpoints discovery — original UC3/UC4 opt-in path.
       - job_name: kubernetes-services
         kubernetes_sd_configs:
           - role: endpoints
@@ -43,8 +149,7 @@ data:
             action: replace
             target_label: __metrics_path__
             regex: (.+)
-          # Surface namespace + service name as labels on every series so the
-          # UC3 agent can query `process_resident_memory_bytes{kubernetes_service_name="..."}`.
+          # Surface namespace + service name as labels on every series.
           - source_labels: [__meta_kubernetes_namespace]
             action: replace
             target_label: kubernetes_namespace

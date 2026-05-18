@@ -16,6 +16,9 @@ resources:
   - grafana/20-configmap-datasource.yaml
   - grafana/30-deployment.yaml
   - grafana/40-service.yaml
+  - kube-state-metrics/10-rbac.yaml
+  - kube-state-metrics/20-deployment.yaml
+  - kube-state-metrics/30-service.yaml
 
 labels:
   - includeSelectors: false

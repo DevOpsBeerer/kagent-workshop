@@ -1,0 +1,28 @@
+# kube-state-metrics Service.
+#
+# Labelled `monitoring=prom` so the prometheus-server's `kubernetes-services`
+# scrape job auto-discovers it via the same opt-in path UC3/UC4 use for their
+# own workload Services. No scrape-config edits required to add KSM's metric
+# surface.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-state-metrics
+  namespace: artemis-observability
+  labels:
+    app: kube-state-metrics
+    kagent-workshop/component: observability
+    monitoring: prom
+spec:
+  type: ClusterIP
+  selector:
+    app: kube-state-metrics
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: http-metrics
+      protocol: TCP
+    - name: telemetry
+      port: 8081
+      targetPort: telemetry
+      protocol: TCP
