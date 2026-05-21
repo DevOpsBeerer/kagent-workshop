@@ -14,7 +14,7 @@ export type OperatorCardProps = {
 
 export function OperatorCard({ id, secret = "", onViewDetails, className }: OperatorCardProps) {
   const [open, setOpen] = useState(false);
-  const consoleUrl = `https://p${id}.workshop.qcs.ovh/`;
+  const consoleUrl = `https://p${id}.kagent-devopsdays.ch/`;
   const classes = ["ds-operator-card", className].filter(Boolean).join(" ");
 
   function handleViewDetails() {

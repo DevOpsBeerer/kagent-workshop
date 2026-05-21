@@ -13,11 +13,11 @@
         },
         {
           "label": "Build + publish the bulb MCP to the workshop registry",
-          "command": "kmcp build --project-dir mcp/ -t registry.workshop.qcs.ovh/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 --push --platform linux/amd64"
+          "command": "kmcp build --project-dir mcp/ -t registry.kagent-devopsdays.ch/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 --push --platform linux/amd64"
         },
         {
           "label": "Deploy the bulb MCP on kagent (kmcp creates MCPServer + Deployment + Service; --no-inspector skips the post-deploy browser inspector)",
-          "command": "kmcp deploy --file mcp/kmcp.yaml --image registry.workshop.qcs.ovh/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 --namespace kagent --transport http --no-inspector --env WORKSHOP_PARTICIPANT_LOGIN=$WORKSHOP_PARTICIPANT_LOGIN --env LIGHT_MANAGER_URL=https://mlc-system.workshop.qcs.ovh"
+          "command": "kmcp deploy --file mcp/kmcp.yaml --image registry.kagent-devopsdays.ch/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 --namespace kagent --transport http --no-inspector --env WORKSHOP_PARTICIPANT_LOGIN=$WORKSHOP_PARTICIPANT_LOGIN --env LIGHT_MANAGER_URL=https://mlc-system.kagent-devopsdays.ch"
         },
         {
           "label": "Apply the manifests",

@@ -185,12 +185,12 @@ For each cold-deploy iteration:
 2. **Build + deploy the custom bulb MCP.** Same shape the Beat 1 tour commands run; threads the two env vars the MCP needs (`WORKSHOP_PARTICIPANT_LOGIN` for tenancy, `LIGHT_MANAGER_URL` for the bulbs backend) and uses `--no-inspector` so the post-deploy step doesn't try to open a browser-side MCP inspector:
    ```bash
    kmcp build --project-dir mcp/ \
-       -t registry.workshop.qcs.ovh/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 \
+       -t registry.kagent-devopsdays.ch/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 \
        --push --platform linux/amd64
 
    kmcp deploy \
        --file mcp/kmcp.yaml \
-       --image registry.workshop.qcs.ovh/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 \
+       --image registry.kagent-devopsdays.ch/$WORKSHOP_PARTICIPANT_LOGIN/artemis-bulb-mcp:v0.1.0 \
        --namespace kagent \
        --transport http \
        --no-inspector \

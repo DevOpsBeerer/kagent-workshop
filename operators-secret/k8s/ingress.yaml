@@ -7,10 +7,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - operators.workshop.qcs.ovh
+        - operators.kagent-devopsdays.ch
       secretName: operators-workshop-tls
   rules:
-    - host: operators.workshop.qcs.ovh
+    - host: operators.kagent-devopsdays.ch
       http:
         paths:
           - path: /

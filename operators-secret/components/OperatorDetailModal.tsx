@@ -17,7 +17,7 @@ export function OperatorDetailModal({
   secret,
 }: OperatorDetailModalProps) {
   const inputId = `operator-${operatorId}-secret`;
-  const consoleUrl = `https://p${operatorId}.workshop.qcs.ovh/`;
+  const consoleUrl = `https://p${operatorId}.kagent-devopsdays.ch/`;
 
   function handleAccess() {
     window.location.href = consoleUrl;

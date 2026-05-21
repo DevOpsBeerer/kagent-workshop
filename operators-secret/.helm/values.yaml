@@ -54,14 +54,14 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: operators.workshop.qcs.ovh
+    - host: operators.kagent-devopsdays.ch
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: operators-workshop-tls
       hosts:
-        - operators.workshop.qcs.ovh
+        - operators.kagent-devopsdays.ch
 
 resources:
   limits:

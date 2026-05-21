@@ -14,7 +14,7 @@ export default function Page() {
   function handleViewOperator() {
     const trimmed = query.trim();
     if (!trimmed) return;
-    window.location.href = `https://p${trimmed}.workshop.qcs.ovh/`;
+    window.location.href = `https://p${trimmed}.kagent-devopsdays.ch/`;
   }
 
   return (

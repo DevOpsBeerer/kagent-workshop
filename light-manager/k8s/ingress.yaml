@@ -15,10 +15,10 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - mlc-system.workshop.qcs.ovh
+    - mlc-system.kagent-devopsdays.ch
     secretName: light-manager-tls
   rules:
-  - host: mlc-system.workshop.qcs.ovh
+  - host: mlc-system.kagent-devopsdays.ch
     http:
       paths:
       - path: /
