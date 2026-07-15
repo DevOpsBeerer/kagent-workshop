@@ -1,0 +1,43 @@
+name: Groundplan
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  # On a pull request: render the head and send it, so Groundplan can colour the
+  # diagram against main.
+  manifests:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: kustomize build light-manager/k8s > rendered.yaml
+      - name: Send rendered manifests to Groundplan
+        run: |
+          curl -sf -X POST "https://app.groundplan.qcs.ovh/api/v1/webhooks/ci/eae668fd-f58c-436a-be71-1965c7659656" \
+            -H "X-Groundplan-Token: ${{ secrets.GROUNDPLAN_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg ref "$GITHUB_REF" \
+              --arg sha "$GITHUB_SHA" \
+              --argjson pr ${{ github.event.pull_request.number }} \
+              --arg manifests "$(cat rendered.yaml)" \
+              '{ref:$ref, commit_sha:$sha, event:"pull_request", pr_number:$pr, payload:{manifests:$manifests}}')"
+  # On a merge to main: render main and send it — templates aren't manifests,
+  # so this render is the only thing Groundplan can document the branch from.
+  docs:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: kustomize build light-manager/k8s > rendered.yaml
+      - name: Send main's manifests to Groundplan
+        run: |
+          curl -sf -X POST "https://app.groundplan.qcs.ovh/api/v1/webhooks/ci/eae668fd-f58c-436a-be71-1965c7659656" \
+            -H "X-Groundplan-Token: ${{ secrets.GROUNDPLAN_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg ref "$GITHUB_REF" \
+              --arg sha "$GITHUB_SHA" \
+              --arg manifests "$(cat rendered.yaml)" \
+              '{ref:$ref, commit_sha:$sha, event:"push", payload:{manifests:$manifests}}')"
