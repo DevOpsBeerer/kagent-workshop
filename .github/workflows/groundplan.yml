@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: kustomize build overlays/prod > rendered.yaml
+      - run: kustomize build light-manager/k8s > rendered.yaml
       - name: Send rendered manifests to Groundplan
         run: |
           curl -sf -X POST "https://app.groundplan.qcs.ovh/api/v1/webhooks/ci/eae668fd-f58c-436a-be71-1965c7659656" \
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: kustomize build overlays/prod > rendered.yaml
+      - run: kustomize build light-manager/k8s > rendered.yaml
       - name: Send main's manifests to Groundplan
         run: |
           curl -sf -X POST "https://app.groundplan.qcs.ovh/api/v1/webhooks/ci/eae668fd-f58c-436a-be71-1965c7659656" \
